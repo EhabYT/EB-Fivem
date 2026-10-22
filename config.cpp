@@ -62,7 +62,11 @@ namespace Config
 
 		if (capturing)
 		{
-			for (int vk = 1; vk < 255; ++vk)
+			// vk 1..6 are the mouse buttons and reserved entries.  Binding one
+			// would flip the menu on every click - and the release edge of the
+			// click that armed the capture used to bind VK_LBUTTON on the very
+			// first capture frame.  Scan printable/keyboard keys only.
+			for (int vk = 7; vk < 255; ++vk)
 			{
 				if (GetAsyncKeyState(vk) & 1)
 				{

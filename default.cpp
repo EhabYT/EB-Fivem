@@ -30,9 +30,18 @@ namespace Default
 		// here, newest first.
 		ImGui::Spacing();
 		Gui::Seperator("##default_seperator_2");
-		ImGui::Text("Session activity");
 
 		const std::vector<std::string>& entries = Activity::Entries();
+		ImGui::Text("Session activity");
+		if (!entries.empty())
+		{
+			// Activity::Clear() existed since the log was introduced but
+			// nothing called it - the log could only grow until it capped.
+			ImGui::SameLine();
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 60.0f);
+			if (ImGui::Button("Clear##activity", ImVec2(60.0f, 20.0f)))
+				Activity::Clear();
+		}
 		if (entries.empty())
 		{
 			ImGui::TextColored(ImColor(93, 156, 214, 153), "Nothing yet this session.");

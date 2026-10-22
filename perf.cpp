@@ -47,6 +47,19 @@ namespace Perf
 			dl->AddRectFilled(ImVec2(mn.x + i * bw, mn.y + size.y - 1.0f - h),
 				ImVec2(mn.x + (i + 1) * bw, mn.y + size.y - 1.0f), col);
 		}
+		// Hover readout: the bars show the shape, the tooltip the numbers.
+		if (ImGui::IsMouseHoveringRect(mn, mx) && g_count > 0)
+		{
+			const int i = (int)((ImGui::GetMousePos().x - mn.x) / bw);
+			if (i >= 0 && i < g_count)
+			{
+				const float ms = g_ring[(g_head - g_count + i + kSlots) % kSlots];
+				const int ago = g_count - 1 - i;
+				char tip[48];
+				snprintf(tip, sizeof(tip), "%.1f ms, %d frame%s ago", ms, ago, ago == 1 ? "" : "s");
+				ImGui::SetTooltip("%s", tip);
+			}
+		}
 		ImGui::Dummy(size);
 	}
 

@@ -207,9 +207,29 @@ namespace Menu
 		// Restore the persisted position on the first frame only; afterwards the
 		// window is free to move and its new position is saved below.
 		if (Settings::Current.WindowX >= 0)
-			ImGui::SetNextWindowPos(
-				ImVec2((float)Settings::Current.WindowX, (float)Settings::Current.WindowY),
-				ImGuiCond_Once);
+		{
+			// A position persisted from another monitor setup (laptop undocked,
+			// monitor swapped) can be entirely off-screen today, which would
+			// leave the menu unreachable.  Clamp so an 80px strip - enough of
+			// the title bar to grab - always stays inside the virtual screen.
+			const float W = ImGui::GetStyle().WindowMinSize.x;
+			const float H = ImGui::GetStyle().WindowMinSize.y;
+			const float vx = (float)GetSystemMetrics(SM_XVIRTUALSCREEN);
+			const float vy = (float)GetSystemMetrics(SM_YVIRTUALSCREEN);
+			const float vw = (float)GetSystemMetrics(SM_CXVIRTUALSCREEN);
+			const float vh = (float)GetSystemMetrics(SM_CYVIRTUALSCREEN);
+			float px = (float)Settings::Current.WindowX;
+			float py = (float)Settings::Current.WindowY;
+			const float strip = 80.0f;
+			if (vw > 0.0f && vh > 0.0f)
+			{
+				if (px < vx - W + strip) px = vx - W + strip;
+				if (px > vx + vw - strip) px = vx + vw - strip;
+				if (py < vy - H + strip) py = vy - H + strip;
+				if (py > vy + vh - strip) py = vy + vh - strip;
+			}
+			ImGui::SetNextWindowPos(ImVec2(px, py), ImGuiCond_Once);
+		}
 
 		ImGui::Begin("redENGINE", NULL,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);

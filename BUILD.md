@@ -175,6 +175,10 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 51 | A letter or digit bound as toggle key flipped the menu on every keystroke while the user typed it into the editor or a filter box | The toggle poll ignores presses while `io.WantCaptureKeyboard` is true — but only for printable bindings, so INSERT/F-keys still close the menu with the editor focused |
 | 52 | The resource preview editor was `SetText()` on every frame its header was open: selection and scroll position reset 60–144×/s and the document re-tokenised at the same rate | Text is set only when the open resource changes (`lastDumped` guard) |
 | 53 | The Diagnostics uptime counted wall time since the menu first opened, so it kept rising while the menu was closed even though the graph next to it was frozen | `Perf` accumulates sampled (menu-open) time; the card reads "Menu open mm:ss" |
+| 54 | A window position persisted from another monitor setup (laptop undocked, monitor swapped) could place the whole menu off-screen on the next start, unreachable | The restored position is clamped into the virtual screen so an 80px strip of the window - enough title bar to grab - always stays visible |
+| 55 | The toggle-key capture scanned vk 1-254: binding a mouse button would flip the menu on every click, and the release edge of the click that armed the capture bound `VK_LBUTTON` on the first capture frame | The scan starts at vk 7, skipping VK_LBUTTON..VK_XBUTTON2 and the reserved entries |
+| 56 | `Activity::Clear()` existed since the session log was introduced but nothing ever called it - the log could only grow until it capped | "Clear" button on the landing tab's Session activity heading |
+| 57 | The frame-time sparkline showed a shape but no numbers | Hovering a bar reports its frame time and age ("x.x ms, n frames ago") in a tooltip |
 
 ---
 
