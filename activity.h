@@ -9,6 +9,7 @@
 namespace Activity
 {
 	void Push(const std::string& text);      // prepends "[HH:MM:SS] text"
+	unsigned TotalCount();                   // everything ever pushed, not just the kept 32
 	const std::vector<std::string>& Entries();   // newest first
 	void Clear();
 }

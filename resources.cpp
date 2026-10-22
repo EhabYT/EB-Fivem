@@ -5,6 +5,7 @@
 
 #include <direct.h>    // _mkdir
 #include <algorithm>   // std::find
+#include <cctype>      // tolower
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -37,6 +38,23 @@ std::vector<const char*> Triggers = {
 std::vector<const char*> BlockedEvents = {};
 
 static int ResourceTab = 0;
+static char g_resFilter[64] = { 0 };
+
+// Case-insensitive substring match for the list filter boxes.
+static bool MatchesFilter(const char* name, const char* filter)
+{
+	if (filter[0] == '\0')
+		return true;
+	char lowName[128], lowFilter[128];
+	size_t i;
+	for (i = 0; name[i] && i < sizeof(lowName) - 1; ++i)
+		lowName[i] = (char)tolower((unsigned char)name[i]);
+	lowName[i] = '\0';
+	for (i = 0; filter[i] && i < sizeof(lowFilter) - 1; ++i)
+		lowFilter[i] = (char)tolower((unsigned char)filter[i]);
+	lowFilter[i] = '\0';
+	return strstr(lowName, lowFilter) != NULL;
+}
 
 // fxmanifest written next to the dumped resource list.
 static const char* const ResourceMetaData =
@@ -208,11 +226,17 @@ namespace Resources
 
 		if (ResourceTab == 1)
 		{
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::InputTextWithHint("##resfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
+			const ImVec2 listSize1(avail.x, ImGui::GetContentRegionAvail().y - 48.0f);
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
-			if (ImGui::BeginListBox("##resourcebox", listSize))
+			if (ImGui::BeginListBox("##resourcebox", listSize1))
 			{
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
+					if (!MatchesFilter(resources[i], g_resFilter))
+						continue;
 					if (ImGui::CollapsingHeader(resources[i]))
 					{
 						if (strcmp(resources[i], "_cfx_internal") == 0 || strcmp(resources[i], "fivem") == 0)
@@ -281,11 +305,17 @@ namespace Resources
 		}
 		else if (ResourceTab == 3) // Stopper
 		{
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
+			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - 48.0f);
+
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(31, 58, 97, 255));
-			if (ImGui::BeginListBox("##resourcestopperbox", listSize))
+			if (ImGui::BeginListBox("##resourcestopperbox", listSize3))
 			{
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
+					if (!MatchesFilter(resources[i], g_resFilter))
+						continue;
 					const bool is_selected = (selectedResource == i);
 					if (ImGui::Selectable(resources[i], is_selected))
 						selectedResource = i;

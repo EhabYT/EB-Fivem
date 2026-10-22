@@ -14,7 +14,8 @@ invented:
   menu.cpp       Begin("redENGINE", NoScrollbar|NoCollapse|NoResize), SidebarItems[]
                  labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
-                 Load from File 180x30, resource combo
+                 Load from File 180x30, resource combo,
+                 status line (Ln/Col/lines) between editor and buttons
   gui.h          PrimaryButton fill (rest #3778B5, hover #5D9CD6, press #1D5188)
   toasts.cpp     card metrics: 320 max width, 3px kind bar, 8px inner padding
   menu.cpp       drop shadow (three stacked rects), brand rule under the title
@@ -317,7 +318,7 @@ R(CX0, y, CX1, y + 1, C_WINDOW_BG)
 y += 1 + ITEM_SPACING_Y
 
 avail_w, avail_h = CX1 - CX0, CY1 - y
-ed_w, ed_h = int(avail_w - 16), int(avail_h - 52)
+ed_w, ed_h = int(avail_w - 16), int(avail_h - 52 - LINE_ADV)
 ex0, ey0, ex1, ey1 = CX0, y, CX0 + ed_w, y + ed_h
 
 R(ex0, ey0, ex1, ey1, P["bg"])
@@ -327,8 +328,14 @@ gutter = TW("0" * len(str(len(SAMPLE)))) + 10      # mTextStart = digits + mLeft
 tx = ex0 + gutter + 4
 CURSOR_LINE = len(SAMPLE) - 1
 
-for ln, runs in enumerate(colorize(SAMPLE)):
-    ly = ey0 + 4 + ln * LINE_ADV
+# the widget scrolls the cursor into view when the box is shorter than the
+# document, so only the last cap lines are visible
+_cols = colorize(SAMPLE)
+_cap = max(1, int((ed_h - 8) // LINE_ADV))
+_first = max(0, len(SAMPLE) - _cap)
+for ln in range(_first, len(SAMPLE)):
+    runs = _cols[ln]
+    ly = ey0 + 4 + (ln - _first) * LINE_ADV
     if ln == CURSOR_LINE:
         R(ex0+1, ly, ex1-1, ly+LINE_ADV, blend(P["cline_inact"], P["bg"]))
         R(ex0+1, ly, ex1-1, ly+1, blend(P["cline_edge"], P["bg"]))
@@ -341,8 +348,11 @@ for ln, runs in enumerate(colorize(SAMPLE)):
     if ln == CURSOR_LINE:
         R(cx + 1, ly + 6, cx + 2, ly + LINE_ADV - 6, P["cursor"])
 
+# status line (exec.cpp): cursor + document size, muted accent
+T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
+
 # button row: Execute 116x30, Load from File 180x30, combo fills the rest
-y = ey1 + ITEM_SPACING_Y
+y = ey1 + LINE_ADV + ITEM_SPACING_Y
 bh = 30
 # Execute is a Gui::PrimaryButton: brand fill, soft top highlight, centred label
 d.rounded_rectangle([CX0*S, y*S, (CX0+116)*S-1, (y+bh)*S-1], radius=6*S, fill=C_PRIMARY)

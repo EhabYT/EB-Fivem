@@ -152,6 +152,7 @@
     <ClCompile Include="activity.cpp" />
     <ClCompile Include="settings.cpp" />
     <ClCompile Include="toasts.cpp" />
+    <ClCompile Include="perf.cpp" />
     <ClCompile Include="default.cpp" />
     <ClCompile Include="demo.cpp" />
     <ClCompile Include="luamenus.cpp" />
@@ -187,6 +188,7 @@
     <ClInclude Include="activity.h" />
     <ClInclude Include="settings.h" />
     <ClInclude Include="toasts.h" />
+    <ClInclude Include="perf.h" />
     <ClInclude Include="demo.h" />
     <ClInclude Include="font_awesome.h" />
     <ClInclude Include="gui.h" />

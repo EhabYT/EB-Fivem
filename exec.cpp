@@ -54,7 +54,17 @@ namespace Executor
 		// measured before the sidebar column was accounted for, so the editor
 		// overflowed past the right edge and under the button row.
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
-		editor.Render("##Null", ImVec2(avail.x - 16.0f, avail.y - 52.0f), true);
+		const float statusH = ImGui::GetTextLineHeightWithSpacing();
+		editor.Render("##Null", ImVec2(avail.x - 16.0f, avail.y - 52.0f - statusH), true);
+
+		// Status line: the editor widget shows neither cursor position nor
+		// document size, so a 400-line paste looked identical to an empty buffer.
+		const TextEditor::Coordinates cur = editor.GetCursorPosition();
+		char status[96];
+		snprintf(status, sizeof(status), "Ln %d, Col %d  |  %d lines  |  Lua%s",
+			cur.mLine + 1, cur.mColumn + 1, editor.GetTotalLines(),
+			editor.IsReadOnly() ? "  |  read-only" : "");
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", status);
 		ImGui::Spacing();
 
 		if (Gui::PrimaryButton(ICON_FA_CODE " Execute", ImVec2(116, 30)))

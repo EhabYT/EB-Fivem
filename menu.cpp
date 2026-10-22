@@ -4,6 +4,7 @@
 #include "font_awesome.h"
 #include "settings.h"
 #include "toasts.h"
+#include "perf.h"
 
 #include <cstdio>
 #include <cmath>
@@ -168,6 +169,9 @@ namespace Menu
 		if (lastRender < 0.0 || (tNow - lastRender) > 0.25)
 			openT = tNow;
 		lastRender = tNow;
+
+		// Frame-time history for the Diagnostics card on the landing tab.
+		Perf::Sample(ImGui::GetIO().DeltaTime * 1000.0f);
 
 		float fade = 1.0f;
 		if (Settings::Current.Animations)

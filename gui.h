@@ -4,6 +4,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "font_awesome.h"
+#include "settings.h"
 
 #include <Windows.h>
 #include <cstring>
@@ -112,12 +113,18 @@ namespace Gui
 	inline bool Toggle(const char* label, bool* v)
 	{
 		ImGui::PushID(label);
+		const ImGuiStyle& style = ImGui::GetStyle();
 		const float rowH = ImGui::GetFrameHeight();
 		const float trackW = 40.0f, trackH = 20.0f;
-		ImVec2 mn = ImGui::GetCursorScreenPos();
-		mn.y += (rowH - trackH) * 0.5f;
 
-		const bool clicked = ImGui::InvisibleButton("##switch", ImVec2(trackW, rowH));
+		// The whole row (track + label) is the hit area, like a stock checkbox;
+		// the first version only accepted clicks on the 40px track.
+		const char* hash = strstr(label, "##");
+		const int labelLen = hash ? (int)(hash - label) : (int)strlen(label);
+		const ImVec2 labelSize = ImGui::CalcTextSize(label, label + labelLen, true);
+		const ImVec2 mn = ImGui::GetCursorScreenPos();
+		const bool clicked = ImGui::InvisibleButton("##switch",
+			ImVec2(trackW + style.ItemSpacing.x + labelSize.x, rowH));
 		if (clicked)
 			*v = !*v;
 
@@ -125,25 +132,25 @@ namespace Gui
 		const ImGuiID animId = ImGui::GetID("##switch_anim");
 		const float target = *v ? 1.0f : 0.0f;
 		float t = st->GetFloat(animId, target);
-		t += (target - t) * (ImGui::GetIO().DeltaTime * 12.0f < 1.0f ? ImGui::GetIO().DeltaTime * 12.0f : 1.0f);
-		if (t - target < 0.001f && target - t < 0.001f)
-			t = target;
+		if (Settings::Current.Animations)
+		{
+			t += (target - t) * (ImGui::GetIO().DeltaTime * 12.0f < 1.0f ? ImGui::GetIO().DeltaTime * 12.0f : 1.0f);
+			if (t - target < 0.001f && target - t < 0.001f)
+				t = target;
+		}
+		else
+			t = target;   // animations off means no motion, not even here
 		st->SetFloat(animId, t);
 
 		ImDrawList* dl = ImGui::GetWindowDrawList();
-		dl->AddRectFilled(mn, ImVec2(mn.x + trackW, mn.y + trackH),
+		const ImVec2 trackMin(mn.x, mn.y + (rowH - trackH) * 0.5f);
+		dl->AddRectFilled(trackMin, ImVec2(trackMin.x + trackW, trackMin.y + trackH),
 			MixColor(IM_COL32(31, 58, 97, 255), IM_COL32(55, 120, 181, 255), t), trackH * 0.5f);
 		const float knobR = trackH * 0.5f - 3.0f;
-		dl->AddCircleFilled(ImVec2(mn.x + trackH * 0.5f + (trackW - trackH) * t, mn.y + trackH * 0.5f),
-			knobR, IM_COL32(255, 255, 255, 255));
-
-		// Label without the ##id suffix.
-		const char* hash = strstr(label, "##");
-		ImGui::SameLine();
-		if (hash)
-			ImGui::Text("%.*s", (int)(hash - label), label);
-		else
-			ImGui::Text("%s", label);
+		dl->AddCircleFilled(ImVec2(trackMin.x + trackH * 0.5f + (trackW - trackH) * t,
+			trackMin.y + trackH * 0.5f), knobR, IM_COL32(255, 255, 255, 255));
+		dl->AddText(ImVec2(mn.x + trackW + style.ItemSpacing.x, mn.y + (rowH - labelSize.y) * 0.5f),
+			ImGui::GetColorU32(ImGuiCol_Text), label, label + labelLen);
 		ImGui::PopID();
 		return clicked;
 	}

@@ -168,6 +168,10 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 44 | Primary actions (Execute, Save All Resources, Run <menu>) drew in the same navy as every secondary button, so nothing read as "the main thing here" | `Gui::PrimaryButton`: brand-filled button (rest #3778B5, hover #5D9CD6, pressed #1D5188) with a soft top highlight and centred label, input still via `InvisibleButton` |
 | 45 | Stock square checkboxes for the Config switches | `Gui::Toggle`: animated switch whose knob eases via per-widget `ImGuiStorage` state; used for Safe Mode, ScriptHook Bypass and the two new Interface toggles |
 | 46 | Motion and toast feedback were all-or-nothing with no way to opt out | Config → Interface: "Animations" and "Toast notifications" switches, persisted in `settings.ini` `[ui]` |
+| 47 | The editor showed neither cursor position nor document size — a 400-line paste looked identical to an empty buffer | Status line under the editor: `Ln n, Col n \| n lines \| Lua` (+ read-only flag) from `GetCursorPosition()` / `GetTotalLines()` |
+| 48 | The 34-entry resource list could only be scanned by eye, in the file browser and the stopper alike | Case-insensitive filter input (`InputTextWithHint`) above both lists; selections stay indexed into the real vector, never the filtered view |
+| 49 | Frame pacing was one instantaneous number with no history, so a hitch vanished before it could be read | `perf.h`/`.cpp`: 120-frame ring of frame times drawn as a sparkline (60 FPS guide line, >33.3 ms bars in the semantic red) on the landing tab, with session uptime and action count |
+| 50 | `Gui::Toggle`'s hit area was the 40px track only (a stock checkbox toggles from its label too), and the knob kept easing with animations switched off | Hit area covers track + label; knob easing is gated on Config → Animations |
 
 ---
 

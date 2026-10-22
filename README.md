@@ -322,6 +322,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   short fade, the sidebar's tab marker slides to the selected entry, and primary actions
   (Execute, Save All Resources, Run) draw in the brand blue instead of the default navy.
   Config → Interface can switch animations and toasts off; both are persisted in `settings.ini`.
+* **Tab comfort:** the editor carries a status line (Ln/Col, line count, language), the Resources
+  file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
+  card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
 
 ## Credits
 
