@@ -286,16 +286,28 @@ namespace Menu
 		if (Settings::Current.Toasts)
 			Toasts::Render();
 
-		// Remember where the window ended up so the next session opens there.
-		// Captured before End() (after it there is no current window to ask) and
-		// throttled to ~1/s plus a distance threshold: writing an .ini every
-		// frame would be wasteful, and the value is at most a second stale when
-		// the DLL unloads.
+		// Remember where the window ended up so the next session opens there -
+		// but only once the user actually dragged it.  The old logic saved on
+		// the first frame after open even for a window that never moved, which
+		// was pointless at best: after Config -> "Reset interface settings"
+		// (WindowX < 0) it re-persisted the current position within one frame
+		// and silently undid the reset.  Captured before End() (after it there
+		// is no current window to ask) and throttled to ~1/s plus a distance
+		// threshold: writing an .ini every frame would be wasteful, and the
+		// value is at most a second stale when the DLL unloads.
 		const ImVec2 pos = ImGui::GetWindowPos();
+		static ImVec2 lastPos(-1.0f, -1.0f);
 		static ImVec2 lastSaved(-1.0f, -1.0f);
 		static double lastSaveTime = -1.0;
+		static bool armed = false;   // a real drag happened since the last reset
 		const double now = ImGui::GetTime();
-		if ((int)pos.x != Settings::Current.WindowX || (int)pos.y != Settings::Current.WindowY)
+		if (Settings::Current.WindowX < 0)
+			armed = false;           // never persisted / just reset: wait for a drag
+		if (lastPos.x >= 0.0f &&
+			(fabsf(pos.x - lastPos.x) > 4.0f || fabsf(pos.y - lastPos.y) > 4.0f))
+			armed = true;            // moved between frames => user drag, not layout
+		lastPos = pos;
+		if (armed && ((int)pos.x != Settings::Current.WindowX || (int)pos.y != Settings::Current.WindowY))
 		{
 			const bool movedFar = fabsf(pos.x - lastSaved.x) > 40.0f || fabsf(pos.y - lastSaved.y) > 40.0f;
 			if (lastSaveTime < 0.0 || (now - lastSaveTime) > 1.0 || movedFar)

@@ -190,6 +190,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 65 | Whitespace-dot visibility in the editor was hardcoded off in `Executor::Init()` | "Whitespace" switch at the end of the editor toolbar, persisted as `[ui] whitespace` |
 | 66 | The Resources sub-tab (File Browser / Triggers / Stopper) fell back to the empty default view on every re-inject | Sub-tab persisted as `[menu] resourcetab`, clamped to 0–3 on load |
 | 67 | A bad key binding or a window dragged off-screen could only be undone by hand-editing or deleting `settings.ini` | Config → Interface "Reset interface settings" restores the compiled defaults and rewrites the ini in one click, with a toast saying what applies when |
+| 68 | The window-position saver persisted on the first frame after open even for a window that never moved — so after "Reset interface settings" it re-persisted the current position within one frame and silently undid the reset | The saver now arms only on a real inter-frame drag (>4px) and disarms whenever the ini says "not persisted" (`WindowX < 0`); an unmoved window stays unpersisted and a reset survives until the next drag |
 
 ---
 
