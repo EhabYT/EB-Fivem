@@ -56,6 +56,12 @@ namespace Toasts
 		const float gap     = 6.0f;
 		ImFont* font = ImGui::GetFont();
 
+		// Click a card to dismiss it - but never steal a click that belongs to
+		// a widget sitting under the stack.
+		const bool dismissClick = ImGui::IsMouseClicked(0)
+			&& !ImGui::IsAnyItemHovered() && !ImGui::IsAnyItemActive();
+		const ImVec2 mouse = ImGui::GetMousePos();
+
 		// Newest sits lowest; walk backwards so the stack grows upwards.
 		float cursorY = wp.y + ws.y - pad;
 		for (int i = (int)g_entries.size() - 1; i >= 0; --i)
@@ -85,6 +91,13 @@ namespace Toasts
 			const float slide = (1.0f - a) * 14.0f;
 			const ImVec2 mn(wp.x + ws.x - pad - w + slide, cursorY);
 			const ImVec2 mx(mn.x + w, mn.y + h);
+
+			if (dismissClick && mouse.x >= mn.x && mouse.x <= mx.x
+				&& mouse.y >= mn.y && mouse.y <= mx.y)
+			{
+				g_entries.erase(g_entries.begin() + i);
+				continue;
+			}
 
 			dl->AddRectFilled(mn, mx, IM_COL32(31, 58, 97, (int)(242.0f * a)), 6.0f);
 			dl->AddRect(mn, mx, IM_COL32(93, 156, 214, (int)(110.0f * a)), 6.0f);

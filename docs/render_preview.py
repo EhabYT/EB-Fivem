@@ -317,6 +317,14 @@ y = CY0 + LINE_ADV
 R(CX0, y, CX1, y + 1, C_WINDOW_BG)
 y += 1 + ITEM_SPACING_Y
 
+# editor toolbar (exec.cpp): icon buttons for undo/redo/copy/paste/clear
+TB = 26
+for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d"]):
+    _bx = CX0 + _k * (TB + ITEM_SPACING_X)
+    R(_bx, y, _bx + TB, y + TB, C_BUTTON)
+    T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, C_TEXT, f_icon, 1.0)
+y += TB + ITEM_SPACING_Y
+
 avail_w, avail_h = CX1 - CX0, CY1 - y
 ed_w, ed_h = int(avail_w - 16), int(avail_h - 52 - LINE_ADV)
 ex0, ey0, ex1, ey1 = CX0, y, CX0 + ed_w, y + ed_h

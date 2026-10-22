@@ -184,6 +184,9 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 59 | The throttled (~1/s) window-position save could lose up to a second of window movement when the DLL unloaded | `DLL_PROCESS_DETACH` flushes `Settings::Save()` before teardown |
 | 60 | The menu was mouse-only: with a dead mouse, or in any accessibility scenario, no control was reachable at all | `ImGuiConfigFlags_NavEnableKeyboard`: Tab/arrows move the focus, Enter/Space activates; the nav focus rectangle draws in the brand accent, and Config → Interface states the keys |
 | 61 | The printable-toggle-key typing guard tested `io.WantCaptureKeyboard`, which is also true whenever keyboard navigation is active — enabling nav would have killed printable bindings outright | The guard tests `io.WantTextInput` (a text widget is actually consuming input), which is the precise condition and nav-safe |
+| 62 | Editor actions were keyboard-shortcut-only: with the focus elsewhere, or under keyboard nav, undo/copy/paste were unreachable, and nothing made them discoverable | Icon toolbar above the editor (undo / redo / copy / paste / clear); tooltips name the shortcut each button mirrors |
+| 63 | The status line showed where the cursor is but not what a selection covers | With an active selection the line appends "n selected" |
+| 64 | Toasts could only expire on their own; a stack covering a widget had to be waited out | Clicking a card dismisses it; clicks on widgets under the stack are never stolen (`IsAnyItemHovered` / `IsAnyItemActive` guard) |
 
 ---
 

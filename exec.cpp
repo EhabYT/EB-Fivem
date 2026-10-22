@@ -44,6 +44,37 @@ namespace Executor
 	{
 		Gui::SectionTitle("Executor", "##under_text1");
 
+		// Mouse-reachable editor actions.  The Ctrl+Z/Y/C/V shortcuts work
+		// inside the editor, but with keyboard-nav focus a button is the only
+		// path, and icon buttons make the actions discoverable in the first
+		// place.  The tooltips name the shortcut each button mirrors.
+		const float tb = 26.0f;
+		if (ImGui::Button(ICON_FA_UNDO "##ed_undo", ImVec2(tb, tb)))
+			editor.Undo();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Undo (Ctrl+Z)");
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_REDO "##ed_redo", ImVec2(tb, tb)))
+			editor.Redo();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Redo (Ctrl+Y)");
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_COPY "##ed_copy", ImVec2(tb, tb)))
+			editor.Copy();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Copy selection (Ctrl+C)");
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_PASTE "##ed_paste", ImVec2(tb, tb)))
+			editor.Paste();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Paste (Ctrl+V)");
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_ERASER "##ed_clear", ImVec2(tb, tb)))
+			editor.SetText("");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Clear the buffer");
+		ImGui::Spacing();
+
 		// The Resource stopper can shrink `resources`, so keep the selection in range.
 		if (!resources.empty() && selectedResource >= (int)resources.size())
 			selectedResource = (int)resources.size() - 1;
@@ -55,7 +86,7 @@ namespace Executor
 		// overflowed past the right edge and under the button row.
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
 		const float statusH = ImGui::GetTextLineHeightWithSpacing();
-		editor.Render("##Null", ImVec2(avail.x - 16.0f, avail.y - 52.0f - statusH), true);
+		editor.Render("##Null", ImVec2(avail.x - 16.0f, avail.y - 52.0f - statusH - tb - 4.0f), true);
 
 		// Status line: the editor widget shows neither cursor position nor
 		// document size, so a 400-line paste looked identical to an empty buffer.
@@ -64,7 +95,10 @@ namespace Executor
 		snprintf(status, sizeof(status), "Ln %d, Col %d  |  %d lines  |  Lua%s",
 			cur.mLine + 1, cur.mColumn + 1, editor.GetTotalLines(),
 			editor.IsReadOnly() ? "  |  read-only" : "");
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", status);
+		std::string statusLine = status;
+		if (editor.HasSelection())
+			statusLine += "  |  " + std::to_string(editor.GetSelectedText().size()) + " selected";
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", statusLine.c_str());
 		ImGui::Spacing();
 
 		if (Gui::PrimaryButton(ICON_FA_CODE " Execute", ImVec2(116, 30)))
