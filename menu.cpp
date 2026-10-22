@@ -2,8 +2,10 @@
 #include "tabs.h"
 #include "gui.h"
 #include "font_awesome.h"
+#include "settings.h"
 
 #include <cstdio>
+#include <cmath>
 #include <string>
 
 namespace Menu
@@ -27,6 +29,14 @@ namespace Menu
 
 	// Draws the left-hand column: logo, the tab buttons, and the footer text.
 	// File-local - nothing outside this translation unit has a reason to call it.
+	// Same as CenteredInSidebar but in a chosen colour (the FPS readout).
+	static void CenteredInSidebarColored(const char* text, ImU32 col)
+	{
+		const float w = ImGui::CalcTextSize(text).x;
+		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth - w) * 0.5f));
+		ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), "%s", text);
+	}
+
 	// Draws one line of the sidebar footer centred in the sidebar column.
 	static void CenteredInSidebar(const char* text)
 	{
@@ -73,7 +83,11 @@ namespace Menu
 				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
 
 			if (ImGui::Button(SidebarItems[i].label, ImVec2(SidebarWidth, SidebarButtonHeight)))
+			{
 				Tab = SidebarItems[i].tab;
+				Settings::Current.Tab = Tab;
+				Settings::Save();
+			}
 
 			if (active)
 			{
@@ -96,7 +110,16 @@ namespace Menu
 		snprintf(buildDate, sizeof(buildDate), "Build Date: %s", __DATE__);
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().WindowPadding.y
-			- 2.0f * ImGui::GetTextLineHeightWithSpacing());
+			- 3.0f * ImGui::GetTextLineHeightWithSpacing());
+
+		// Live frame rate / frame time from ImGui's own smoothed counter, so the
+		// overlay can answer "is it the menu or the game?" without a profiler.
+		const float fps = ImGui::GetIO().Framerate;
+		char fpsLine[48];
+		snprintf(fpsLine, sizeof(fpsLine), "FPS %.0f  |  %.1f ms",
+			fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
+		CenteredInSidebarColored(fpsLine, Accent);
+
 		CenteredInSidebar("Licensed to #4278");
 		CenteredInSidebar(buildDate);
 
@@ -112,6 +135,13 @@ namespace Menu
 		//redENGINE Remade : by xo1337
 		// NoCollapse/NoResize: the layout below is pixel-positioned, so a
 		// user-resized or collapsed window just produced broken frames.
+		// Restore the persisted position on the first frame only; afterwards the
+		// window is free to move and its new position is saved below.
+		if (Settings::Current.WindowX >= 0)
+			ImGui::SetNextWindowPos(
+				ImVec2((float)Settings::Current.WindowX, (float)Settings::Current.WindowY),
+				ImGuiCond_Once);
+
 		ImGui::Begin("redENGINE", NULL,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
@@ -149,6 +179,26 @@ namespace Menu
 			Tabs::Render();
 
 			ImGui::EndTable();
+		}
+
+		// Remember where the window ended up so the next session opens there.
+		// Captured before End() (after it there is no current window to ask) and
+		// throttled to ~1/s plus a distance threshold: writing an .ini every
+		// frame would be wasteful, and the value is at most a second stale when
+		// the DLL unloads.
+		const ImVec2 pos = ImGui::GetWindowPos();
+		static ImVec2 lastSaved(-1.0f, -1.0f);
+		static double lastSaveTime = -1.0;
+		const double now = ImGui::GetTime();
+		if ((int)pos.x != Settings::Current.WindowX || (int)pos.y != Settings::Current.WindowY)
+		{
+			const bool movedFar = fabsf(pos.x - lastSaved.x) > 40.0f || fabsf(pos.y - lastSaved.y) > 40.0f;
+			if (lastSaveTime < 0.0 || (now - lastSaveTime) > 1.0 || movedFar)
+			{
+				Settings::SaveWindowPos(pos.x, pos.y);
+				lastSaved = pos;
+				lastSaveTime = now;
+			}
 		}
 
 		ImGui::End();

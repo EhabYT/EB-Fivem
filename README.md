@@ -311,6 +311,11 @@ Until then there is **no CI and no compile proof** — every check on this branc
   red on purpose. `rE.png` was recoloured to the light ramp as a vertical gradient — white outline
   and alpha channel untouched — and [`docs/render_preview.py`](docs/render_preview.py) regenerates
   `docs/preview.png` from exactly these constants.
+* **Interface preferences persist** in `<DLL folder>\settings.ini`: window position, last open tab
+  and the overlay toggle key (Config → "Toggle key", click-to-capture, ESC cancels). The sidebar
+  footer carries a live FPS / frame-time readout, and the landing tab lists a timestamped session
+  log of loads, dumps, copies and stop/run requests — the actions whose only other feedback is a
+  message box. All of it is in `settings.cpp` / `activity.cpp`.
 
 ## Credits
 

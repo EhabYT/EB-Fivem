@@ -1,4 +1,9 @@
 #include "config.h"
+#include "activity.h"
+#include "settings.h"
+
+#include <Windows.h>
+#include <string>
 
 namespace Config
 {
@@ -45,6 +50,36 @@ namespace Config
 		ImGui::PopStyleVar();
 
 		Gui::Seperator("##config_seperator_4");
+
+		// Interface preferences: which key toggles the overlay.  Click the button,
+		// then press the key; ESC cancels.  Persisted with the rest of settings.
+		ImGui::Text("Interface");
+		Gui::Seperator("##config_seperator_5");
+
+		static bool capturing = false;
+		const std::string label = capturing
+			? std::string("press any key...  (ESC cancels)")
+			: std::string("Toggle key:  ") + Settings::KeyName(Settings::Current.ToggleKey);
+		if (ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 30)))
+			capturing = !capturing;
+
+		if (capturing)
+		{
+			for (int vk = 1; vk < 255; ++vk)
+			{
+				if (GetAsyncKeyState(vk) & 1)
+				{
+					if (vk != VK_ESCAPE)
+					{
+						Settings::Current.ToggleKey = vk;
+						Settings::Save();
+						Activity::Push(std::string("Toggle key set to ") + Settings::KeyName(vk));
+					}
+					capturing = false;
+					break;
+				}
+			}
+		}
 
 		ImGui::EndChild();
 		ImGui::SameLine();

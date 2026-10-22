@@ -1,6 +1,7 @@
 #include "luamenus.h"
 #include "gui.h"
 #include "font_awesome.h"
+#include "activity.h"
 
 #include "imgui/imgui.h"
 
@@ -72,6 +73,8 @@ namespace Menus
 				MessageBoxA(NULL,
 					(std::string("'") + items[selected] + "' is not bundled with this build.").c_str(),
 					"redENGINE", MB_OK | MB_ICONINFORMATION);
+				Activity::Push(std::string("Run requested for '") + items[selected]
+					+ "' (not bundled).");
 			}
 		}
 

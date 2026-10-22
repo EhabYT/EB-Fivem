@@ -1,6 +1,7 @@
 #include "includes.h"
 
-#include "menu.h"          // Menu::Render / IsMenuOpen / logo
+#include "menu.h"
+#include "settings.h"          // Menu::Render / IsMenuOpen / logo
 #include "menu_style.h"    // ApplyStyle()
 #include "assets.h"        // ResolveAssetPath()
 #include "exec.h"          // Executor::Init()
@@ -223,6 +224,12 @@ void InitImGui()
 	// Style is static: apply it once here instead of on every single frame.
 	ApplyStyle();
 
+	// Interface preferences (window position, last tab, toggle key) live next to
+	// the DLL so a re-inject restores the previous session instead of resetting
+	// the window to the top-left and the tab to the landing page.
+	Settings::Load();
+	Menu::Tab = Settings::Current.Tab;
+
 	// One-time widget setup for the tabs that own a TextEditor.
 	Executor::Init();
 	Resources::Init();
@@ -369,8 +376,9 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	// ApplyStyle(), which is now called once at init instead of every frame.
 	ImGui::GetIO().MouseDrawCursor = Menu::IsMenuOpen;
 
-	// Edge-triggered toggle: press INSERT to show/hide the menu.
-	if (GetAsyncKeyState(VK_INSERT) & 1)
+	// Edge-triggered toggle.  The key is user-configurable (Config tab) and
+	// persisted, so read it from settings instead of assuming INSERT.
+	if (Settings::Current.ToggleKey > 0 && (GetAsyncKeyState(Settings::Current.ToggleKey) & 1))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 
 	if (Menu::IsMenuOpen)

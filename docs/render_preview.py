@@ -291,10 +291,13 @@ for i, (glyph, label) in enumerate(SIDEBAR):
     by += 1
 
 # footer: bottom-anchored, each line centred in the sidebar column
-FOOTER_TOP = H - WIN_PAD - 2 * LINE_ADV
-for k, line in enumerate(("Licensed to #4278", "Build Date: Oct 22 2026")):
+FOOTER_TOP = H - WIN_PAD - 3 * LINE_ADV
+FOOTER = [("FPS 144  |  6.9 ms", C_ACCENT),
+          ("Licensed to #4278", C_TEXT),
+          ("Build Date: Oct 22 2026", C_TEXT)]
+for k, (line, col) in enumerate(FOOTER):
     assert TW(line) <= SIDEBAR_W, "Footer ueberlaeuft die Sidebar: %s" % line
-    T(SX0 + (SIDEBAR_W - TW(line)) / 2, FOOTER_TOP + k * LINE_ADV, line, C_TEXT)
+    T(SX0 + (SIDEBAR_W - TW(line)) / 2, FOOTER_TOP + k * LINE_ADV, line, col)
 
 # content column: Executor::Render()
 T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)

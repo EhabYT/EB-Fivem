@@ -57,6 +57,12 @@
     <ClCompile Include="config.cpp">
       <Filter>Source Files\menu\tabs</Filter>
     </ClCompile>
+    <ClCompile Include="activity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="settings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="default.cpp">
       <Filter>Source Files\menu\tabs</Filter>
     </ClCompile>
@@ -181,6 +187,12 @@
     </ClInclude>
     <ClInclude Include="config.h">
       <Filter>Source Files\menu\tabs</Filter>
+    </ClInclude>
+    <ClInclude Include="activity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="settings.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
       <Filter>Source Files\menu\extras</Filter>

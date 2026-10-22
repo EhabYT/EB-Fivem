@@ -12,6 +12,7 @@
 // Shared with the Resources tab (file browser + stopper), which selects into the
 // same `resources` / `selectedResource` pair.
 #include "resources.h"
+#include "activity.h"
 
 std::vector<const char*> resources = {
 	"_cfx_internal","fivem","hardcap","anti-cheese","esx_mafia","esx_gopostal","esx_jail","mysql-async","es_admin2",
@@ -75,6 +76,8 @@ namespace Executor
 						+ resources[selectedResource]
 						+ "\nScript: " + std::to_string(script.size()) + " bytes").c_str(),
 					"redENGINE", MB_OK | MB_ICONINFORMATION);
+				Activity::Push(std::string("Execute requested for ")
+					+ resources[selectedResource] + " (not implemented).");
 			}
 		}
 
@@ -103,6 +106,7 @@ namespace Executor
 				{
 					MessageBoxA(NULL, (std::string("Could not open:\n") + file).c_str(),
 						"redENGINE", MB_OK | MB_ICONERROR);
+					Activity::Push(std::string("Load failed: ") + file);
 				}
 				else
 				{
@@ -113,11 +117,13 @@ namespace Executor
 					{
 						MessageBoxA(NULL, "The selected file is empty.",
 							"redENGINE", MB_OK | MB_ICONERROR);
+						Activity::Push(std::string("Load failed (empty): ") + file);
 					}
 					else if (size >= 4 * 1024 * 1024)
 					{
 						MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
 							"redENGINE", MB_OK | MB_ICONERROR);
+						Activity::Push(std::string("Load refused (>4 MB): ") + file);
 					}
 					else
 					{
@@ -125,6 +131,8 @@ namespace Executor
 						const size_t read = fread(&text[0], 1, (size_t)size, fp);
 						text.resize(read);
 						editor.SetText(text);
+						Activity::Push("Loaded " + std::string(file) + " ("
+							+ std::to_string(read) + " bytes) into the editor.");
 					}
 					fclose(fp);
 				}

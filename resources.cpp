@@ -1,5 +1,6 @@
 #include "resources.h"
 #include "assets.h"
+#include "activity.h"
 
 #include <direct.h>    // _mkdir
 #include <algorithm>   // std::find
@@ -159,10 +160,16 @@ namespace Resources
 			// The success popup used to fire *before* any file was written, so it
 			// announced a dump that had not happened yet.
 			if (ok)
+			{
 				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "rE", MB_OK | MB_ICONINFORMATION);
+				Activity::Push("Dump saved to " + dir);
+			}
 			else
+			{
 				MessageBoxA(NULL, (std::string("Failed to write the dump to:\n") + dir +
 					"\n\nIs the folder writable?").c_str(), "rE", MB_OK | MB_ICONERROR);
+				Activity::Push("Dump FAILED for " + dir);
+			}
 		}
 	}
 
@@ -247,8 +254,16 @@ namespace Resources
 						if (Triggers[i] != NULL && Triggers[i][0] != '\0')
 						{
 							if (!CopyToClipBoard(window, Triggers[i]))
+							{
 								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
 									"rE", MB_OK | MB_ICONERROR);
+								Activity::Push("Copy failed: clipboard busy");
+							}
+							else
+							{
+								Activity::Push(std::string("Copied trigger to clipboard (")
+									+ std::to_string(Triggers[i].size()) + " chars).");
+							}
 						}
 						else
 							MessageBoxA(NULL, "Nothing to copy.", "rE", MB_OK | MB_ICONERROR);
