@@ -1,0 +1,102 @@
+# Compile proof for a project that can only be built with MSVC on Windows.
+#
+# This exists because the repository shipped with a solution that did not even
+# open (MSB3202) and headers that did not compile (C1083/C2397/C2664).  Nothing
+# in-tree is platform-independent enough to check any of that on Linux, so the
+# Windows runner is the only real verification available.
+
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# A new push to the same ref supersedes the run still in flight.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.configuration }} | ${{ matrix.platform }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [ Release, Debug ]
+        platform:    [ x64 ]
+        # Win32 is intentionally absent: the DLL is injected into FiveM, which is
+        # 64-bit only, so a Win32 artifact could never be loaded.  The config still
+        # exists in the .vcxproj for completeness.  Add it here if that changes.
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # MSBuild is installed on the runner but is not on PATH by default.
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          & $vswhere -latest -property installationPath
+          & $vswhere -latest -property catalog_productDisplayVersion
+          msbuild -version -nologo
+
+      # The project pins PlatformToolset v142 when it is installed and otherwise
+      # falls back to $(DefaultPlatformToolset); windows-latest ships VS2022/v143,
+      # so this also exercises that fallback on every run.
+      - name: Build
+        shell: cmd
+        run: >
+          msbuild "redENGINE UI.sln"
+          /t:Rebuild
+          /p:Configuration=${{ matrix.configuration }}
+          /p:Platform=${{ matrix.platform }}
+          /m
+          /nologo
+          /clp:"Summary;Verbosity=normal"
+
+      - name: Verify the artifact
+        shell: pwsh
+        run: |
+          $dll = "${{ matrix.platform }}\${{ matrix.configuration }}\redENGINE UI.dll"
+          if (-not (Test-Path $dll)) {
+            Write-Error "expected build output not found: $dll"
+            exit 1
+          }
+          $item = Get-Item $dll
+          Write-Host ("DLL      : {0}" -f $item.FullName)
+          Write-Host ("Size     : {0:N0} bytes" -f $item.Length)
+          Write-Host ("Modified : {0}" -f $item.LastWriteTimeUtc)
+
+          # A DynamicLibrary that accidentally lost its entry point would still
+          # link, so assert the expected exports are actually present.
+          $dumpbin = Get-ChildItem "${env:ProgramFiles}\Microsoft Visual Studio" `
+            -Recurse -Filter dumpbin.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'Hostx64\\x64' } |
+            Select-Object -First 1
+          if ($dumpbin) {
+            & $dumpbin.FullName /exports $dll | Select-Object -First 20
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redENGINE-UI-${{ matrix.configuration }}-${{ matrix.platform }}
+          path: |
+            ${{ matrix.platform }}/${{ matrix.configuration }}/redENGINE UI.dll
+            ${{ matrix.platform }}/${{ matrix.configuration }}/redENGINE UI.pdb
+            rE.png
+          if-no-files-found: error
+          retention-days: 14

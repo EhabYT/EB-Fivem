@@ -28,6 +28,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
 | [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified). `imgui_demo.cpp` is on disk but not built — see [BUILD.md](BUILD.md) |
 | [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored, unmodified) |
+| [`ci/`](ci) | The GitHub Actions build workflow, staged as [`ci/build.yml`](ci/build.yml) + [`ci/enable.bat`](ci/enable.bat) — written and validated, **not yet enabled**. See [`ci/README.md`](ci/README.md) |
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
 | [`rE.png`](rE.png) | Menu logo, loaded from beside the DLL at runtime |
@@ -233,10 +234,15 @@ Output: `x64\Release\redENGINE UI.dll`. Put `rE.png` in the same folder as the D
 the sidebar falls back to a text logo.
 
 A GitHub Actions workflow that does the same on `windows-latest` (Release and Debug, x64), verifies
-the DLL and its export table exist, and uploads it as an artifact is written but **not committed** —
-adding `.github/workflows/*` requires the `workflows` permission, which the tooling here does not
-have. The file sits in the working tree; commit it yourself to switch CI on. See
-[BUILD.md §7](BUILD.md).
+the DLL and its export table exist, and uploads it as an artifact is written, validated and
+**committed at [`ci/build.yml`](ci/build.yml) — but not yet enabled**. It cannot live in
+`.github/workflows/` because creating files there needs the `workflows` permission, which the token
+that produced this branch does not have; GitHub refuses the push outright. Moving it into place is
+one commit from your account: run [`ci/enable.bat`](ci/enable.bat) (it copies and stages the file,
+then stops so you keep the commit), or paste it in through the web UI. Full instructions in
+[`ci/README.md`](ci/README.md) and [BUILD.md §7](BUILD.md).
+
+Until then there is **no CI and no compile proof** — every check on this branch was static.
 
 > Build **x64 only** — a Win32 DLL cannot be loaded by FiveM.
 

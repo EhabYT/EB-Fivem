@@ -266,17 +266,36 @@ Adding a tab is now three edits: an enumerator in `Menu::TabId`, a row in `Sideb
 
 ## 7. Continuous integration
 
-> **Status: written, not enabled.** The workflow below lives at `.github/workflows/build.yml` in the
-> working tree but is **not committed**, because the GitHub App token used here is refused the push:
+> **Status: written, validated, committed at `ci/build.yml` — but not enabled.**
+>
+> The workflow below is a complete GitHub Actions file. It is committed at **[`ci/build.yml`](ci/build.yml)**,
+> not at `.github/workflows/build.yml`, because the GitHub App token used to produce this branch is
+> refused the push to that path:
 >
 > ```
 > ! [remote rejected] (refusing to allow a GitHub App to create or update workflow
 >                      `.github/workflows/build.yml` without `workflows` permission)
 > ```
 >
-> Adding a workflow file needs the `workflows` permission. To enable it, either commit that file
-> yourself, or paste the contents into a new file at `.github/workflows/build.yml` via the GitHub
-> web UI. Everything else in this repository is committed and pushed; only the workflow is not.
+> Creating or updating `.github/workflows/*` needs the `workflows` permission. Parking the file under
+> `ci/` keeps it in the repository, in the PR diff and reviewable as an ordinary file instead of
+> surviving only in somebody's working tree. It has no effect there — GitHub only reads
+> `.github/workflows/`.
+>
+> **To enable it**, copy the file into place and commit that from an account holding the permission:
+>
+> ```bat
+> ci\enable.bat
+> git commit -m "ci: enable the Windows build workflow"
+> git push origin arena/57915bfa-eb-fivem
+> ```
+>
+> `enable.bat` copies `ci\build.yml` to `.github\workflows\build.yml` and runs `git add` on it, then
+> stops — it deliberately does not commit or push, so the commit lands under your identity with your
+> permissions. The web-UI route and the trade-offs are described in [`ci/README.md`](ci/README.md).
+>
+> Until that happens this repository has **no CI and no compile proof**; every check recorded in this
+> document was static. Everything else is committed and pushed — only this one file is displaced.
 
 The workflow builds **Release\|x64** and **Debug\|x64** on `windows-latest` for every push to
 `main`, every pull request, and on demand (`workflow_dispatch`). Each job:
