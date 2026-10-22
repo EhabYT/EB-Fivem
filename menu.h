@@ -25,7 +25,7 @@ namespace Menu
 	};
 
 	// Both defined in main.cpp.
-	extern bool IsMenuOpen;   // toggled with INSERT
+	extern bool IsMenuOpen;   // toggled with the bound key (Settings::Current.ToggleKey, INSERT by default)
 	extern int Tab;
 
 	// Layout of the shell, shared with nothing else - the sidebar buttons are the

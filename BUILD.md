@@ -88,7 +88,8 @@ So a working deployment is just:
 <folder>\rE.png
 ```
 
-The menu is toggled with **INSERT**.
+The menu is toggled with the bound key — **INSERT** by default, rebindable in Config →
+Interface and persisted in `settings.ini`.
 
 ---
 
@@ -179,6 +180,8 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 55 | The toggle-key capture scanned vk 1-254: binding a mouse button would flip the menu on every click, and the release edge of the click that armed the capture bound `VK_LBUTTON` on the first capture frame | The scan starts at vk 7, skipping VK_LBUTTON..VK_XBUTTON2 and the reserved entries |
 | 56 | `Activity::Clear()` existed since the session log was introduced but nothing ever called it - the log could only grow until it capped | "Clear" button on the landing tab's Session activity heading |
 | 57 | The frame-time sparkline showed a shape but no numbers | Hovering a bar reports its frame time and age ("x.x ms, n frames ago") in a tooltip |
+| 58 | Docs and comments still claimed "INSERT toggles the menu" in five places although the key became configurable and persisted several commits earlier | README intro, README flow graph, README runtime notes, BUILD.md runtime note and the `menu.h` comment now say "INSERT by default, rebindable in Config → Interface" |
+| 59 | The throttled (~1/s) window-position save could lose up to a second of window movement when the DLL unloaded | `DLL_PROCESS_DETACH` flushes `Settings::Save()` before teardown |
 
 ---
 

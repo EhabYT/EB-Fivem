@@ -460,6 +460,10 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		// sitting inside hkPresent while we destroy the ImGui context under it.
 		g_unloading = true;
 		Sleep(50);
+		// The position save in Menu::Render() is throttled to ~1/s; flush the
+		// final window position / tab / toggle key so the next start restores
+		// exactly where this session ended.
+		Settings::Save();
 		CleanupImGui();
 		kiero::shutdown();
 		break;

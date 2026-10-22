@@ -4,7 +4,8 @@ An in-game **Dear ImGui overlay for FiveM**, delivered as a Windows x64 DLL.
 
 `main.cpp` hooks `IDXGISwapChain::Present` (vtable index 8) with [Kiero](kiero/kiero.h) +
 MinHook, subclasses the window procedure, initialises ImGui with the DX11/Win32 backends and
-draws the **redENGINE** menu on top of the game. Press **INSERT** to toggle it.
+draws the **redENGINE** menu on top of the game. Press the toggle key (**INSERT** by default,
+rebindable in Config → Interface) to toggle it.
 
 Everything is vendored in-tree — no submodules, no package manager, no external downloads.
 
@@ -91,7 +92,7 @@ flowchart TD
     P --> Q
     N --> Q
 
-    Q["NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"INSERT pressed?<br/>edge triggered"}
+    Q["NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"Toggle key pressed?<br/>edge triggered"}
     R -- "yes" --> S["toggle Menu::IsMenuOpen"] --> T
     R -- "no" --> T{"IsMenuOpen?"}
     T -- "yes" --> U["Menu::Render<br/>sidebar column + Tabs::Render"] --> V
@@ -263,7 +264,7 @@ Until then there is **no CI and no compile proof** — every check on this branc
 
 ## Runtime behaviour
 
-* **INSERT** toggles the menu.
+* The toggle key — **INSERT** by default, rebindable in Config → Interface — toggles the menu.
 * While the cursor is over the menu (or you are typing in the executor), mouse and keyboard
   messages are consumed instead of being passed to the game — clicking a button no longer also
   punches/shoots in-game, and typing Lua no longer walks the character around.
