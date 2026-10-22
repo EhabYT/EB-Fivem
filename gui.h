@@ -20,9 +20,14 @@ namespace Gui
 	// unbalances and later frames assert.  The previous version ignored the
 	// return value entirely, which happened to work only because a 1px child is
 	// never collapsed.
-	inline void Seperator(const std::string& id, float width = ImGui::GetContentRegionAvail().x, float height = 1.0f, bool visible = true)
+	//
+	// ImGui 1.90 replaced BeginChild()'s third parameter (`bool border`) with
+	// ImGuiChildFlags; the bool overload is gone in 1.92.  `bordered` maps to
+	// ImGuiChildFlags_Borders, which is still == 1 for backward compatibility.
+	inline void Seperator(const std::string& id, float width = ImGui::GetContentRegionAvail().x, float height = 1.0f, bool bordered = true)
 	{
-		ImGui::BeginChild(id.c_str(), ImVec2(width, height), visible);
+		ImGui::BeginChild(id.c_str(), ImVec2(width, height),
+			bordered ? ImGuiChildFlags_Borders : ImGuiChildFlags_None);
 		ImGui::EndChild();
 	}
 

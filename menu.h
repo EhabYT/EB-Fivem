@@ -54,7 +54,8 @@ namespace Menu
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 9);
 		if (LogoLoaded)
 		{
-			ImGui::Image((void*)logo, ImVec2(76, 87));
+			// ImTextureID became ImU64/ImTextureRef in 1.92: cast the SRV explicitly.
+			ImGui::Image((ImTextureID)(intptr_t)logo, ImVec2(76, 87));
 		}
 		else
 		{

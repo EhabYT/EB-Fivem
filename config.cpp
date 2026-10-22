@@ -12,7 +12,7 @@ namespace Config
 		Gui::Seperator("##config_seperator_0");
 
 		ImGui::SetCursorPosX(233);
-		ImGui::BeginChild("##config_side", ImVec2(ImGui::GetWindowWidth() / 3.0f, ImGui::GetWindowHeight()), false);
+		ImGui::BeginChild("##config_side", ImVec2(ImGui::GetWindowWidth() / 3.0f, ImGui::GetWindowHeight()), ImGuiChildFlags_None);
 
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 83);
 		ImGui::Text("Safe Mode");
@@ -46,7 +46,7 @@ namespace Config
 		ImGui::SameLine();
 		Gui::Seperator("##splitter", 1, ImGui::GetWindowHeight());
 		ImGui::SameLine();
-		ImGui::BeginChild("##server_side", ImVec2(ImGui::GetWindowWidth(), ImGui::GetWindowHeight()), false);
+		ImGui::BeginChild("##server_side", ImVec2(ImGui::GetWindowWidth(), ImGui::GetWindowHeight()), ImGuiChildFlags_None);
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 58);
 		ImGui::Text("Server related stuff");
 		ImGui::Spacing();

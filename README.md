@@ -25,7 +25,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`demo.h`](demo.h) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) | Landing tab |
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
-| [`imgui/`](imgui) | Dear ImGui **1.75** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified) |
+| [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified) |
 | [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored, unmodified) |
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
@@ -66,11 +66,13 @@ the sidebar falls back to a text logo.
 
 ## Notes
 
-* The vendored ImGui is pinned at **1.75**, which still has `ListBoxHeader` / `ListBoxFooter`,
-  `GetContentRegionAvailWidth()` and `PushAllowKeyboardFocus`. Bumping ImGui to 1.88+ will
-  break `luamenus.h`, `resources.cpp` and `TextEditor.cpp` until those calls are migrated.
-* `imgui/` and `kiero/` are vendored upstream code and are deliberately left unmodified — keep
-  local changes in the project's own files so the vendored trees can be re-synced cleanly.
+* The vendored ImGui is **1.92.9** (upgraded from 1.75 — see the migration table in
+  [BUILD.md](BUILD.md#6-imgui-175--1929-migration)). `imgui/` and `kiero/` hold unmodified
+  upstream code; keep local changes in the project's own files so those trees can be re-synced
+  cleanly. Note that `imgui_tables.cpp` is a separate translation unit since 1.80 and must stay
+  in the project.
+* The code deliberately avoids everything behind `IMGUI_DISABLE_OBSOLETE_FUNCTIONS`, so defining
+  that macro in `imgui/imconfig.h` is a supported way to stay ahead of the next upgrade.
 * What is **implemented**: the full UI, the Lua editor with syntax highlighting, Load-from-file,
   the trigger clipboard list, resource dumps, and the resource-list stopper.
   What is **still a stub** (and now says so in a message box instead of doing nothing silently):

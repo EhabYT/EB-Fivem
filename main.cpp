@@ -192,8 +192,11 @@ void InitImGui()
 
 	icons_config.MergeMode = true;
 	icons_config.PixelSnapH = true;
-	icons_config.OversampleH = 3;   // int field: 2.5f is a narrowing error under /permissive-
-	icons_config.OversampleV = 1;   // no sub-pixel positioning on Y, so 1 is enough
+	// Since 1.90 these are ImS8 with 0 == auto, and they are ignored entirely
+	// when PixelSnapH is set.  (Upstream 1.75 had them as int, and the original
+	// code assigned 2.5 - a narrowing error under /permissive-.)
+	icons_config.OversampleH = 0;
+	icons_config.OversampleV = 0;
 
 	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 

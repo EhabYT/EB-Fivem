@@ -1,7 +1,7 @@
 # Building redENGINE UI
 
 Windows-only C++ project. The output is a **DLL** (`ConfigurationType=DynamicLibrary`) that
-hooks `IDXGISwapChain::Present` through Kiero/MinHook and renders a Dear ImGui 1.75 overlay
+hooks `IDXGISwapChain::Present` through Kiero/MinHook and renders a Dear ImGui 1.92.9 overlay
 into the FiveM window.
 
 There is no CI or prebuilt binary in this repo — you compile it yourself with MSVC.
@@ -20,6 +20,10 @@ There is no CI or prebuilt binary in this repo — you compile it yourself with 
 
 No NuGet packages, no submodules, no third-party downloads: ImGui, Kiero, MinHook,
 `stb_image` and the Font Awesome blob are all vendored in-tree.
+
+> **ImGui was upgraded from 1.75 to 1.92.9.** Since 1.80 the core is split across
+> `imgui.cpp`, `imgui_widgets.cpp`, `imgui_draw.cpp` **and `imgui_tables.cpp`** — all four must
+> be compiled. What the upgrade changed in this project is listed in section 6.
 
 > The project pins `v142` when that toolset is installed and otherwise falls back to
 > `$(DefaultPlatformToolset)`, so VS2022-only machines build without a manual retarget.
@@ -147,7 +151,40 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 
 ---
 
-## 6. Troubleshooting
+## 6. ImGui 1.75 → 1.92.9 migration
+
+Six years of API churn. The old names are **actually gone** in 1.92.9 — the
+`IMGUI_DISABLE_OBSOLETE_FUNCTIONS` redirections at the bottom of `imgui.h` are commented out
+(`//static inline …`), so they do not even compile as deprecated shims.
+
+Vendored: the 15 upstream files (`imgui.h/.cpp`, `imgui_internal.h`, `imgui_draw.cpp`,
+`imgui_widgets.cpp`, **`imgui_tables.cpp`** (new TU), `imgui_demo.cpp`, `imconfig.h`, the three
+`imstb_*` headers, and `imgui_impl_dx11` + `imgui_impl_win32` flattened out of `backends/` so
+the include layout is unchanged). `imgui/` stays byte-identical to upstream.
+
+| Old (1.75) | New (1.92.9) | Where |
+|---|---|---|
+| `ListBoxHeader(label, size)` / `ListBoxFooter()` | `BeginListBox` / `EndListBox` — removed in 1.89 | `luamenus.h`, `resources.cpp` (3 sites) |
+| `GetContentRegionAvailWidth()` | `GetContentRegionAvail().x` — obsoleted in 1.70, redirection now gone | `resources.cpp` (2 sites) |
+| `BeginChild(id, size, bool border, windowFlags)` | `BeginChild(id, size, ImGuiChildFlags, windowFlags)` — 1.90 inserted a parameter | `gui.h`, `luamenus.h`, `config.cpp` ×2, `exec.cpp`, `TextEditor.cpp` |
+| `ImGui::Image((void*)logo, …)` | `ImTextureID` is now `ImU64` and drawing takes `ImTextureRef` (1.92) → `(ImTextureID)(intptr_t)logo` | `menu.h` |
+| `IsKeyPressed(GetKeyIndex(ImGuiKey_X))` | `IsKeyPressed(ImGuiKey_X)` — `GetKeyIndex()` removed; keys are direct since 1.87 | `TextEditor.cpp` (25 sites) |
+| `PushAllowKeyboardFocus` / `Pop…` | `PushItemFlag(ImGuiItemFlags_NoTabStop, false)` / `PopItemFlag()` — the `PushTabStop` replacement is itself obsoleted in 1.91.0 | `TextEditor.cpp` |
+| `GetWindowContentRegionMax()` | `GetContentRegionAvail()` — obsoleted in 1.91.0, and its meaning changed in 1.90 (now includes `WindowPadding`) | `TextEditor.cpp` |
+| `io.WantCaptureKeyboard = true`<br>`io.WantTextInput = true`<br>`io.WantCaptureMouse = true` | `SetNextFrameWantCaptureKeyboard(true)` + `SetKeyboardFocusHere(-1)` / `SetNextFrameWantCaptureMouse(true)`. These are **outputs** of `NewFrame()`; the assignments were always no-ops. There is no `SetNextFrameWantTextInput` — focus is what drives it | `TextEditor.cpp` (3 sites) |
+| `OversampleH = 3` | `ImS8`, `0 == auto`, and ignored entirely when `PixelSnapH` is set → `0` | `main.cpp` |
+
+Unchanged and verified present: all 61 enum constants the project uses, all 88 `ImGui::` calls,
+the 5 `ImDrawList` methods `TextEditor.cpp` draws with, `Columns`/`NextColumn`/`SetColumnOffset`
+(legacy but still supported), the font API (`AddFontFromFileTTF`, `AddFontFromMemoryCompressedTTF`,
+`AddFontDefault`), and `ImGui_ImplWin32_WndProcHandler` including its `0 == not handled` contract.
+
+`imconfig.h` was replaced with the upstream one: the project's copy had no local `#define`s, only
+older comments, so nothing was lost.
+
+---
+
+## 7. Troubleshooting
 
 **`error LNK2019: unresolved external symbol ... d3d11`**
 `d3d11.lib` and `dxgi.lib` are in `AdditionalDependencies` for all four configs; if you
@@ -163,8 +200,17 @@ targets the `FiveM.exe` / `FiveM_GTAProcess.exe` process that actually owns the 
 swap chain; `kiero::init` loops until it succeeds, so a wrong target looks like a hang.
 
 **Menu opens but has no icons (squares instead of Font Awesome glyphs)**
-The merged icon font failed to load; `main.cpp` now falls back to `AddFontDefault()`, so
-this only shows up if `font_awesome_data` is corrupt.
+The merged icon font failed to load; `main.cpp` falls back to `AddFontDefault()`, so this only
+shows up if `font_awesome_data` is corrupt. The icon range `0xf000`–`0xf3ff` still fits `ImWchar`
+(16-bit by default).
+
+**`LNK2019` mentioning `ImGui::TableNextRow`, `TableGetSortSpecs` or similar**
+`imgui/imgui_tables.cpp` is not in the project. It became a separate translation unit in 1.80
+and is required even if you never call a `Table*` function yourself.
+
+**`C2065: 'ImGuiChildFlags_None': undeclared identifier`**
+An old `imgui/imgui.h` is still on the include path. `ImGuiChildFlags` arrived in 1.90; make sure
+the vendored tree really is 1.92.9 (`IMGUI_VERSION` at the top of `imgui/imgui.h`).
 
 **`MSB8036: The Windows SDK version 10.0.xxxxx.0 was not found`**
 Right-click the project → *Retarget solution*, or install that SDK. The project asks for

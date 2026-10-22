@@ -41,7 +41,7 @@ namespace Executor
 	void Render()
 	{
 		ImGui::Text("Executor");
-		ImGui::BeginChild("##under_text1", ImVec2(ImGui::GetContentRegionAvail().x, 1), false);
+		ImGui::BeginChild("##under_text1", ImVec2(ImGui::GetContentRegionAvail().x, 1), ImGuiChildFlags_None);
 		ImGui::EndChild();
 
 		// The Resource stopper can shrink `resources`, so keep the selection in range.

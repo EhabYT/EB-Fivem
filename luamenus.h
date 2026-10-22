@@ -45,20 +45,21 @@ namespace Menus
 	inline void RenderMenuList(const char* childId, const char* listBoxId, const char* title,
 		float width, const std::vector<const char*>& items, int& selected)
 	{
-		ImGui::BeginChild(childId, ImVec2(width, ImGui::GetContentRegionAvail().y), false);
+		ImGui::BeginChild(childId, ImVec2(width, ImGui::GetContentRegionAvail().y), ImGuiChildFlags_None);
 
 		ImGui::Text("%s", title);
 		Gui::Seperator(std::string("##") + childId + "_sep");
 
-		// ListBoxFooter() may only be called when ListBoxHeader() returned true.
-		if (ImGui::ListBoxHeader(listBoxId, ImVec2(ImGui::GetContentRegionAvail().x, 300)))
+		// EndListBox() may only be called when BeginListBox() returned true.
+		// (ListBoxHeader/ListBoxFooter were removed in ImGui 1.89.)
+		if (ImGui::BeginListBox(listBoxId, ImVec2(ImGui::GetContentRegionAvail().x, 300)))
 		{
 			for (int i = 0; i < (int)items.size(); ++i)
 			{
 				if (ImGui::Selectable(items[i], selected == i))
 					selected = i;
 			}
-			ImGui::ListBoxFooter();
+			ImGui::EndListBox();
 		}
 
 		if (!items.empty())

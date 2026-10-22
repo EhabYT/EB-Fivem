@@ -114,7 +114,7 @@ namespace Resources
 
 	void SaveResources()
 	{
-		if (ImGui::Button("Save All Resources", ImVec2(ImGui::GetContentRegionAvailWidth(), 33)))
+		if (ImGui::Button("Save All Resources", ImVec2(ImGui::GetContentRegionAvail().x, 33)))
 		{
 			const std::string dir = GetDumpDirectory();
 			MakeDirectoryTree(dir);
@@ -193,7 +193,7 @@ namespace Resources
 		if (ResourceTab == 1)
 		{
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(15, 15, 15, 255));
-			if (ImGui::ListBoxHeader("##resourcebox", listSize))
+			if (ImGui::BeginListBox("##resourcebox", listSize))
 			{
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
@@ -214,7 +214,7 @@ namespace Resources
 						}
 					}
 				}
-				ImGui::ListBoxFooter();
+				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
 			Gui::Seperator("##saveresourcesbutton");
@@ -223,7 +223,7 @@ namespace Resources
 		else if (ResourceTab == 2) // Triggers
 		{
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(15, 15, 15, 255));
-			if (ImGui::ListBoxHeader("##Triggers", listSize))
+			if (ImGui::BeginListBox("##Triggers", listSize))
 			{
 				for (int i = 0; i < (int)Triggers.size(); ++i)
 				{
@@ -244,7 +244,7 @@ namespace Resources
 					}
 					ImGui::PopID();
 				}
-				ImGui::ListBoxFooter();
+				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
 			Gui::Seperator("##resources_seperator_4");
@@ -253,7 +253,7 @@ namespace Resources
 		else if (ResourceTab == 3) // Stopper
 		{
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(36, 36, 36, 255));
-			if (ImGui::ListBoxHeader("##resourcestopperbox", listSize))
+			if (ImGui::BeginListBox("##resourcestopperbox", listSize))
 			{
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
@@ -261,7 +261,7 @@ namespace Resources
 					if (ImGui::Selectable(resources[i], is_selected))
 						selectedResource = i;
 				}
-				ImGui::ListBoxFooter();
+				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
 
@@ -274,7 +274,7 @@ namespace Resources
 			}
 
 			const std::string stopLabel = std::string("Stop ") + resources[selectedResource];
-			if (ImGui::Button(stopLabel.c_str(), ImVec2(ImGui::GetContentRegionAvailWidth(), 33)))
+			if (ImGui::Button(stopLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 33)))
 			{
 				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 				{
