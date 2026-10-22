@@ -26,7 +26,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab |
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
-| [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified) |
+| [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified). `imgui_demo.cpp` is on disk but not built — see [BUILD.md](BUILD.md) |
 | [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored, unmodified) |
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
@@ -51,6 +51,10 @@ msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /
 
 Output: `x64\Release\redENGINE UI.dll`. Put `rE.png` in the same folder as the DLL, otherwise
 the sidebar falls back to a text logo.
+
+[`.github/workflows/build.yml`](.github/workflows/build.yml) does the same on `windows-latest`
+(Release and Debug, x64) for every push to `main` and every pull request, verifies the DLL and its
+export table exist, and uploads it as an artifact.
 
 > Build **x64 only** — a Win32 DLL cannot be loaded by FiveM.
 

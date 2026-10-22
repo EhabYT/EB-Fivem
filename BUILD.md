@@ -112,6 +112,7 @@ stopped it from compiling/opening, and what changed:
 | 11 | Language standard depended on the toolset default | Not specified | `LanguageStandard = stdcpp17` in all four configs |
 | 12 | `font_awesome.cpp` listed as `<None>` although it is a `#include`d TU payload | Ambiguous project item | Now `ClCompile` with `ExcludedFromBuild=true` |
 | 13 | Mixed calling conventions on the hook | `__stdcall` is ignored on x64 | `HK_CALL` macro in `includes.h`, used by `Present` / `hkPresent` |
+| 14 | `error C4996: 'sprintf': … declared deprecated` ×33, fatal because `SDLCheck` is `true` | `imgui/imgui_demo.cpp` was compiled into the DLL | Removed from the project. `ShowDemoWindow` / `ShowAboutWindow` / `ShowStyleEditor` / `ShowUserGuide` are never called anywhere in this codebase (`ShowMetricsWindow` lives in `imgui.cpp`, so it survives). The file stays on disk as vendored upstream code, it is simply not built — which also drops ~590 KB of demo source from every compile. **Do not re-add it without either dropping `SDLCheck` or defining `_CRT_SECURE_NO_WARNINGS` for that file.** |
 
 ---
 
@@ -263,7 +264,33 @@ Adding a tab is now three edits: an enumerator in `Menu::TabId`, a row in `Sideb
 
 ---
 
-## 7. Troubleshooting
+## 7. Continuous integration
+
+`.github/workflows/build.yml` builds **Release\|x64** and **Debug\|x64** on `windows-latest` for
+every push to `main`, every pull request, and on demand (`workflow_dispatch`). Each job:
+
+1. `microsoft/setup-msbuild@v2` — MSBuild is installed on the runner but is not on `PATH`.
+2. prints the resolved VS installation, its version and the MSBuild version, so a toolchain
+   difference shows up in the log rather than as a mystery failure;
+3. `msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=… /p:Platform=… /m`;
+4. **fails the job if `x64\<Config>\redENGINE UI.dll` does not exist**, then prints its size and
+   `/exports` — a `DynamicLibrary` that lost its entry point would still link, so the export table
+   is checked rather than trusted;
+5. uploads the DLL, its PDB and `rE.png` as an artifact (14 days).
+
+`Win32` is deliberately not in the matrix: the DLL is injected into FiveM, which is 64-bit only, so
+a Win32 artifact could never be loaded. The configuration still exists in the `.vcxproj`.
+
+Two things worth knowing:
+
+* `windows-latest` ships VS2022/v143, not v142 — so every run also exercises the conditional
+  `PlatformToolset` fallback added in section 4.
+* `SDLCheck` is `true` in all four configurations, which makes `C4996` a hard **error** rather than a
+  warning. See the note on `imgui_demo.cpp` below before adding any vendored file to the project.
+
+---
+
+## 8. Troubleshooting
 
 **`error LNK2019: unresolved external symbol ... d3d11`**
 `d3d11.lib` and `dxgi.lib` are in `AdditionalDependencies` for all four configs; if you
@@ -286,6 +313,10 @@ shows up if `font_awesome_data` is corrupt. The icon range `0xf000`–`0xf3ff` s
 **`LNK2019` mentioning `ImGui::TableNextRow`, `TableGetSortSpecs` or similar**
 `imgui/imgui_tables.cpp` is not in the project. It became a separate translation unit in 1.80
 and is required even if you never call a `Table*` function yourself.
+
+**`error C4996` on a vendored file (e.g. `imgui_demo.cpp`)**
+`SDLCheck` is `true`, which turns `C4996` into an error. Only add upstream files that are clean;
+`imgui_demo.cpp` uses bare `sprintf()` in ~33 places and is therefore excluded from the project.
 
 **`C2065: 'ImGuiChildFlags_None': undeclared identifier`**
 An old `imgui/imgui.h` is still on the include path. `ImGuiChildFlags` arrived in 1.90; make sure
