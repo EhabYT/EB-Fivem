@@ -6,101 +6,99 @@
 #include "font_awesome.h"
 
 #include <Windows.h>
+#include <string>
 #include <iostream>
 #include <vector>
 
 #include "gui.h"
 
-std::vector<const char*> FreeMenus = { 
-"HoaX_2.0",
-"Lynx_8.1",
-"Lynx_10.0",
-"InSec_1.0",
-"SkidMenu_1.0",
-"TiagoMenu_3.0",
-"TiagoMenu_4.0",
-"TiagoMenu_4.1",
-"Strata_1.0",
-"Lydia_Enterprise" 
+// Menu names shown on the Menus tab.  Static on purpose: this header is only
+// included by menu.h, and nothing outside this tab reads them.
+static const std::vector<const char*> FreeMenus = {
+	"HoaX_2.0",
+	"Lynx_8.1",
+	"Lynx_10.0",
+	"InSec_1.0",
+	"SkidMenu_1.0",
+	"TiagoMenu_3.0",
+	"TiagoMenu_4.0",
+	"TiagoMenu_4.1",
+	"Strata_1.0",
+	"Lydia_Enterprise"
 };
 
-std::vector<const char*> PremMenus = {
-"Lux",
-"Dopamine",
-"Absolute",
-"Reaper",
-"Fallout",
+static const std::vector<const char*> PremMenus = {
+	"Lux",
+	"Dopamine",
+	"Absolute",
+	"Reaper",
+	"Fallout",
 };
 
-static int SelectedFreeMenu = NULL;
-static int SelectedPremMenu = NULL;
+static int SelectedFreeMenu = 0;   // was `= NULL` on an int
+static int SelectedPremMenu = 0;
 
 namespace Menus
 {
-	void Render()
+	// Draws one of the two menu lists and its "Run <name>" button.
+	// The two blocks were near-identical copies that had already drifted apart.
+	inline void RenderMenuList(const char* childId, const char* listBoxId, const char* title,
+		float width, const std::vector<const char*>& items, int& selected)
 	{
-		ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x / 1.3);
+		ImGui::BeginChild(childId, ImVec2(width, ImGui::GetContentRegionAvail().y), false);
+
+		ImGui::Text("%s", title);
+		Gui::Seperator(std::string("##") + childId + "_sep");
+
+		// ListBoxFooter() may only be called when ListBoxHeader() returned true.
+		if (ImGui::ListBoxHeader(listBoxId, ImVec2(ImGui::GetContentRegionAvail().x, 300)))
+		{
+			for (int i = 0; i < (int)items.size(); ++i)
+			{
+				if (ImGui::Selectable(items[i], selected == i))
+					selected = i;
+			}
+			ImGui::ListBoxFooter();
+		}
+
+		if (!items.empty())
+		{
+			if (selected < 0 || selected >= (int)items.size())
+				selected = 0;
+
+			const std::string label = std::string("Run ") + items[selected];
+			if (ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 33)))
+			{
+				// Empty body before: clicking "Run Lux" did nothing at all, with no
+				// indication that it was a stub.
+				MessageBoxA(NULL,
+					(std::string("'") + items[selected] + "' is not bundled with this build.").c_str(),
+					"redENGINE", MB_OK | MB_ICONINFORMATION);
+			}
+		}
+
+		ImGui::EndChild();
+	}
+
+	inline void Render()
+	{
+		ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x / 1.3f);
 		ImGui::Text("Menus");
 		Gui::Seperator("##menus_seperator_1");
 		ImGui::NewLine();
 
-		//FreeMenus
-		ImGui::BeginChild("##freemenus_side", ImVec2(ImGui::GetWindowWidth() / 2.8, ImGui::GetWindowHeight()), false);
+		const float halfWidth = ImGui::GetContentRegionAvail().x / 2.0f;
 
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 75);
-		ImGui::Text(ICON_FA_HOME" Free Menus " ICON_FA_HOME);
-		Gui::Seperator("##freemenus_seperator_1");
-		ImGui::ListBoxHeader("##freemenusbox", ImVec2(ImGui::GetWindowWidth(), 300));
-
-		for (int i = 0; i < FreeMenus.size(); i++)
-		{
-			const bool is_selected = (SelectedFreeMenu == i);
-			if (ImGui::Selectable(FreeMenus[i], is_selected))
-				SelectedFreeMenu = i;
-		}
-		ImGui::ListBoxFooter();
-
-		std::string ExecFree = "Run ";
-		ExecFree += FreeMenus[SelectedFreeMenu];
-		if (ImGui::Button(ExecFree.c_str(), ImVec2(ImGui::GetWindowWidth(), 33)))
-		{
-
-		}
-
-		ImGui::EndChild();
+		RenderMenuList("##freemenus_side", "##freemenusbox",
+			ICON_FA_HOME " Free Menus " ICON_FA_HOME,
+			halfWidth - 2.0f, FreeMenus, SelectedFreeMenu);
 
 		ImGui::SameLine();
-		Gui::Seperator("##splitter_2", 1, ImGui::GetWindowHeight(),false);
+		Gui::Seperator("##splitter_2", 1, ImGui::GetContentRegionAvail().y, false);
 		ImGui::SameLine();
 
-		//Premium Menus
-		ImGui::BeginChild("##premmenus_side", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetWindowHeight()), false);
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 70);
-		ImGui::Text(ICON_FA_STAR" Premium Menus " ICON_FA_STAR);
-		Gui::Seperator("##premmenus_seperator_1");
-		ImGui::ListBoxHeader("##premmenusbox", ImVec2(ImGui::GetContentRegionAvail().x, 300));
-
-		for (int i = 0; i < PremMenus.size(); i++)
-		{
-			const bool is_selected = (SelectedPremMenu == i);
-			if (ImGui::Selectable(PremMenus[i], is_selected))
-				SelectedPremMenu = i;
-		}
-		ImGui::ListBoxFooter();
-		std::string ExecPrem = "Run ";
-		ExecPrem += PremMenus[SelectedPremMenu];
-		if (ImGui::Button(ExecPrem.c_str(), ImVec2(ImGui::GetWindowWidth(), 33)))
-		{
-
-		}
-		ImGui::EndChild();
-
-	
-		
-		
-
-
-		
-
+		RenderMenuList("##premmenus_side", "##premmenusbox",
+			ICON_FA_STAR " Premium Menus " ICON_FA_STAR,
+			ImGui::GetContentRegionAvail().x, PremMenus, SelectedPremMenu);
 	}
 }

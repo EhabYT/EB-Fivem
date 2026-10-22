@@ -4,6 +4,9 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui.h"
 
+#include <d3d11.h>
+#include <string>
+
 #include "default.h"
 #include "exec.h"
 #include "resources.h"
@@ -12,102 +15,116 @@
 
 #include "gui.h"
 
-ID3D11ShaderResourceView* logo = NULL;
+// Defined in main.cpp.  These used to be defined *in the header*, which is only
+// legal while exactly one .cpp includes it - a second include anywhere would be
+// a LNK2005 duplicate symbol.
+extern ID3D11ShaderResourceView* logo;
+extern bool LogoLoaded;
 
 namespace Menu
 {
-	int logoWidth = 18;
-	int logoHeight = 18;
-	static int Tab = 0;
-	bool IsMenuOpen = true;
+	extern bool IsMenuOpen;   // defined in main.cpp, toggled with INSERT
+	extern int Tab;
 
-	void Render()
+	// Sidebar layout, kept in one place so the buttons and the separators cannot
+	// drift apart (they used to be 5 near-identical copy-pasted blocks).
+	static const float SidebarWidth  = 225.0f;
+	static const float SidebarButtonHeight = 46.0f;
+
+	struct SidebarItem
 	{
-		//redENGINE Remade : by xo1337 
-		ImGui::Begin("redENGINE", NULL, ImGuiWindowFlags_NoScrollbar); 
-		ImGui::Columns(2, "##maincolumn", true);
-		ImGui::SetColumnOffset(1, 225);
+		const char* label;
+		int         tab;
+	};
+
+	static const SidebarItem SidebarItems[] =
+	{
+		{ ICON_FA_CODE     " Executor", 1 },
+		{ ICON_FA_DOWNLOAD " Resources", 2 },
+		{ ICON_FA_BOOK     " Menus",     3 },
+		{ ICON_FA_COGS     " Config",    4 },
+	};
+
+	// Draw the sidebar and return true if a tab was clicked this frame.
+	inline bool RenderSidebar()
+	{
+		bool changed = false;
 
 		ImGui::SetCursorPosX(74);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 9);
-		ImGui::Image((void*)logo, ImVec2(76, 87)); 
+		if (LogoLoaded)
+		{
+			ImGui::Image((void*)logo, ImVec2(76, 87));
+		}
+		else
+		{
+			// rE.png was not found next to the DLL: keep the sidebar the same height.
+			ImGui::SetCursorPosX(58);
+			ImGui::TextColored(ImColor(227, 0, 40, 255), "redENGINE");
+			ImGui::Dummy(ImVec2(76, 68));
+		}
 		ImGui::NewLine();
 
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_1", 225, 1);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_CODE" Executor", ImVec2(225, 46)))
+		for (size_t i = 0; i < IM_ARRAYSIZE(SidebarItems); ++i)
 		{
-			Tab = 1;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_2", 225, 1);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_DOWNLOAD" Resources", ImVec2(225, 46)))
-		{
-			Tab = 2;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_3", 225, 1);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3); //+ goes down , - goes up
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_BOOK" Menus", ImVec2(225, 46)))
-		{
-			Tab = 3;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_4", 225, 1);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
+			ImGui::SetCursorPosX(0);
+			Gui::Seperator(std::string("##main_seperator_") + std::to_string(i + 1), SidebarWidth, 1.0f);
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
+			ImGui::SetCursorPosX(0);
 
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_COGS" Config", ImVec2(225, 46)))
-		{
-			Tab = 4;
+			if (ImGui::Button(SidebarItems[i].label, ImVec2(SidebarWidth, SidebarButtonHeight)))
+			{
+				Tab = SidebarItems[i].tab;
+				changed = true;
+			}
 		}
+
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
 		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_5", 225, 1);
-		
+		Gui::Seperator("##main_seperator_5", SidebarWidth, 1.0f);
+
 		ImGui::SetCursorPosY(380);
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 25);
 		ImGui::Text("Licensed to #4278");
 		ImGui::SetCursorPosY(399);
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 18);
-		ImGui::Text("Build Date: Feb 10 2021");
+		ImGui::Text("Build Date: %s", __DATE__);
 
-		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 10); //Same here
-		ImGui::Text(""); //Makes sure that the column goes the whole gui height, so don't remove :)
+		// Makes sure that the column goes the whole gui height, so don't remove :)
+		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 10);
+		ImGui::Text("");
+
+		return changed;
+	}
+
+	inline void Render()
+	{
+		//redENGINE Remade : by xo1337
+		// NoCollapse/NoResize: the layout below is pixel-positioned, so a
+		// user-resized or collapsed window just produced broken frames.
+		ImGui::Begin("redENGINE", NULL,
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+
+		ImGui::Columns(2, "##maincolumn", true);
+		ImGui::SetColumnOffset(1, (int)SidebarWidth);
+
+		RenderSidebar();
 
 		ImGui::NextColumn();
 
-		if (Tab == 0) 
+		// Was `if (Tab == 0) {...} if (Tab == 1) {...} else if ...` - the missing
+		// `else` on the first branch made the chain asymmetric for no reason.
+		switch (Tab)
 		{
-			Default::Render();
-		}
-		if (Tab == 1)
-		{
-			Executor::Render();
-		}
-		else if (Tab == 2)
-		{
-			Resources::Render();
-		}
-		else if (Tab == 3)
-		{
-			Menus::Render();
-		}
-		else if (Tab == 4)
-		{
-			Config::Render();
+		case 1:  Executor::Render(); break;
+		case 2:  Resources::Render(); break;
+		case 3:  Menus::Render();     break;
+		case 4:  Config::Render();    break;
+		case 0:
+		default: Default::Render();   break;
 		}
 
 		ImGui::End();
 	}
-		
 }
