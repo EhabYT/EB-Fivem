@@ -32,6 +32,186 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
 | [`rE.png`](rE.png) | Menu logo, loaded from beside the DLL at runtime |
 
+## Architecture
+
+Two views of the same code: what happens at runtime, and what depends on what at compile time.
+Both are kept in sync with the source by hand — if you change the hook, the frame loop or an
+`#include`, change these too.
+
+### Lifecycle and frame loop
+
+From injection to the first rendered frame, and what happens on resize, device loss and unload.
+
+```mermaid
+flowchart TD
+    A(["Injector loads redENGINE UI.dll"]) --> B["DllMain: DLL_PROCESS_ATTACH"]
+    B --> B1["g_hModule = hMod<br/>DisableThreadLibraryCalls"]
+    B1 --> C["CreateThread → MainThread"]
+
+    C --> D{"kiero::init D3D11<br/>== Success?"}
+    D -- "no: UnknownError" --> D1["Sleep 500 ms"] --> D2{"120 attempts<br/>or unloading?"}
+    D2 -- "keep retrying" --> D
+    D2 -- "give up" --> D3(["thread exits FALSE"])
+    D -- "no: NotSupported /<br/>ModuleNotFound" --> D3
+    D -- "yes" --> E{"kiero::bind index 8<br/>IDXGISwapChain::Present"}
+    E -- "failed" --> E1["kiero::shutdown"] --> D3
+    E -- "ok" --> F(["hook live, oPresent saved"])
+
+    F --> G["hkPresent runs every frame"]
+    G --> H{"g_unloading or<br/>pSwapChain == NULL?"}
+    H -- "yes" --> Z["return oPresent"]
+    H -- "no" --> I{"init?"}
+
+    I -- "first frame" --> J["GetDevice, GetImmediateContext<br/>GetDesc → window<br/>CreateRenderTarget"]
+    J --> K{"all succeeded?"}
+    K -- "no" --> Z
+    K -- "yes" --> L["subclass WndProc<br/>only when oWndProc == NULL"]
+    L --> M["InitImGui: fonts, rE.png beside the DLL,<br/>ApplyStyle once, Executor::Init, Resources::Init"]
+    M --> N["init = true"]
+
+    I -- "later frames" --> O{"back buffer size<br/>changed?"}
+    O -- "yes" --> P["CleanupRenderTarget<br/>InvalidateDeviceObjects<br/>CreateRenderTarget<br/>CreateDeviceObjects"]
+    O -- "no" --> Q
+    P --> Q
+    N --> Q
+
+    Q["NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"INSERT pressed?<br/>edge triggered"}
+    R -- "yes" --> S["toggle Menu::IsMenuOpen"] --> T
+    R -- "no" --> T{"IsMenuOpen?"}
+    T -- "yes" --> U["Menu::Render<br/>sidebar column + Tabs::Render"] --> V
+    T -- "no" --> V
+
+    V["ImGui::Render<br/>OMSetRenderTargets<br/>RenderDrawData"] --> W["hr = oPresent"]
+    W --> X{"DEVICE_REMOVED<br/>or DEVICE_RESET?"}
+    X -- "yes" --> Y["CleanupImGui, release device<br/>and context → re-init next frame"] --> Z2(["return hr"])
+    X -- "no" --> Z2
+
+    G -.-> WP
+    subgraph WP["WndProc, on every Windows message"]
+        direction TB
+        W1["ImGui_ImplWin32_WndProcHandler<br/>feeds ImGui"] --> W2{"over an ImGui window<br/>or a widget wants text?"}
+        W2 -- "yes" --> W3(["return 0, the game never sees it"])
+        W2 -- "no" --> W4(["CallWindowProc → game"])
+    end
+
+    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"]
+```
+
+The two details that are easy to get wrong in a Present hook, and are therefore explicit in the
+code: the window is subclassed **only** when `oWndProc == NULL` (a second `SetWindowLongPtr` would
+store our own `WndProc` as the "original" and build an endless call chain), and `g_unloading` is
+latched *before* anything is torn down so the game cannot be inside `hkPresent` while the ImGui
+context disappears under it.
+
+### Include graph
+
+Rectangles are translation units, rounded boxes are headers, each subgraph is one `.cpp` plus the
+header it owns. **Generated from the actual `#include` lines** — 23 nodes, 33 edges.
+
+```mermaid
+flowchart LR
+    subgraph sg_TextEditor["TextEditor"]
+        n0["TextEditor.cpp"]
+        n1(["TextEditor.h"])
+    end
+    subgraph sg_config["config"]
+        n3["config.cpp"]
+        n4(["config.h"])
+    end
+    subgraph sg_default["default"]
+        n5["default.cpp"]
+        n6(["default.h"])
+    end
+    subgraph sg_demo["demo"]
+        n7["demo.cpp"]
+        n8(["demo.h"])
+    end
+    subgraph sg_exec["exec"]
+        n9["exec.cpp"]
+        n10(["exec.h"])
+    end
+    subgraph sg_luamenus["luamenus"]
+        n13["luamenus.cpp"]
+        n14(["luamenus.h"])
+    end
+    subgraph sg_main["main"]
+        n15["main.cpp"]
+    end
+    subgraph sg_menu["menu"]
+        n16["menu.cpp"]
+        n17(["menu.h"])
+    end
+    subgraph sg_resources["resources"]
+        n19["resources.cpp"]
+        n20(["resources.h"])
+    end
+    subgraph sg_tabs["tabs"]
+        n21["tabs.cpp"]
+        n22(["tabs.h"])
+    end
+    n2(["assets.h"])
+    n11(["gui.h"])
+    n12(["includes.h"])
+    n18(["menu_style.h"])
+
+    n0 --> n1
+    n3 --> n4
+    n4 --> n11
+    n5 --> n6
+    n5 --> n11
+    n7 --> n8
+    n9 --> n10
+    n9 --> n11
+    n9 --> n20
+    n10 --> n1
+    n13 --> n11
+    n13 --> n14
+    n15 --> n2
+    n15 --> n10
+    n15 --> n12
+    n15 --> n17
+    n15 --> n18
+    n15 --> n20
+    n16 --> n11
+    n16 --> n17
+    n16 --> n22
+    n19 --> n2
+    n19 --> n20
+    n20 --> n1
+    n20 --> n10
+    n20 --> n11
+    n21 --> n4
+    n21 --> n6
+    n21 --> n10
+    n21 --> n14
+    n21 --> n17
+    n21 --> n20
+    n21 --> n22
+
+    classDef tu fill:#2b2b2b,stroke:#e30028,stroke-width:2px,color:#ffffff
+    classDef hdr fill:#1c1c1c,stroke:#666666,color:#dddddd
+    class n0,n3,n5,n7,n9,n13,n15,n16,n19,n21 tu
+    class n1,n2,n4,n6,n8,n10,n11,n12,n14,n17,n18,n20,n22 hdr
+```
+
+What the shape of that graph is meant to show:
+
+* **`menu.cpp` has three edges** (`gui.h`, `menu.h`, `tabs.h`). The shell does not know which tabs
+  exist; it calls `Tabs::Render()`.
+* **`tabs.cpp` is the only node pointing at all five tabs.** Adding a tab touches `tabs.cpp`, one
+  `SidebarItems[]` row in `menu.cpp` and one `Menu::TabId` enumerator — not the hook code.
+* **`main.cpp` points at `exec.h` and `resources.h` but at no tab body.** It only calls
+  `Executor::Init()` / `Resources::Init()`; the includes it needs are `includes.h`, `menu.h`,
+  `menu_style.h` and `assets.h`.
+* Only three headers include anything at all: `config.h → gui.h`, `exec.h → TextEditor.h` and
+  `resources.h → {TextEditor.h, exec.h, gui.h}`. The other ten — `assets.h`, `default.h`, `demo.h`,
+  `gui.h`, `includes.h`, `luamenus.h`, `menu.h`, `menu_style.h`, `tabs.h`, `TextEditor.h` — have no
+  outgoing edges. Nothing defines state in a header any more, which is what used to make a second
+  including `.cpp` a `LNK2005`.
+
+Vendored code (`imgui/`, `kiero/`, `stb_image.h`, `font_awesome.*`) is left out for readability; it
+has no edges into the project's own headers.
+
 ## Building
 
 Full instructions, requirements and a troubleshooting table: **[BUILD.md](BUILD.md)**.
