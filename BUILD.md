@@ -218,11 +218,48 @@ Two things this also cleaned up:
 * Each table cell now has its own layout context, so `GetContentRegionAvail()` inside a tab
   reports that cell instead of the whole window — which is what the tab code already assumed.
 
-`demo.h` still uses `Columns()`. It is an annotated widget cheat-sheet that is compiled but
-wired to no tab, so it was left alone deliberately rather than half-migrated.
+`demo.cpp` was migrated too (`SizingStretchSame` reproduces the two even columns), so **the project
+code now uses no deprecated ImGui API at all** and `#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS` in
+`imgui/imconfig.h` compiles cleanly. That macro is the recommended way to stay ahead of the next
+upgrade: it turns every future removal into a compile error at the point of use instead of a
+silent behaviour change.
 
-The project code now uses no deprecated ImGui API at all, so `#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS`
-in `imgui/imconfig.h` compiles cleanly and is the recommended way to stay ahead of the next upgrade.
+### Shell / tabs split
+
+`menu.h` was the whole UI in one header: window, sidebar, tab routing, *and* the includes of all five
+tab headers. It is now three units with one direction of dependency:
+
+```
+main.cpp ──> menu.h ──> (nothing but imgui.h + d3d11.h)
+    │           ▲
+    │           │ Menu::Render / IsMenuOpen / TabId
+    │        menu.cpp ──> tabs.h ──> (declares Tabs::Render only)
+    │                        ▲
+    └──> exec.h, resources.h  └── tabs.cpp ──> default.h exec.h resources.h luamenus.h config.h
+         (Init() only)
+```
+
+| File | Responsibility | Includes |
+|---|---|---|
+| `menu.h` | `Menu::Render` declaration, `Menu::TabId`, `extern IsMenuOpen/Tab/logo/LogoLoaded`, `SidebarWidth` | `imgui.h`, `d3d11.h` |
+| `menu.cpp` | the window, the table, `SidebarItems[]`, `RenderSidebar()` (file-local) | `menu.h`, `tabs.h`, `gui.h`, `font_awesome.h` |
+| `tabs.h` | `Tabs::Render` declaration | nothing |
+| `tabs.cpp` | the `switch` over `Menu::Tab` | `tabs.h`, `menu.h`, the five tab headers |
+
+What that buys concretely:
+
+* `main.cpp` no longer sees any tab header. It only calls `Executor::Init()` / `Resources::Init()`,
+  so it includes just those two.
+* `menu.cpp` does not know which tabs exist — it calls `Tabs::Render()`. Editing a tab body cannot
+  force the shell to recompile.
+* `RenderSidebar()` became file-local (`static`), which it always should have been.
+* The same treatment went through the tab headers: `default.h`, `luamenus.h` and `demo.h` are now
+  declarations only, with their bodies in `default.cpp`, `luamenus.cpp` and `demo.cpp`. `luamenus.h`
+  had been defining two `static std::vector`s and two selection ints, and `demo.h` two **non-static**
+  bools plus four char arrays — all of which were one include away from `LNK2005`.
+
+Adding a tab is now three edits: an enumerator in `Menu::TabId`, a row in `SidebarItems[]`, and a
+`case` in `Tabs::Render()`.
 
 ---
 

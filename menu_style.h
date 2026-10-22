@@ -1,7 +1,6 @@
 #pragma once
 
 #include "imgui/imgui.h"
-#include "menu.h"
 
 // Applies the redENGINE colour scheme / metrics.
 //

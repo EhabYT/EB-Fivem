@@ -57,6 +57,24 @@
     <ClCompile Include="config.cpp">
       <Filter>Source Files\menu\tabs</Filter>
     </ClCompile>
+    <ClCompile Include="default.cpp">
+      <Filter>Source Files\menu\tabs</Filter>
+    </ClCompile>
+    <ClCompile Include="demo.cpp">
+      <Filter>Source Files\menu\tabs</Filter>
+    </ClCompile>
+    <ClCompile Include="luamenus.cpp">
+      <Filter>Source Files\menu\tabs</Filter>
+    </ClCompile>
+    <ClCompile Include="menu.cpp">
+      <Filter>Source Files\menu</Filter>
+    </ClCompile>
+    <ClCompile Include="tabs.cpp">
+      <Filter>Source Files\menu</Filter>
+    </ClCompile>
+    <ClInclude Include="tabs.h">
+      <Filter>Source Files\menu</Filter>
+    </ClInclude>
     <ClCompile Include="exec.cpp">
       <Filter>Source Files\menu\tabs</Filter>
     </ClCompile>

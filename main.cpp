@@ -1,11 +1,10 @@
 #include "includes.h"
 
-#include "menu.h"
-#include "menu_style.h"
-#include "assets.h"
-#include "exec.h"
-#include "resources.h"
-#include "demo.h"
+#include "menu.h"          // Menu::Render / IsMenuOpen / logo
+#include "menu_style.h"    // ApplyStyle()
+#include "assets.h"        // ResolveAssetPath()
+#include "exec.h"          // Executor::Init()
+#include "resources.h"     // Resources::Init()
 
 #define STB_IMAGE_IMPLEMENTATION
 

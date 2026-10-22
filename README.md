@@ -15,15 +15,16 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`main.cpp`](main.cpp) | `DllMain`, Present hook, ImGui init/teardown, texture + font loading, input routing |
 | [`includes.h`](includes.h) | Windows / D3D11 / DXGI / Kiero / ImGui includes, hook typedefs, `HK_CALL` |
 | [`assets.h`](assets.h) | `ResolveAssetPath()` — finds files next to the DLL |
-| [`menu.h`](menu.h) | Menu shell: 2-column `ImGui::Table` — data-driven sidebar + tab routing |
-| [`menu_style.h`](menu_style.h) | `ApplyStyle()` — colours, rounding, frame padding (applied once) |
+| [`menu.h`](menu.h) · [`menu.cpp`](menu.cpp) | Menu **shell**: the window, the 2-column `ImGui::Table`, the sidebar, `Menu::TabId` |
+| [`tabs.h`](tabs.h) · [`tabs.cpp`](tabs.cpp) | **Tab routing**: the only place that knows which tabs exist |
+| [`menu_style.h`](menu_style.h) | `ApplyStyle()` — colours, rounding, frame/cell padding (applied once) |
 | [`gui.h`](gui.h) | Small helpers (`Gui::Seperator`, cursor setters) |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor, Execute / Load-from-file, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
 | [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — Safe Mode / ScriptHook Bypass toggles |
-| [`luamenus.h`](luamenus.h) | Menus tab — free / premium menu lists |
-| [`demo.h`](demo.h) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
-| [`default.h`](default.h) | Landing tab |
+| [`luamenus.h`](luamenus.h) · [`luamenus.cpp`](luamenus.cpp) | Menus tab — free / premium menu lists |
+| [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
+| [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab |
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
 | [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified) |
 | [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored, unmodified) |
@@ -86,8 +87,15 @@ the sidebar falls back to a text logo.
   and the Safe Mode / ScriptHook Bypass toggles.
 * `font_awesome.cpp` is `#include`d by `main.cpp` rather than compiled as its own translation
   unit; it is marked `ExcludedFromBuild` in the project so nobody adds it twice.
-* Every menu global is now declared `extern` in its header and defined in exactly one `.cpp`, so
-  adding a second translation unit that includes `menu.h` cannot produce `LNK2005` duplicates.
+* Every menu global is declared `extern` in its header and defined in exactly one `.cpp`, so
+  adding a second translation unit cannot produce `LNK2005` duplicates.
+* **Shell and tabs are separate translation units.** `menu.cpp` draws the window and the sidebar and
+  calls `Tabs::Render()`; `tabs.cpp` owns the `switch` and is the only file that includes the five tab
+  headers. `main.cpp` (hooks, device, ImGui lifetime) includes neither. Adding a tab therefore touches
+  `tabs.cpp`, `menu.cpp` (one `SidebarItems[]` row) and `menu.h` (one `TabId` enumerator) — not the
+  hook code.
+* `demo.h` is compiled but wired to no sidebar entry; call `Demo::Render()` from `Tabs::Render()` if
+  you want the widget cheat-sheet on screen.
 
 ## Credits
 
