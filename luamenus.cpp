@@ -2,6 +2,7 @@
 #include "gui.h"
 #include "font_awesome.h"
 #include "activity.h"
+#include "toasts.h"
 
 #include "imgui/imgui.h"
 
@@ -66,7 +67,7 @@ namespace Menus
 				selected = 0;
 
 			const std::string label = std::string("Run ") + items[selected];
-			if (ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 33)))
+			if (Gui::PrimaryButton(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 33)))
 			{
 				// Empty body before: clicking "Run Lux" did nothing at all, with no
 				// indication that it was a stub.
@@ -74,6 +75,8 @@ namespace Menus
 					(std::string("'") + items[selected] + "' is not bundled with this build.").c_str(),
 					"redENGINE", MB_OK | MB_ICONINFORMATION);
 				Activity::Push(std::string("Run requested for '") + items[selected]
+					+ "' (not bundled).");
+				Toasts::Push(Toasts::Info, std::string("Run requested for '") + items[selected]
 					+ "' (not bundled).");
 			}
 		}

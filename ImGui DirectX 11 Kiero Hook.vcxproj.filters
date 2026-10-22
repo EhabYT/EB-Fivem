@@ -63,6 +63,9 @@
     <ClCompile Include="settings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toasts.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="default.cpp">
       <Filter>Source Files\menu\tabs</Filter>
     </ClCompile>
@@ -192,6 +195,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="toasts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">

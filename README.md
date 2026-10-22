@@ -316,6 +316,12 @@ Until then there is **no CI and no compile proof** — every check on this branc
   footer carries a live FPS / frame-time readout, and the landing tab lists a timestamped session
   log of loads, dumps, copies and stop/run requests — the actions whose only other feedback is a
   message box. All of it is in `settings.cpp` / `activity.cpp`.
+* **The interface gives non-blocking feedback:** success/info paths (loads, dumps, copies,
+  run/execute requests, key captures) raise a toast card in the window's bottom-right corner
+  instead of a focus-stealing message box; critical errors keep theirs. The window opens with a
+  short fade, the sidebar's tab marker slides to the selected entry, and primary actions
+  (Execute, Save All Resources, Run) draw in the brand blue instead of the default navy.
+  Config → Interface can switch animations and toasts off; both are persisted in `settings.ini`.
 
 ## Credits
 

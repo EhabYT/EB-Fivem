@@ -1,6 +1,7 @@
 #include "config.h"
 #include "activity.h"
 #include "settings.h"
+#include "toasts.h"
 
 #include <Windows.h>
 #include <string>
@@ -33,9 +34,7 @@ namespace Config
 
 		Gui::Seperator("##config_seperator_1");
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 7));
-		ImGui::Checkbox("Enabled##safemode", &Safemode);
-		ImGui::PopStyleVar();
+		Gui::Toggle("Enabled##safemode", &Safemode);
 
 		Gui::Seperator("##config_seperator_2");
 		ImGui::Text("ScriptHook Bypass");
@@ -45,9 +44,7 @@ namespace Config
 			ImGui::SetTooltip("Loads .ASI plugins through the ScriptHook interface.");
 
 		Gui::Seperator("##config_seperator_3");
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 7));
-		ImGui::Checkbox("Enabled##shbypass", &ShBypass);
-		ImGui::PopStyleVar();
+		Gui::Toggle("Enabled##shbypass", &ShBypass);
 
 		Gui::Seperator("##config_seperator_4");
 
@@ -74,12 +71,21 @@ namespace Config
 						Settings::Current.ToggleKey = vk;
 						Settings::Save();
 						Activity::Push(std::string("Toggle key set to ") + Settings::KeyName(vk));
+						Toasts::Push(Toasts::Success, std::string("Toggle key set to ") + Settings::KeyName(vk));
 					}
 					capturing = false;
 					break;
 				}
 			}
 		}
+
+		// Motion and feedback are taste, so both are switchable - and, like the
+		// rest of the interface prefs, persisted in settings.ini ([ui]).
+		ImGui::Spacing();
+		if (Gui::Toggle("Animations##ui_anim", &Settings::Current.Animations))
+			Settings::Save();
+		if (Gui::Toggle("Toast notifications##ui_toasts", &Settings::Current.Toasts))
+			Settings::Save();
 
 		ImGui::EndChild();
 		ImGui::SameLine();

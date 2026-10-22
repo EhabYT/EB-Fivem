@@ -3,6 +3,7 @@
 #include "gui.h"
 #include "font_awesome.h"
 #include "settings.h"
+#include "toasts.h"
 
 #include <cstdio>
 #include <cmath>
@@ -47,6 +48,11 @@ namespace Menu
 
 	static void RenderSidebar()
 	{
+		// Animated selected-tab marker: current bar rect (kept across frames)
+		// and this frame's target, i.e. the selected entry's button rect.
+		static float indX = 0.0f, indY = 0.0f, indH = 0.0f;
+		float tgtX = indX, tgtY = indY, tgtH = 0.0f;
+
 		ImGui::SetCursorPosX(74);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 9);
 		if (LogoLoaded)
@@ -89,14 +95,34 @@ namespace Menu
 				Settings::Save();
 			}
 
+			// The 3px marker no longer jumps straight to the clicked entry: its
+			// target rect is recorded here and the bar below eases towards it.
 			if (active)
 			{
 				const ImVec2 min = ImGui::GetItemRectMin();
-				ImGui::GetWindowDrawList()->AddRectFilled(
-					ImVec2(min.x, min.y), ImVec2(min.x + 3.0f, min.y + SidebarButtonHeight), Accent);
+				tgtX = min.x;
+				tgtY = min.y;
+				tgtH = SidebarButtonHeight;
 				ImGui::PopStyleColor();
 			}
 		}
+
+		// With animations off (Config -> Interface) k is 1 and the bar lands in
+		// one frame, i.e. exactly the old behaviour.
+		const float dt = ImGui::GetIO().DeltaTime;
+		const float k = Settings::Current.Animations
+			? (dt * 14.0f < 1.0f ? dt * 14.0f : 1.0f) : 1.0f;
+		if (indH <= 0.5f && tgtH > 0.0f)
+		{
+			indX = tgtX;   // appearing: snap to the entry instead of flying in
+			indY = tgtY;
+		}
+		indX += (tgtX - indX) * k;
+		indY += (tgtY - indY) * k;
+		indH += (tgtH - indH) * k;
+		if (indH > 0.5f)
+			ImGui::GetWindowDrawList()->AddRectFilled(
+				ImVec2(indX, indY), ImVec2(indX + 3.0f, indY + indH), Accent);
 
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
 		ImGui::SetCursorPosX(0);
@@ -133,6 +159,45 @@ namespace Menu
 	void Render()
 	{
 		//redENGINE Remade : by xo1337
+
+		// Open fade.  Render() only runs while the overlay is open, so a gap in
+		// the call stream means the menu was closed and has just come back.
+		const double tNow = ImGui::GetTime();
+		static double lastRender = -1.0;
+		static double openT = -1.0;
+		if (lastRender < 0.0 || (tNow - lastRender) > 0.25)
+			openT = tNow;
+		lastRender = tNow;
+
+		float fade = 1.0f;
+		if (Settings::Current.Animations)
+		{
+			double t = (tNow - openT) / 0.22;
+			if (t < 0.0)
+				t = 0.0;
+			if (t < 1.0)
+			{
+				const float u = (float)t;
+				fade = 1.0f - (1.0f - u) * (1.0f - u) * (1.0f - u);   // ease-out cubic
+			}
+		}
+
+		// Soft drop shadow under the rounded window, drawn one frame late (the
+		// rect is captured at the end of the previous frame) onto the background
+		// list, which sits under every ImGui window but over the game scene.
+		static ImVec2 shadowMin, shadowMax;
+		if (shadowMax.x > shadowMin.x)
+		{
+			ImDrawList* bg = ImGui::GetBackgroundDrawList();
+			const float off[3] = { 5.0f, 11.0f, 19.0f };
+			const int   alp[3] = { (int)(70 * fade), (int)(46 * fade), (int)(26 * fade) };
+			for (int i = 0; i < 3; ++i)
+				bg->AddRectFilled(ImVec2(shadowMin.x - 2.0f, shadowMin.y + off[i] * 0.4f),
+					ImVec2(shadowMax.x + 2.0f, shadowMax.y + off[i]),
+					IM_COL32(0, 0, 0, alp[i]), 12.0f);
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
 		// NoCollapse/NoResize: the layout below is pixel-positioned, so a
 		// user-resized or collapsed window just produced broken frames.
 		// Restore the persisted position on the first frame only; afterwards the
@@ -144,6 +209,18 @@ namespace Menu
 
 		ImGui::Begin("redENGINE", NULL,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+
+		// Thin brand rule under the title bar: accent -> pressed blue, L->R.
+		{
+			ImDrawList* dl = ImGui::GetWindowDrawList();
+			const ImVec2 wp = ImGui::GetWindowPos();
+			const float titleH = ImGui::GetCurrentWindowRead()->TitleBarHeight;
+			const float ww = ImGui::GetWindowSize().x;
+			dl->AddRectFilledMultiColor(ImVec2(wp.x, wp.y + titleH),
+				ImVec2(wp.x + ww, wp.y + titleH + 2.0f),
+				IM_COL32(93, 156, 214, 255), IM_COL32(29, 81, 136, 255),
+				IM_COL32(29, 81, 136, 255), IM_COL32(93, 156, 214, 255));
+		}
 
 		// Two-column shell: fixed sidebar on the left, tab content on the right.
 		//
@@ -181,6 +258,10 @@ namespace Menu
 			ImGui::EndTable();
 		}
 
+		// Non-blocking feedback stack in the window's bottom-right corner.
+		if (Settings::Current.Toasts)
+			Toasts::Render();
+
 		// Remember where the window ended up so the next session opens there.
 		// Captured before End() (after it there is no current window to ask) and
 		// throttled to ~1/s plus a distance threshold: writing an .ini every
@@ -201,6 +282,12 @@ namespace Menu
 			}
 		}
 
+		// Remember the window rect for next frame's drop shadow; captured before
+		// End(), like the position save above.
+		shadowMin = pos;
+		shadowMax = ImVec2(pos.x + ImGui::GetWindowSize().x, pos.y + ImGui::GetWindowSize().y);
+
 		ImGui::End();
+		ImGui::PopStyleVar();   // the open-fade alpha
 	}
 }

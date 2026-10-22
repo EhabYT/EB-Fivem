@@ -15,6 +15,10 @@ invented:
                  labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
                  Load from File 180x30, resource combo
+  gui.h          PrimaryButton fill (rest #3778B5, hover #5D9CD6, press #1D5188)
+  toasts.cpp     card metrics: 320 max width, 3px kind bar, 8px inner padding
+  menu.cpp       drop shadow (three stacked rects), brand rule under the title
+                 bar, toast stack anchored 10px off the window's bottom-right
   TextEditor.cpp GetDarkPalette(), mLeftMargin (10), mLineSpacing (1.0)
 
 Two things CANNOT be faithful and are substituted, exactly as the README caption
@@ -31,7 +35,7 @@ import struct
 import tempfile
 import zlib
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "docs", "preview.png")
@@ -110,6 +114,7 @@ C_TITLE_BG   = RGBA(42, 74, 123)     # ImGuiCol_TitleBg / _Active   #2A4A7B
 C_WINDOW_BG  = RGBA(20, 38, 63)      # ImGuiCol_WindowBg            #14263F
 C_BUTTON     = RGBA(31, 58, 97)      # ImGuiCol_Button              #1F3A61
 C_BUTTON_ACT = RGBA(29, 81, 136)     # ImGuiCol_ButtonActive        #1D5188
+C_PRIMARY    = RGBA(55, 120, 181)     # Gui::PrimaryButton rest      #3778B5
 C_ACCENT     = RGBA(93, 156, 214)    # Menu::Accent / SliderGrab    #5D9CD6
 C_FRAME_BG   = RGBA(31, 58, 97)      # ImGuiCol_FrameBg             #1F3A61
 C_BORDER     = RGBA(42, 74, 123)     # ImGuiCol_Border / _Separator #2A4A7B
@@ -263,6 +268,12 @@ R(0, 0, W, H, C_WINDOW_BG)
 R(0, 0, W, TITLE_H, C_TITLE_BG)
 T(WIN_PAD, (TITLE_H - FONT_SIZE) / 2, "redENGINE", C_TEXT)
 
+# brand rule under the title bar (menu.cpp): accent -> pressed blue, left to right
+for _x in range(W):
+    _t = _x / (W - 1.0)
+    R(_x, TITLE_H, _x + 1, TITLE_H + 2,
+      tuple(int(round(C_ACCENT[i] + (C_BUTTON_ACT[i] - C_ACCENT[i]) * _t)) for i in range(3)) + (255,))
+
 # 2-column table: BordersInnerV, SizingFixedFit, NoPadOuterX, CellPadding (0,0)
 R(SX1, CY0, SX1 + 1, CY1, C_BORDER)
 
@@ -333,9 +344,14 @@ for ln, runs in enumerate(colorize(SAMPLE)):
 # button row: Execute 116x30, Load from File 180x30, combo fills the rest
 y = ey1 + ITEM_SPACING_Y
 bh = 30
-R(CX0, y, CX0 + 116, y + bh, C_BUTTON)
-T(CX0 + FRAME_PAD_X, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf121", C_TEXT, f_icon, 1.0)
-T(CX0 + FRAME_PAD_X + TW("\uf121", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Execute", C_TEXT)
+# Execute is a Gui::PrimaryButton: brand fill, soft top highlight, centred label
+d.rounded_rectangle([CX0*S, y*S, (CX0+116)*S-1, (y+bh)*S-1], radius=6*S, fill=C_PRIMARY)
+d.rounded_rectangle([(CX0+1)*S, (y+1)*S, (CX0+115)*S-1, (y+bh/2)*S-1], radius=6*S,
+                    fill=blend((255, 255, 255, 26), C_PRIMARY))
+_exe_w = TW("\uf121", f_icon, 1.0) + TW(" Execute")
+_exe_x = CX0 + (116 - _exe_w) / 2
+T(_exe_x, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf121", C_TEXT, f_icon, 1.0)
+T(_exe_x + TW("\uf121", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Execute", C_TEXT)
 
 x2 = CX0 + 116 + ITEM_SPACING_X
 R(x2, y, x2 + 180, y + bh, C_BUTTON)
@@ -350,6 +366,32 @@ T(x3 + FRAME_PAD_X, y + (fh-FONT_SIZE)/2, "_cfx_internal", C_TEXT)
 aw, ax, ay = 9, CX1 - FRAME_PAD_X - 9, y + fh / 2
 d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
 
-img.save(OUT, optimize=True)
+# toast stack (toasts.cpp): one Success card, 10px off the bottom-right corner
+_toast = "Dump saved to Dumps"
+_tw = min(320.0, TW(_toast) + 3 + 8 * 3)
+_th = FONT_SIZE + 8 * 2
+_tx1, _ty1 = W - 10, H - 10
+_tx0, _ty0 = _tx1 - _tw, _ty1 - _th
+d.rounded_rectangle([_tx0*S, _ty0*S, _tx1*S-1, _ty1*S-1], radius=6*S, fill=(31, 58, 97, 242))
+d.rounded_rectangle([_tx0*S, _ty0*S, _tx1*S-1, _ty1*S-1], radius=6*S,
+                    outline=(93, 156, 214, 110), width=S)
+d.rounded_rectangle([_tx0*S, _ty0*S, (_tx0+3)*S-1, _ty1*S-1], radius=6*S, fill=C_ACCENT,
+                    corners=(True, False, False, True))
+T(_tx0 + 3 + 8, _ty0 + 8, _toast, C_TEXT)
+
+# window chrome (menu_style.h + menu.cpp): rounded corners on a desktop
+# background, three-rect drop shadow behind, exactly as the DLL draws it
+M, RAD = 28, 10
+_mask = Image.new("L", (W * S, H * S), 0)
+ImageDraw.Draw(_mask).rounded_rectangle([0, 0, W * S - 1, H * S - 1], radius=RAD * S, fill=255)
+canvas = Image.new("RGBA", ((W + 2 * M) * S, (H + 2 * M) * S), (12, 18, 28, 255))
+_shadow = Image.new("RGBA", (W * S, H * S), (0, 0, 0, 0))
+ImageDraw.Draw(_shadow).rounded_rectangle([0, 0, W * S - 1, H * S - 1], radius=RAD * S,
+                                          fill=(0, 0, 0, 150))
+_shadow = _shadow.filter(ImageFilter.GaussianBlur(9 * S))
+canvas.alpha_composite(_shadow, (M * S, (M + 12) * S))
+canvas.paste(img, (M * S, M * S), _mask)
+
+canvas.save(OUT, optimize=True)
 os.unlink(fa_path)
-print("geschrieben:", OUT, os.path.getsize(OUT), "Bytes", img.size)
+print("geschrieben:", OUT, os.path.getsize(OUT), "Bytes", canvas.size)

@@ -13,6 +13,7 @@
 // same `resources` / `selectedResource` pair.
 #include "resources.h"
 #include "activity.h"
+#include "toasts.h"
 
 std::vector<const char*> resources = {
 	"_cfx_internal","fivem","hardcap","anti-cheese","esx_mafia","esx_gopostal","esx_jail","mysql-async","es_admin2",
@@ -56,7 +57,7 @@ namespace Executor
 		editor.Render("##Null", ImVec2(avail.x - 16.0f, avail.y - 52.0f), true);
 		ImGui::Spacing();
 
-		if (ImGui::Button(ICON_FA_CODE " Execute", ImVec2(116, 30)))
+		if (Gui::PrimaryButton(ICON_FA_CODE " Execute", ImVec2(116, 30)))
 		{
 			if (resources.empty())
 			{
@@ -77,6 +78,8 @@ namespace Executor
 						+ "\nScript: " + std::to_string(script.size()) + " bytes").c_str(),
 					"redENGINE", MB_OK | MB_ICONINFORMATION);
 				Activity::Push(std::string("Execute requested for ")
+					+ resources[selectedResource] + " (not implemented).");
+				Toasts::Push(Toasts::Info, std::string("Execute requested for ")
 					+ resources[selectedResource] + " (not implemented).");
 			}
 		}
@@ -133,6 +136,8 @@ namespace Executor
 						editor.SetText(text);
 						Activity::Push("Loaded " + std::string(file) + " ("
 							+ std::to_string(read) + " bytes) into the editor.");
+						Toasts::Push(Toasts::Success, "Loaded " + std::string(file)
+							+ " (" + std::to_string(read) + " bytes).");
 					}
 					fclose(fp);
 				}

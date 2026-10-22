@@ -17,9 +17,17 @@ inline void ApplyStyle()
 	style.WindowMinSize = ImVec2(900, 540); // This sets the minimum window size
 
 	style.FrameBorderSize		= 0;
-	style.WindowRounding		= 0;
-	style.TabRounding			= 0;
-	style.ScrollbarRounding		= 0;
+
+	// The shell used to be square on every corner (all roundings 0), which read
+	// as a debug overlay rather than a product.  Rounded corners plus the drop
+	// shadow drawn in menu.cpp let the window sit *on* the game scene.
+	style.WindowRounding		= 10;
+	style.ChildRounding			= 6;
+	style.FrameRounding			= 6;
+	style.PopupRounding			= 8;
+	style.TabRounding			= 6;
+	style.ScrollbarRounding		= 8;
+	style.GrabRounding			= 4;
 	style.FramePadding			= ImVec2(8, 6);
 
 	// The menu shell is a 2-column ImGui table (see menu.h).  Table cells are

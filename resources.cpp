@@ -1,6 +1,7 @@
 #include "resources.h"
 #include "assets.h"
 #include "activity.h"
+#include "toasts.h"
 
 #include <direct.h>    // _mkdir
 #include <algorithm>   // std::find
@@ -120,7 +121,7 @@ namespace Resources
 
 	void SaveResources()
 	{
-		if (ImGui::Button("Save All Resources", ImVec2(ImGui::GetContentRegionAvail().x, 33)))
+		if (Gui::PrimaryButton("Save All Resources", ImVec2(ImGui::GetContentRegionAvail().x, 33)))
 		{
 			const std::string dir = GetDumpDirectory();
 			MakeDirectoryTree(dir);
@@ -163,6 +164,7 @@ namespace Resources
 			{
 				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "rE", MB_OK | MB_ICONINFORMATION);
 				Activity::Push("Dump saved to " + dir);
+				Toasts::Push(Toasts::Success, "Dump saved to " + dir);
 			}
 			else
 			{
@@ -263,6 +265,7 @@ namespace Resources
 							{
 								Activity::Push(std::string("Copied trigger to clipboard (")
 									+ std::to_string(Triggers[i].size()) + " chars).");
+								Toasts::Push(Toasts::Success, "Trigger copied to clipboard.");
 							}
 						}
 						else
