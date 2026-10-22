@@ -52,9 +52,11 @@ msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /
 Output: `x64\Release\redENGINE UI.dll`. Put `rE.png` in the same folder as the DLL, otherwise
 the sidebar falls back to a text logo.
 
-[`.github/workflows/build.yml`](.github/workflows/build.yml) does the same on `windows-latest`
-(Release and Debug, x64) for every push to `main` and every pull request, verifies the DLL and its
-export table exist, and uploads it as an artifact.
+A GitHub Actions workflow that does the same on `windows-latest` (Release and Debug, x64), verifies
+the DLL and its export table exist, and uploads it as an artifact is written but **not committed** —
+adding `.github/workflows/*` requires the `workflows` permission, which the tooling here does not
+have. The file sits in the working tree; commit it yourself to switch CI on. See
+[BUILD.md §7](BUILD.md).
 
 > Build **x64 only** — a Win32 DLL cannot be loaded by FiveM.
 

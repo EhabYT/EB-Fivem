@@ -266,8 +266,20 @@ Adding a tab is now three edits: an enumerator in `Menu::TabId`, a row in `Sideb
 
 ## 7. Continuous integration
 
-`.github/workflows/build.yml` builds **Release\|x64** and **Debug\|x64** on `windows-latest` for
-every push to `main`, every pull request, and on demand (`workflow_dispatch`). Each job:
+> **Status: written, not enabled.** The workflow below lives at `.github/workflows/build.yml` in the
+> working tree but is **not committed**, because the GitHub App token used here is refused the push:
+>
+> ```
+> ! [remote rejected] (refusing to allow a GitHub App to create or update workflow
+>                      `.github/workflows/build.yml` without `workflows` permission)
+> ```
+>
+> Adding a workflow file needs the `workflows` permission. To enable it, either commit that file
+> yourself, or paste the contents into a new file at `.github/workflows/build.yml` via the GitHub
+> web UI. Everything else in this repository is committed and pushed; only the workflow is not.
+
+The workflow builds **Release\|x64** and **Debug\|x64** on `windows-latest` for every push to
+`main`, every pull request, and on demand (`workflow_dispatch`). Each job:
 
 1. `microsoft/setup-msbuild@v2` — MSBuild is installed on the runner but is not on `PATH`.
 2. prints the resolved VS installation, its version and the MSBuild version, so a toolchain
@@ -280,6 +292,12 @@ every push to `main`, every pull request, and on demand (`workflow_dispatch`). E
 
 `Win32` is deliberately not in the matrix: the DLL is injected into FiveM, which is 64-bit only, so
 a Win32 artifact could never be loaded. The configuration still exists in the `.vcxproj`.
+
+Until it is enabled, the equivalent local command is `build.bat`, or:
+
+```bat
+msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
+```
 
 Two things worth knowing:
 
