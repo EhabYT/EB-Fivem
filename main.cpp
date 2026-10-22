@@ -120,7 +120,11 @@ bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_sr
 static std::string GetModuleDirectory()
 {
 	char path[MAX_PATH] = { 0 };
-	if (g_hModule != NULL && GetModuleFileNameA(g_hModule, path, MAX_PATH) != 0)
+	// GetModuleFileNameA signals truncation by returning exactly MAX_PATH.  A
+	// truncated path would resolve assets against the wrong directory, so treat
+	// it the same as failure and fall back to the working directory.
+	const DWORD len = (g_hModule != NULL) ? GetModuleFileNameA(g_hModule, path, MAX_PATH) : 0;
+	if (len != 0 && len < MAX_PATH)
 	{
 		char* last = strrchr(path, '\\');
 		if (last != NULL)

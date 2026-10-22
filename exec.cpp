@@ -95,13 +95,31 @@ namespace Executor
 
 			if (GetOpenFileNameA(&ofn))
 			{
+				// Every failure path used to be silent: pick an unreadable, empty
+				// or oversized file and the button simply did nothing, which is
+				// indistinguishable from the old dead stub.  Say what happened.
 				FILE* fp = NULL;
-				if (fopen_s(&fp, file, "rb") == 0 && fp != NULL)
+				if (fopen_s(&fp, file, "rb") != 0 || fp == NULL)
+				{
+					MessageBoxA(NULL, (std::string("Could not open:\n") + file).c_str(),
+						"redENGINE", MB_OK | MB_ICONERROR);
+				}
+				else
 				{
 					fseek(fp, 0, SEEK_END);
 					const long size = ftell(fp);
 					fseek(fp, 0, SEEK_SET);
-					if (size > 0 && size < 4 * 1024 * 1024)
+					if (size <= 0)
+					{
+						MessageBoxA(NULL, "The selected file is empty.",
+							"redENGINE", MB_OK | MB_ICONERROR);
+					}
+					else if (size >= 4 * 1024 * 1024)
+					{
+						MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
+							"redENGINE", MB_OK | MB_ICONERROR);
+					}
+					else
 					{
 						std::string text((size_t)size, '\0');
 						const size_t read = fread(&text[0], 1, (size_t)size, fp);

@@ -155,6 +155,9 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 31 | Config tab sized its panes with `GetWindowWidth()` / `GetWindowHeight()` — the 900×540 *outer* window, not the ~658×492 table cell — plus a stray `SetCursorPosX(233)`, so the right-hand pane ran 900px wide off the window | Both panes measured from `GetContentRegionAvail()` |
 | 32 | Resources sub-tab buttons sized `GetWindowWidth()/4`: 3×225 + two item spacings = 691px did not fit the ~658px cell, clipping the third button; the file-preview editor used `GetWindowSize().x` (884px) inside the same cell | Cell width divided by three / `GetContentRegionAvail()` |
 | 33 | Tab bodies started flush against the column divider (`CellPadding (0,0)` + `NoPadOuterX`), so text and widgets touched the rule | `Menu::ContentPadding` left inset applied once to the content column |
+| 34 | `Load from File` was silent on **every** failure path — unreadable, empty or ≥4 MB files made the button do nothing, indistinguishable from the old dead stub | Each path now reports the reason in a message box |
+| 35 | `CopyToClipBoard` returned `void`, so a busy clipboard (another process holding it) looked like a successful copy that copied nothing | Returns `bool`; the trigger "Copy" button reports a busy clipboard |
+| 36 | `GetModuleDirectory()` ignored `GetModuleFileNameA` truncation (it returns exactly `MAX_PATH` when the path does not fit), which would resolve `rE.png`/`Dumps` against a wrong, silently-truncated directory | Truncation is treated as failure and falls back to the working directory |
 
 ---
 

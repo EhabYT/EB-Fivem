@@ -51,34 +51,39 @@ server_script 'server.lua'
 
 )";
 
-static void CopyToClipBoard(HWND hwnd, const std::string& s)
+// Returns false when nothing reached the clipboard (clipboard owned by another
+// process, allocation or lock failure), so the caller can say so instead of
+// looking like a successful copy.
+static bool CopyToClipBoard(HWND hwnd, const std::string& s)
 {
 	if (!OpenClipboard(hwnd))
-		return;
+		return false;
 
 	EmptyClipboard();
 	HGLOBAL hGlobe = GlobalAlloc(GMEM_MOVEABLE, s.size() + 1);
-	if (!hGlobe)
+	if (hGlobe == NULL)
 	{
 		CloseClipboard();
-		return;
+		return false;
 	}
 
 	void* locked = GlobalLock(hGlobe);
-	if (locked != NULL)
-	{
-		memcpy(locked, s.c_str(), s.size() + 1);
-		GlobalUnlock(hGlobe);
-		// Ownership transfers to the clipboard on success; only free on failure.
-		if (SetClipboardData(CF_TEXT, hGlobe) == NULL)
-			GlobalFree(hGlobe);
-	}
-	else
+	if (locked == NULL)
 	{
 		GlobalFree(hGlobe);
+		CloseClipboard();
+		return false;
 	}
 
+	memcpy(locked, s.c_str(), s.size() + 1);
+	GlobalUnlock(hGlobe);
+	// Ownership transfers to the clipboard on success; only free on failure.
+	const bool ok = (SetClipboardData(CF_TEXT, hGlobe) != NULL);
+	if (!ok)
+		GlobalFree(hGlobe);
+
 	CloseClipboard();
+	return ok;
 }
 
 // "<DLL folder>\Dumps" - writable without elevation, and travels with the build.
@@ -240,7 +245,11 @@ namespace Resources
 						// The old `if (Triggers.at(i) == NULL)` guard was unreachable:
 						// at() returns a reference and the vector never holds NULL.
 						if (Triggers[i] != NULL && Triggers[i][0] != '\0')
-							CopyToClipBoard(window, Triggers[i]);
+						{
+							if (!CopyToClipBoard(window, Triggers[i]))
+								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
+									"rE", MB_OK | MB_ICONERROR);
+						}
 						else
 							MessageBoxA(NULL, "Nothing to copy.", "rE", MB_OK | MB_ICONERROR);
 					}
