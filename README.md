@@ -8,6 +8,20 @@ draws the **redENGINE** menu on top of the game. Press **INSERT** to toggle it.
 
 Everything is vendored in-tree — no submodules, no package manager, no external downloads.
 
+![redENGINE menu preview — Executor tab](docs/preview.png)
+
+> **This is a render, not a screenshot.** The DLL cannot be executed on the machine that produced
+> this branch (no MSVC, no Windows), so the image is drawn from the repository's own constants
+> instead of being captured from a running game: every colour from [`menu_style.h`](menu_style.h),
+> the 225 px sidebar and 46 px buttons from [`menu.h`](menu.h), the window title, logo placement,
+> tab labels and footer strings from [`menu.cpp`](menu.cpp), the editor palette and Lua token
+> colours from [`TextEditor.cpp`](TextEditor.cpp), and the sidebar/button glyphs from the project's
+> **own embedded Font Awesome font** (the stb-compressed blob in `font_awesome.cpp`, decompressed for
+> this render). Two things are substituted and cannot be faithful: the text face — `Bahnschrift.ttf`
+> is a Windows-only font, so a horizontally condensed DejaVu Sans stands in for its DIN proportions —
+> and ImGui's exact layout engine, which is not running here. The Lua snippet in the editor is
+> illustrative; on first launch the menu opens on the empty landing tab.
+
 ## Layout
 
 | Path | What it is |
@@ -32,6 +46,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
 | [`rE.png`](rE.png) | Menu logo, loaded from beside the DLL at runtime |
+| [`docs/preview.png`](docs/preview.png) | The preview render shown above, with its caption explaining exactly what is and is not faithful |
 
 ## Architecture
 
