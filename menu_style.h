@@ -52,6 +52,10 @@ inline void ApplyStyle()
 
 	style.Colors[ImGuiCol_CheckMark]			= ImColor(93, 156, 214, 255);	// check mark color
 
+	// The keyboard-navigation focus rectangle (Tab/arrows) in the brand accent
+	// instead of the stock white, so it reads as part of the theme.
+	style.Colors[ImGuiCol_NavCursor]			= ImColor(93, 156, 214, 255);
+
 	style.Colors[ImGuiCol_FrameBg]				= ImColor(31, 58, 97, 255);
 	style.Colors[ImGuiCol_FrameBgActive]		= ImColor(42, 74, 123, 255);
 	style.Colors[ImGuiCol_FrameBgHovered]		= ImColor(42, 74, 123, 255);

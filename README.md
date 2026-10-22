@@ -265,6 +265,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
 ## Runtime behaviour
 
 * The toggle key — **INSERT** by default, rebindable in Config → Interface — toggles the menu.
+* The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates
+  (ImGui keyboard nav, accent-coloured focus rectangle).
 * While the cursor is over the menu (or you are typing in the executor), mouse and keyboard
   messages are consumed instead of being passed to the game — clicking a button no longer also
   punches/shoots in-game, and typing Lua no longer walks the character around.

@@ -91,6 +91,10 @@ namespace Config
 		if (Gui::Toggle("Toast notifications##ui_toasts", &Settings::Current.Toasts))
 			Settings::Save();
 
+		ImGui::Spacing();
+		ImGui::TextColored(ImColor(93, 156, 214, 153),
+			"Keyboard: Tab/arrows move, Enter/Space activates.");
+
 		ImGui::EndChild();
 		ImGui::SameLine();
 		Gui::Seperator("##splitter", 1, avail.y);

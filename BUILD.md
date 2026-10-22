@@ -182,6 +182,8 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 57 | The frame-time sparkline showed a shape but no numbers | Hovering a bar reports its frame time and age ("x.x ms, n frames ago") in a tooltip |
 | 58 | Docs and comments still claimed "INSERT toggles the menu" in five places although the key became configurable and persisted several commits earlier | README intro, README flow graph, README runtime notes, BUILD.md runtime note and the `menu.h` comment now say "INSERT by default, rebindable in Config → Interface" |
 | 59 | The throttled (~1/s) window-position save could lose up to a second of window movement when the DLL unloaded | `DLL_PROCESS_DETACH` flushes `Settings::Save()` before teardown |
+| 60 | The menu was mouse-only: with a dead mouse, or in any accessibility scenario, no control was reachable at all | `ImGuiConfigFlags_NavEnableKeyboard`: Tab/arrows move the focus, Enter/Space activates; the nav focus rectangle draws in the brand accent, and Config → Interface states the keys |
+| 61 | The printable-toggle-key typing guard tested `io.WantCaptureKeyboard`, which is also true whenever keyboard navigation is active — enabling nav would have killed printable bindings outright | The guard tests `io.WantTextInput` (a text widget is actually consuming input), which is the precise condition and nav-safe |
 
 ---
 

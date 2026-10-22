@@ -204,6 +204,12 @@ void InitImGui()
 
 	io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
+	// Keyboard navigation: the menu is operable without a mouse at all
+	// (Tab/arrows move the focus, Enter/Space activates).  Every widget takes
+	// part natively, including the Gui::PrimaryButton / Gui::Toggle widgets
+	// built on InvisibleButton.
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
 	// Fall back to the built-in default font instead of asserting when the
 	// Windows font is unavailable (older Windows / stripped font sets).
 	ImFont* mainFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Bahnschrift.ttf", 20);
@@ -382,13 +388,15 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	// The capture button accepts letters and digits, and a letter bound as
 	// toggle key used to flip the menu on every keystroke while the user typed
 	// it into the editor or a filter box.  Printable bindings are therefore
-	// ignored while ImGui is consuming the keyboard (an input widget has
-	// focus); non-printable ones (INSERT, F-keys, ...) still close the menu
-	// with the editor focused, as before.
+	// ignored while a text widget is actually consuming input
+	// (io.WantTextInput); non-printable ones (INSERT, F-keys, ...) still close
+	// the menu with the editor focused, as before.  WantCaptureKeyboard would
+	// be the wrong test here: it is also true whenever keyboard navigation is
+	// active, which would kill printable bindings outright.
 	const int toggleVk = Settings::Current.ToggleKey;
 	const bool printable = (toggleVk >= 'A' && toggleVk <= 'Z')
 		|| (toggleVk >= '0' && toggleVk <= '9') || toggleVk == VK_SPACE;
-	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantCaptureKeyboard)
+	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantTextInput)
 		&& (GetAsyncKeyState(toggleVk) & 1))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 
