@@ -48,7 +48,7 @@ namespace Menu
 		{
 			// rE.png was not found next to the DLL: keep the sidebar the same height.
 			ImGui::SetCursorPosX(58);
-			ImGui::TextColored(ImColor(227, 0, 40, 255), "redENGINE");
+			ImGui::TextColored(ImColor(93, 156, 214, 255), "redENGINE");
 			ImGui::Dummy(ImVec2(76, 68));
 		}
 		ImGui::NewLine();

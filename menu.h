@@ -39,9 +39,10 @@ namespace Menu
 	// column divider, which this pushes the tab bodies away from.
 	static const float ContentPadding      = 8.0f;
 
-	// The brand red: title bar (menu_style.h), editor line numbers (the
-	// TextEditor palette) and the sidebar's selected-tab marker all share it.
-	static const ImU32 Accent              = IM_COL32(227, 0, 40, 255);
+	// The brand accent, #5D9CD6 - the top of the light ramp in menu_style.h.
+	// The sidebar's selected-tab marker, the editor line numbers (TextEditor
+	// palette) and the logo fallback text all share it.
+	static const ImU32 Accent              = IM_COL32(93, 156, 214, 255);
 
 	// Draws the whole menu window: sidebar column + tab content column.
 	// Implemented in menu.cpp.

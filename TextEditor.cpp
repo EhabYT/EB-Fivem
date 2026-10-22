@@ -2032,12 +2032,12 @@ const TextEditor::Palette& TextEditor::GetDarkPalette()
 			0xffc040a0, // Preproc identifier
 			0xff206020, // Comment (single line)
 			0xff406020, // Comment (multi line)
-			ImColor(29,29,29,255), // Background
+			ImColor(31,58,97,255), // Background
 			0xffe0e0e0, // Cursor
 			0x80a06020, // Selection
 			0x800020ff, // ErrorMarker
 			0x40f08000, // Breakpoint
-			ImColor(227,0,40,255), // Line number
+			ImColor(93,156,214,255), // Line number
 			0x40000000, // Current line fill
 			0x40808080, // Current line fill (inactive)
 			0x40a0a0a0, // Current line edge

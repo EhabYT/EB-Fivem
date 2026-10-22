@@ -194,7 +194,7 @@ namespace Resources
 
 		if (ResourceTab == 1)
 		{
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(15, 15, 15, 255));
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##resourcebox", listSize))
 			{
 				for (int i = 0; i < (int)resources.size(); ++i)
@@ -224,7 +224,7 @@ namespace Resources
 		}
 		else if (ResourceTab == 2) // Triggers
 		{
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(15, 15, 15, 255));
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##Triggers", listSize))
 			{
 				for (int i = 0; i < (int)Triggers.size(); ++i)
@@ -254,7 +254,7 @@ namespace Resources
 		}
 		else if (ResourceTab == 3) // Stopper
 		{
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(36, 36, 36, 255));
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(31, 58, 97, 255));
 			if (ImGui::BeginListBox("##resourcestopperbox", listSize))
 			{
 				for (int i = 0; i < (int)resources.size(); ++i)
@@ -271,7 +271,7 @@ namespace Resources
 
 			if (resources.empty())
 			{
-				ImGui::TextColored(ImColor(160, 160, 160, 255), "No resources left to stop.");
+				ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to stop.");
 				return;
 			}
 

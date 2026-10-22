@@ -303,6 +303,14 @@ Until then there is **no CI and no compile proof** — every check on this branc
   hook code.
 * `demo.h` is compiled but wired to no sidebar entry; call `Demo::Render()` from `Tabs::Render()` if
   you want the widget cheat-sheet on screen.
+* **The theme is two ramps of three stops each**, all of them in [`menu_style.h`](menu_style.h): an
+  interactive light ramp — `#5D9CD6` accent/rest, `#3778B5` hover, `#1D5188` pressed — and a navy
+  surface ramp — `#2A4A7B` title bar and raised borders, `#1F3A61` panels, buttons and the editor
+  background, `#14263F` the window canvas. `Menu::Accent`, the editor's line numbers and the logo
+  fallback text share `#5D9CD6`. Semantic reds (editor error markers, the "no files" warning) stay
+  red on purpose. `rE.png` was recoloured to the light ramp as a vertical gradient — white outline
+  and alpha channel untouched — and [`docs/render_preview.py`](docs/render_preview.py) regenerates
+  `docs/preview.png` from exactly these constants.
 
 ## Credits
 

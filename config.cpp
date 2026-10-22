@@ -22,7 +22,7 @@ namespace Config
 
 		ImGui::Text("Safe Mode");
 		ImGui::SameLine();
-		ImGui::TextColored(ImColor(255, 0, 0, 255), "(?)"); ImGui::Spacing();
+		ImGui::TextColored(ImColor(93, 156, 214, 255), "(?)"); ImGui::Spacing();
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Safe mode creates a private scripting environment.");
 
@@ -35,7 +35,7 @@ namespace Config
 		Gui::Seperator("##config_seperator_2");
 		ImGui::Text("ScriptHook Bypass");
 		ImGui::SameLine();
-		ImGui::TextColored(ImColor(255, 0, 0, 255), "(?)"); ImGui::Spacing();
+		ImGui::TextColored(ImColor(93, 156, 214, 255), "(?)"); ImGui::Spacing();
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Loads .ASI plugins through the ScriptHook interface.");
 
@@ -56,7 +56,7 @@ namespace Config
 		Gui::Seperator("##server_seperator_1");
 		// Was a hardcoded "127.0.0.1" string; nothing in this build connects to a
 		// server, so don't imply that it does.
-		ImGui::TextColored(ImColor(160, 160, 160, 255), "Server IP: not connected");
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Server IP: not connected");
 		Gui::Seperator("##server_seperator_2");
 		ImGui::EndChild();
 	}
