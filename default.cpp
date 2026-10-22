@@ -21,7 +21,7 @@ namespace Default
 		ImGui::Text("Diagnostics");
 		Perf::DrawGraph(ImVec2(ImGui::GetContentRegionAvail().x, 60.0f));
 		char diag[128];
-		snprintf(diag, sizeof(diag), "Session %s  |  %u actions  |  %.0f FPS now",
+		snprintf(diag, sizeof(diag), "Menu open %s  |  %u actions  |  %.0f FPS now",
 			Perf::UptimeString(), Activity::TotalCount(), ImGui::GetIO().Framerate);
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", diag);
 

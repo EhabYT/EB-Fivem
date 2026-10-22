@@ -172,6 +172,9 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 48 | The 34-entry resource list could only be scanned by eye, in the file browser and the stopper alike | Case-insensitive filter input (`InputTextWithHint`) above both lists; selections stay indexed into the real vector, never the filtered view |
 | 49 | Frame pacing was one instantaneous number with no history, so a hitch vanished before it could be read | `perf.h`/`.cpp`: 120-frame ring of frame times drawn as a sparkline (60 FPS guide line, >33.3 ms bars in the semantic red) on the landing tab, with session uptime and action count |
 | 50 | `Gui::Toggle`'s hit area was the 40px track only (a stock checkbox toggles from its label too), and the knob kept easing with animations switched off | Hit area covers track + label; knob easing is gated on Config → Animations |
+| 51 | A letter or digit bound as toggle key flipped the menu on every keystroke while the user typed it into the editor or a filter box | The toggle poll ignores presses while `io.WantCaptureKeyboard` is true — but only for printable bindings, so INSERT/F-keys still close the menu with the editor focused |
+| 52 | The resource preview editor was `SetText()` on every frame its header was open: selection and scroll position reset 60–144×/s and the document re-tokenised at the same rate | Text is set only when the open resource changes (`lastDumped` guard) |
+| 53 | The Diagnostics uptime counted wall time since the menu first opened, so it kept rising while the menu was closed even though the graph next to it was frozen | `Perf` accumulates sampled (menu-open) time; the card reads "Menu open mm:ss" |
 
 ---
 

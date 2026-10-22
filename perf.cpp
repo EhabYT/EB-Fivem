@@ -10,13 +10,12 @@ namespace Perf
 		float  g_ring[kSlots] = { 0 };
 		int    g_head  = 0;
 		int    g_count = 0;
-		double g_start = -1.0;
+		double g_open  = 0.0;   // accumulated sampled (menu-open) seconds
 	}
 
 	void Sample(float ms)
 	{
-		if (g_start < 0.0)
-			g_start = ImGui::GetTime();
+		g_open += ms / 1000.0;
 		g_ring[g_head] = ms;
 		g_head = (g_head + 1) % kSlots;
 		if (g_count < kSlots)
@@ -54,9 +53,7 @@ namespace Perf
 	const char* UptimeString()
 	{
 		static char buf[16];
-		int sec = 0;
-		if (g_start >= 0.0)
-			sec = (int)(ImGui::GetTime() - g_start);
+		const int sec = (int)g_open;
 		const int h = sec / 3600, m = (sec / 60) % 60, s = sec % 60;
 		if (h > 0)
 			snprintf(buf, sizeof(buf), "%d:%02d:%02d", h, m, s);

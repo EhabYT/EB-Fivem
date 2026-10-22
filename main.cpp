@@ -378,7 +378,18 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 
 	// Edge-triggered toggle.  The key is user-configurable (Config tab) and
 	// persisted, so read it from settings instead of assuming INSERT.
-	if (Settings::Current.ToggleKey > 0 && (GetAsyncKeyState(Settings::Current.ToggleKey) & 1))
+	//
+	// The capture button accepts letters and digits, and a letter bound as
+	// toggle key used to flip the menu on every keystroke while the user typed
+	// it into the editor or a filter box.  Printable bindings are therefore
+	// ignored while ImGui is consuming the keyboard (an input widget has
+	// focus); non-printable ones (INSERT, F-keys, ...) still close the menu
+	// with the editor focused, as before.
+	const int toggleVk = Settings::Current.ToggleKey;
+	const bool printable = (toggleVk >= 'A' && toggleVk <= 'Z')
+		|| (toggleVk >= '0' && toggleVk <= '9') || toggleVk == VK_SPACE;
+	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantCaptureKeyboard)
+		&& (GetAsyncKeyState(toggleVk) & 1))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 
 	if (Menu::IsMenuOpen)

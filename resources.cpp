@@ -249,7 +249,16 @@ namespace Resources
 						{
 							// Was SetText() *after* Render(), so the editor always showed
 							// the previous resource's text - one frame behind, forever.
-							dumper.SetText(std::string("--successfully dumped ") + resources[i] + ".");
+							// Setting it on *every* frame with an open header was the next
+							// bug in line: selection and scroll reset 60-144 times a second
+							// and the document re-tokenised at the same rate.  Set it only
+							// when the open resource actually changes.
+							static int lastDumped = -1;
+							if (lastDumped != i)
+							{
+								dumper.SetText(std::string("--successfully dumped ") + resources[i] + ".");
+								lastDumped = i;
+							}
 							dumper.Render("##dumper", ImVec2(ImGui::GetContentRegionAvail().x, 200));
 						}
 					}
