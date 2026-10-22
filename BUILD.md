@@ -182,6 +182,48 @@ the 5 `ImDrawList` methods `TextEditor.cpp` draws with, `Columns`/`NextColumn`/`
 `imconfig.h` was replaced with the upstream one: the project's copy had no local `#define`s, only
 older comments, so nothing was lost.
 
+### Legacy `Columns()` → `Tables`
+
+`ImGui::Columns` / `NextColumn` / `SetColumnOffset` still compile in 1.92.9 but have been
+deprecated since 1.80, and the two-column menu shell was the last place using them. It is now a
+table:
+
+```cpp
+if (ImGui::BeginTable("##maincolumn", 2,
+    ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX))
+{
+    ImGui::TableSetupColumn("##sidebar", ImGuiTableColumnFlags_WidthFixed,   SidebarWidth);
+    ImGui::TableSetupColumn("##content", ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn(); RenderSidebar();
+    ImGui::TableNextColumn(); /* tab content */
+    ImGui::EndTable();
+}
+```
+
+Flag choices, because the defaults are not equivalent to the old API:
+
+| Choice | Why |
+|---|---|
+| `BordersInnerV` (not `BordersV`) | `BordersV` = `BordersInnerV \| BordersOuterV`, i.e. it would add an outer frame. `Columns(2, id, true)` drew only the divider between the two columns. |
+| `SizingFixedFit` | Required for `ImGuiTableColumnFlags_WidthFixed` to be honoured. Without an explicit sizing policy the table auto-fits to contents and the 225px sidebar drifts. |
+| `NoPadOuterX` | Content starts flush with the window edge, as it did before. |
+| `style.CellPadding = ImVec2(0,0)` in `ApplyStyle()` | Table cells are inset by `CellPadding` (default `4,1`) on every side, which would leave the 225px sidebar with 217px of usable width and shift the tab content 4px right. `Columns()` had no such inset. This is the one change outside `menu.h`. |
+
+Two things this also cleaned up:
+
+* `SetCursorPosY(GetWindowHeight() - 10); Text("");` at the end of the sidebar — whose only job
+  was to stretch the legacy column cell to full height ("so don't remove :)"). A table row is
+  already as tall as its tallest cell, so the hack is gone.
+* Each table cell now has its own layout context, so `GetContentRegionAvail()` inside a tab
+  reports that cell instead of the whole window — which is what the tab code already assumed.
+
+`demo.h` still uses `Columns()`. It is an annotated widget cheat-sheet that is compiled but
+wired to no tab, so it was left alone deliberately rather than half-migrated.
+
+The project code now uses no deprecated ImGui API at all, so `#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS`
+in `imgui/imconfig.h` compiles cleanly and is the recommended way to stay ahead of the next upgrade.
+
 ---
 
 ## 7. Troubleshooting

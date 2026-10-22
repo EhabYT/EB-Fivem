@@ -92,9 +92,11 @@ namespace Menu
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 18);
 		ImGui::Text("Build Date: %s", __DATE__);
 
-		// Makes sure that the column goes the whole gui height, so don't remove :)
-		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 10);
-		ImGui::Text("");
+		// The old layout ended with
+		//     SetCursorPosY(GetWindowHeight() - 10); Text("");
+		// whose only job was to stretch the legacy Columns() cell to the full
+		// window height ("so don't remove :)").  A table row is already as tall as
+		// its tallest cell, so that hack is gone.
 
 		return changed;
 	}
@@ -107,23 +109,50 @@ namespace Menu
 		ImGui::Begin("redENGINE", NULL,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
-		ImGui::Columns(2, "##maincolumn", true);
-		ImGui::SetColumnOffset(1, (int)SidebarWidth);
-
-		RenderSidebar();
-
-		ImGui::NextColumn();
-
-		// Was `if (Tab == 0) {...} if (Tab == 1) {...} else if ...` - the missing
-		// `else` on the first branch made the chain asymmetric for no reason.
-		switch (Tab)
+		// Two-column shell: fixed sidebar on the left, tab content on the right.
+		//
+		// This used to be the legacy Columns() API (ImGui::Columns / NextColumn /
+		// SetColumnOffset), which has been deprecated since 1.80 in favour of
+		// Tables.  It is still supported in 1.92.9, but Tables is the maintained
+		// path - and unlike Columns() it gives every cell its own layout context,
+		// so GetContentRegionAvail() inside a tab reports that cell rather than
+		// the whole window.
+		//
+		//   BordersInnerV  - the divider between the two columns only, no outer
+		//                    frame.  This is exactly what Columns(2, id, true)
+		//                    drew.  (BordersV would add outer edges as well.)
+		//   SizingFixedFit - required for WidthFixed to be honoured; without a
+		//                    sizing policy the table would auto-fit to contents.
+		//   NoPadOuterX    - content starts flush with the window edge, as before.
+		//
+		// style.CellPadding is set to (0,0) in ApplyStyle() so the 225px sidebar
+		// stays exactly 225px of usable width, matching the old column semantics.
+		if (ImGui::BeginTable("##maincolumn", 2,
+			ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX))
 		{
-		case 1:  Executor::Render(); break;
-		case 2:  Resources::Render(); break;
-		case 3:  Menus::Render();     break;
-		case 4:  Config::Render();    break;
-		case 0:
-		default: Default::Render();   break;
+			ImGui::TableSetupColumn("##sidebar", ImGuiTableColumnFlags_WidthFixed, SidebarWidth);
+			ImGui::TableSetupColumn("##content", ImGuiTableColumnFlags_WidthStretch);
+
+			ImGui::TableNextRow();
+
+			ImGui::TableNextColumn();
+			RenderSidebar();
+
+			ImGui::TableNextColumn();
+
+			// Was `if (Tab == 0) {...} if (Tab == 1) {...} else if ...` - the missing
+			// `else` on the first branch made the chain asymmetric for no reason.
+			switch (Tab)
+			{
+			case 1:  Executor::Render(); break;
+			case 2:  Resources::Render(); break;
+			case 3:  Menus::Render();     break;
+			case 4:  Config::Render();    break;
+			case 0:
+			default: Default::Render();   break;
+			}
+
+			ImGui::EndTable();
 		}
 
 		ImGui::End();

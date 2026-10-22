@@ -15,7 +15,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`main.cpp`](main.cpp) | `DllMain`, Present hook, ImGui init/teardown, texture + font loading, input routing |
 | [`includes.h`](includes.h) | Windows / D3D11 / DXGI / Kiero / ImGui includes, hook typedefs, `HK_CALL` |
 | [`assets.h`](assets.h) | `ResolveAssetPath()` — finds files next to the DLL |
-| [`menu.h`](menu.h) | Menu shell: data-driven sidebar + tab routing |
+| [`menu.h`](menu.h) | Menu shell: 2-column `ImGui::Table` — data-driven sidebar + tab routing |
 | [`menu_style.h`](menu_style.h) | `ApplyStyle()` — colours, rounding, frame padding (applied once) |
 | [`gui.h`](gui.h) | Small helpers (`Gui::Seperator`, cursor setters) |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor, Execute / Load-from-file, resource combo |
@@ -71,8 +71,14 @@ the sidebar falls back to a text logo.
   upstream code; keep local changes in the project's own files so those trees can be re-synced
   cleanly. Note that `imgui_tables.cpp` is a separate translation unit since 1.80 and must stay
   in the project.
-* The code deliberately avoids everything behind `IMGUI_DISABLE_OBSOLETE_FUNCTIONS`, so defining
-  that macro in `imgui/imconfig.h` is a supported way to stay ahead of the next upgrade.
+* The code uses **no deprecated ImGui API**: the menu shell was moved off the legacy
+  `Columns()`/`NextColumn()`/`SetColumnOffset()` API onto `BeginTable`/`TableSetupColumn`. That
+  makes `#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS` in `imgui/imconfig.h` a clean compile, and the
+  recommended way to stay ahead of the next upgrade. (`demo.h` still uses `Columns()` — it is an
+  annotated cheat-sheet wired to no tab, left alone on purpose.)
+* `style.CellPadding` is `(0,0)` in `menu_style.h`. That is not cosmetic: table cells are inset by
+  `CellPadding` on every side, so the default `4,1` would leave the 225px sidebar with 217px of
+  usable width. Keep it at zero, or subtract the padding from `Menu::SidebarWidth`.
 * What is **implemented**: the full UI, the Lua editor with syntax highlighting, Load-from-file,
   the trigger clipboard list, resource dumps, and the resource-list stopper.
   What is **still a stub** (and now says so in a message box instead of doing nothing silently):

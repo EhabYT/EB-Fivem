@@ -22,6 +22,12 @@ inline void ApplyStyle()
 	style.TabRounding			= 0;
 	style.ScrollbarRounding		= 0;
 	style.FramePadding			= ImVec2(8, 6);
+
+	// The menu shell is a 2-column ImGui table (see menu.h).  Table cells are
+	// inset by CellPadding on every side, which would make the 225px sidebar
+	// 217px of usable width and push the tab content 4px to the right.
+	// Zeroing it reproduces the spacing the legacy Columns() API had.
+	style.CellPadding			= ImVec2(0, 0);
 	style.WindowTitleAlign		= ImVec2(0.0f, 0.5f);
 
 	style.Colors[ImGuiCol_TitleBg]				= ImColor(227, 0, 40, 255);		// The top bar color
