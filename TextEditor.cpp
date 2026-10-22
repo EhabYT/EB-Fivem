@@ -2090,7 +2090,11 @@ const TextEditor::Palette& TextEditor::GetPrimerosePalette()
 			ImColor(0,255,0,255), // Comment (multi line)
 			ImColor(25,25,25,255), // Background|| red somehow lmfao
 			0xffe0e0e0, // Cursor				|| White	
-			ImColor(0.30,0.30,0.30, 120), // Selection			|| Green smh
+			// Was ImColor(0.30,0.30,0.30, 120): three bare double literals next to an
+			// int alpha.  MSVC binds that to the ImColor(int,int,int,int) overload, so
+			// 0.30 truncated to 0 and the selection highlight came out pure black
+			// (plus three C4244 'argument' warnings).  77 == round(0.30 * 255).
+			ImColor(77,77,77,120), // Selection			|| Green smh
 			0x800020ff, // ErrorMarker
 			0x40f08000, // Breakpoint
 			ImColor(238, 0, 38,255), // Line number,

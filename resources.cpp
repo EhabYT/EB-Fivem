@@ -306,8 +306,10 @@ namespace Resources
 							}
 							else
 							{
+								// Triggers is a vector<const char*>: the elements have no .size()
+								// member (C2228).  strlen() is what was meant.
 								Activity::Push(std::string("Copied trigger to clipboard (")
-									+ std::to_string(Triggers[i].size()) + " chars).");
+									+ std::to_string(strlen(Triggers[i])) + " chars).");
 								Toasts::Push(Toasts::Success, "Trigger copied to clipboard.");
 							}
 						}

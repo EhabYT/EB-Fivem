@@ -54,7 +54,6 @@ namespace Toasts
 		const float barW    = 3.0f;
 		const float inner   = 8.0f;
 		const float gap     = 6.0f;
-		ImFont* font = ImGui::GetFont();
 
 		// Click a card to dismiss it - but never steal a click that belongs to
 		// a widget sitting under the stack.
@@ -103,7 +102,11 @@ namespace Toasts
 			dl->AddRect(mn, mx, IM_COL32(93, 156, 214, (int)(110.0f * a)), 6.0f);
 			dl->AddRectFilled(ImVec2(mn.x, mn.y), ImVec2(mn.x + barW, mx.y),
 				KindColor(e.kind, a), 6.0f, ImDrawFlags_RoundCornersLeft);
-			dl->AddText(font, font->FontSize,
+			// ImFont::FontSize was removed in 1.92 (renamed to LegacySize, which is the
+			// size passed to AddFont()).  NULL + 0.0f makes AddText() take the font and
+			// size already bound to this draw list, i.e. exactly what the rest of the
+			// window renders with - including any window font scale.
+			dl->AddText(NULL, 0.0f,
 				ImVec2(mn.x + barW + inner, mn.y + inner),
 				IM_COL32(255, 255, 255, (int)(255.0f * a)),
 				e.text.c_str(), NULL, wrapW);

@@ -193,6 +193,11 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 68 | The window-position saver persisted on the first frame after open even for a window that never moved — so after "Reset interface settings" it re-persisted the current position within one frame and silently undid the reset | The saver now arms only on a real inter-frame drag (>4px) and disarms whenever the ini says "not persisted" (`WindowX < 0`); an unmoved window stays unpersisted and a reset survives until the next drag |
 | 69 | With keyboard nav enabled a freshly opened menu had no focus target: the first Tab/arrow either went nowhere or landed on an arbitrary widget | On reopen the menu takes window focus (`SetNextWindowFocus`) and `SetKeyboardFocusHere` puts the nav cursor on the sidebar entry of the open tab (first entry on the landing tab) |
 | 70 | A frame hitch of >250 ms re-triggered the open fade mid-session, because the call-gap heuristic mistook the hitch for a reopen | Gap threshold raised to 0.5 s — far above any real frame time, far below any human close/reopen |
+| 71 | `TextEditor.h` declared `static class TextEditor { … };` — MSVC answers with C4091 ("'static ': ignored on left of 'TextEditor' when no variable is declared") once per including TU (5×), and had the `static` been honoured the out-of-line member definitions in `TextEditor.cpp` would no longer have belonged to the same class | `static` dropped: the class has external linkage, which is what a widget with out-of-line definitions needs |
+| 72 | `Toasts::Render()` drew its text with `font->FontSize`; `ImFont::FontSize` does not exist in 1.92 (C2039), which in turn left no matching `ImDrawList::AddText` overload (C2665) | `AddText(NULL, 0.0f, …)`: the draw list supplies its own bound font and size, so toast text matches the window exactly and follows any window font scale |
+| 73 | `Activity::Push(… + std::to_string(Triggers[i].size()) …)` — `Triggers` is a `std::vector<const char*>`, so the element is a pointer and has no `.size()` (C2228 "left of '.size' must have class/struct/union") | `strlen(Triggers[i])`, which is what the log line always meant |
+| 74 | `GetPrimerosePalette()` passed `ImColor(0.30,0.30,0.30, 120)`: three bare double literals next to an int alpha made MSVC bind the `ImColor(int,int,int,int)` overload (3× C4244 "conversion from 'double' to 'int'"), so `0.30` truncated to `0` and the selection highlight came out pure black | `ImColor(77,77,77,120)` — 77 = round(0.30 × 255), alpha unchanged |
+| 75 | `AddFontFromFileTTF(path, 20)` passed an `int` to the `float size_pixels` parameter | `20.0f` |
 
 ---
 
@@ -242,11 +247,14 @@ the include layout is unchanged). `imgui/` stays byte-identical to upstream.
 | `GetWindowContentRegionMax()` | `GetContentRegionAvail()` — obsoleted in 1.91.0, and its meaning changed in 1.90 (now includes `WindowPadding`) | `TextEditor.cpp` |
 | `io.WantCaptureKeyboard = true`<br>`io.WantTextInput = true`<br>`io.WantCaptureMouse = true` | `SetNextFrameWantCaptureKeyboard(true)` + `SetKeyboardFocusHere(-1)` / `SetNextFrameWantCaptureMouse(true)`. These are **outputs** of `NewFrame()`; the assignments were always no-ops. There is no `SetNextFrameWantTextInput` — focus is what drives it | `TextEditor.cpp` (3 sites) |
 | `OversampleH = 3` | `ImS8`, `0 == auto`, and ignored entirely when `PixelSnapH` is set → `0` | `main.cpp` |
+| `font->FontSize` | member removed: the size handed to `AddFont()` is now `ImFont::LegacySize`, and for drawing you let the draw list decide — `AddText(NULL, 0.0f, …)` uses `_Data->Font` / `_Data->FontSize` | `toasts.cpp` |
+| `AddFontFromFileTTF(path, 20)` | second parameter is `float size_pixels` → `20.0f` | `main.cpp` |
 
 Unchanged and verified present: all 61 enum constants the project uses, all 88 `ImGui::` calls,
 the 5 `ImDrawList` methods `TextEditor.cpp` draws with, `Columns`/`NextColumn`/`SetColumnOffset`
-(legacy but still supported), the font API (`AddFontFromFileTTF`, `AddFontFromMemoryCompressedTTF`,
-`AddFontDefault`), and `ImGui_ImplWin32_WndProcHandler` including its `0 == not handled` contract.
+(legacy but still supported), the font-*loading* API (`AddFontFromFileTTF`, `AddFontFromMemoryCompressedTTF`,
+`AddFontDefault` — but not `ImFont::FontSize`, see the table above), and `ImGui_ImplWin32_WndProcHandler`
+including its `0 == not handled` contract.
 
 `imconfig.h` was replaced with the upstream one: the project's copy had no local `#define`s, only
 older comments, so nothing was lost.

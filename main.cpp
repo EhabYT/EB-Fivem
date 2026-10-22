@@ -212,7 +212,7 @@ void InitImGui()
 
 	// Fall back to the built-in default font instead of asserting when the
 	// Windows font is unavailable (older Windows / stripped font sets).
-	ImFont* mainFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Bahnschrift.ttf", 20);
+	ImFont* mainFont = io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Bahnschrift.ttf", 20.0f);
 	if (mainFont == NULL)
 		mainFont = io.Fonts->AddFontDefault();
 	if (io.Fonts->AddFontFromMemoryCompressedTTF(font_awesome_data, font_awesome_size, 19.0f, &icons_config, icons_ranges) == NULL)
