@@ -191,6 +191,32 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 66 | The Resources sub-tab (File Browser / Triggers / Stopper) fell back to the empty default view on every re-inject | Sub-tab persisted as `[menu] resourcetab`, clamped to 0–3 on load |
 | 67 | A bad key binding or a window dragged off-screen could only be undone by hand-editing or deleting `settings.ini` | Config → Interface "Reset interface settings" restores the compiled defaults and rewrites the ini in one click, with a toast saying what applies when |
 | 68 | The window-position saver persisted on the first frame after open even for a window that never moved — so after "Reset interface settings" it re-persisted the current position within one frame and silently undid the reset | The saver now arms only on a real inter-frame drag (>4px) and disarms whenever the ini says "not persisted" (`WindowX < 0`); an unmoved window stays unpersisted and a reset survives until the next drag |
+| 69 | With keyboard nav enabled a freshly opened menu had no focus target: the first Tab/arrow either went nowhere or landed on an arbitrary widget | On reopen the menu takes window focus (`SetNextWindowFocus`) and `SetKeyboardFocusHere` puts the nav cursor on the sidebar entry of the open tab (first entry on the landing tab) |
+| 70 | A frame hitch of >250 ms re-triggered the open fade mid-session, because the call-gap heuristic mistook the hitch for a reopen | Gap threshold raised to 0.5 s — far above any real frame time, far below any human close/reopen |
+
+---
+
+## 9. Architecture overview
+
+How the pieces fit together, top to bottom:
+
+| Layer | Files | Responsibility |
+|---|---|---|
+| Hook & lifetime | `main.cpp`, `includes.h`, `kiero/` | `DllMain` spawns `MainThread`; kiero hooks `IDXGISwapChain::Present` (vtable 8). `hkPresent` owns device/render-target lifecycle, resize & device-lost rebuild, the edge-triggered toggle poll and the frame pump |
+| Shell | `menu.cpp`, `menu.h`, `menu_style.h` | One ImGui window: sidebar (logo, tab buttons, animated marker, FPS footer), two-column table shell, open fade, drop shadow, brand rule, window-position persistence; `ApplyStyle()` sets the six-stop theme once |
+| Routing | `tabs.cpp`, `tabs.h` | `switch (Menu::Tab)` into the five tab bodies; the shell never learns which tabs exist |
+| Tab bodies | `default.cpp`, `exec.cpp`, `resources.cpp`, `luamenus.cpp`, `config.cpp` | Landing (activity log, diagnostics card), executor (TextEditor + toolbar + status line), resources (browser/triggers/stopper + filters + dump), menus (two lists), config (switches, key capture, reset) |
+| Widgets & feedback | `gui.h`, `toasts.*`, `activity.*`, `perf.*`, `settings.*` | `SectionTitle`/`Seperator`/`PrimaryButton`/`Toggle`; toast stack; session log; frame-time ring; `settings.ini` persistence — single-purpose modules, each with its own header |
+| Vendored | `imgui/` (1.92.9), `TextEditor.*`, `stb_image.h`, `font_awesome.*`, `kiero/`, MinHook | In-tree, no submodules; `imgui_demo.cpp` excluded (C4996 under `SDLCheck`) |
+| Docs & render | `README.md`, `BUILD.md`, `docs/render_preview.py`, `docs/preview.png` | The renderer re-draws the shell from the repo's own constants (theme ramps, sidebar metrics, editor palette, the real embedded FA font) — a render, not a screenshot |
+
+Data flow per frame: `hkPresent` → NewFrame trio → toggle poll → `Menu::Render()` (fade,
+shadow, shell table) → `Tabs::Render()` → tab body → `Toasts::Render()` → position saver →
+`ImGui::Render()` → DX11 draw data → original `Present`.
+
+Nothing in the menu reads or writes game state: every "action" button (execute, run, stop)
+reports that it is not implemented in this build, and the only file-system writes are the
+resource dump the user explicitly saves and `settings.ini`.
 
 ---
 

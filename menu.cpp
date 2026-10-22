@@ -21,6 +21,11 @@ namespace Menu
 	// Sidebar layout, kept in one place so the buttons and the separators cannot
 	// drift apart (they used to be 5 near-identical copy-pasted blocks, each with
 	// its own hand-maintained cursor offsets).
+	// Set when the render-call stream gaps (menu was closed, just reopened).
+	// Consumed once by RenderSidebar() to hand keyboard-nav focus to the
+	// sidebar entry of the open tab.
+	static bool g_justOpened = false;
+
 	static const SidebarItem SidebarItems[] =
 	{
 		{ ICON_FA_CODE     " Executor", TabExecutor  },
@@ -89,6 +94,11 @@ namespace Menu
 			if (active)
 				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
 
+			// Place the nav cursor on the entry of the tab that is actually
+			// open; the landing tab has no sidebar row, so it gets the first.
+			if (g_justOpened && (active || (Tab == TabDefault && i == 0)))
+				ImGui::SetKeyboardFocusHere();
+
 			if (ImGui::Button(SidebarItems[i].label, ImVec2(SidebarWidth, SidebarButtonHeight)))
 			{
 				Tab = SidebarItems[i].tab;
@@ -124,6 +134,8 @@ namespace Menu
 		if (indH > 0.5f)
 			ImGui::GetWindowDrawList()->AddRectFilled(
 				ImVec2(indX, indY), ImVec2(indX + 3.0f, indY + indH), Accent);
+
+		g_justOpened = false;   // handoff done, however it resolved
 
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
 		ImGui::SetCursorPosX(0);
@@ -166,8 +178,13 @@ namespace Menu
 		const double tNow = ImGui::GetTime();
 		static double lastRender = -1.0;
 		static double openT = -1.0;
-		if (lastRender < 0.0 || (tNow - lastRender) > 0.25)
+		// 0.5s: far above any real frame hitch (which must not re-trigger the
+		// fade mid-session) and far below any human close/reopen.
+		if (lastRender < 0.0 || (tNow - lastRender) > 0.5)
+		{
 			openT = tNow;
+			g_justOpened = true;
+		}
 		lastRender = tNow;
 
 		// Frame-time history for the Diagnostics card on the landing tab.
@@ -202,6 +219,11 @@ namespace Menu
 		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
+
+		// The moment the menu opens it takes keyboard focus, so Tab/arrows work
+		// immediately instead of first focusing whatever window was in front.
+		if (g_justOpened)
+			ImGui::SetNextWindowFocus();
 		// NoCollapse/NoResize: the layout below is pixel-positioned, so a
 		// user-resized or collapsed window just produced broken frames.
 		// Restore the persisted position on the first frame only; afterwards the
