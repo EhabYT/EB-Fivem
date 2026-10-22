@@ -163,11 +163,13 @@ namespace Resources
 
 	void Render()
 	{
-		ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x / 1.3f);
-		ImGui::Text("Resources");
-		Gui::Seperator("##resources_seperator_2");
+		Gui::SectionTitle("Resources", "##resources_seperator_2");
 
-		const float buttonWidth = ImGui::GetWindowWidth() / 4.0f;
+		// GetWindowWidth()/4 is a quarter of the 900px *outer* window, so three of
+		// them plus two ItemSpacings (691px) did not fit the ~658px content cell
+		// and the third button was clipped by the column edge.  Divide the cell.
+		const float buttonWidth =
+			(ImGui::GetContentRegionAvail().x - 2.0f * ImGui::GetStyle().ItemSpacing.x) / 3.0f;
 		if (ImGui::Button(ICON_FA_FOLDER_OPEN " File Browser", ImVec2(buttonWidth, 33)))
 			ResourceTab = 1;
 		ImGui::SameLine();
@@ -210,7 +212,7 @@ namespace Resources
 							// Was SetText() *after* Render(), so the editor always showed
 							// the previous resource's text - one frame behind, forever.
 							dumper.SetText(std::string("--successfully dumped ") + resources[i] + ".");
-							dumper.Render("##dumper", ImVec2(ImGui::GetWindowSize().x - 16, 200));
+							dumper.Render("##dumper", ImVec2(ImGui::GetContentRegionAvail().x, 200));
 						}
 					}
 				}

@@ -80,9 +80,7 @@ namespace Menus
 
 	void Render()
 	{
-		ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x / 1.3f);
-		ImGui::Text("Menus");
-		Gui::Seperator("##menus_seperator_1");
+		Gui::SectionTitle("Menus", "##menus_seperator_1");
 		ImGui::NewLine();
 
 		const float halfWidth = ImGui::GetContentRegionAvail().x / 2.0f;

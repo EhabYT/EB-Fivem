@@ -31,6 +31,17 @@ namespace Gui
 		ImGui::EndChild();
 	}
 
+	// Section heading shared by every tab.  Four of the five opened with their
+	// title at GetContentRegionAvail().x / 1.3f - a magic fraction that centres
+	// nothing and aligns to nothing - while the Executor left it flush left, so
+	// the five headings sat in five different places.  One helper keeps them
+	// identical: title flush with the content column, full-width rule beneath.
+	inline void SectionTitle(const char* title, const char* separatorId)
+	{
+		ImGui::Text("%s", title);
+		Seperator(separatorId);
+	}
+
 	inline void SetGetPosX(float value)
 	{
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + value);

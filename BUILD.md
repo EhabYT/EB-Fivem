@@ -149,6 +149,12 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 25 | Dead "Execute" / "Load from File" / "Run <menu>" buttons that silently did nothing | Load-from-file is now a real `GetOpenFileName` → editor flow; the remaining stubs say so in a message box |
 | 26 | `using namespace std;` in `config.h` leaked into every TU that included `menu.h` | Removed |
 | 27 | `"Build Date: Feb 10 2021"` hardcoded | `__DATE__` |
+| 28 | No visual indication of the open tab: every sidebar entry drew with `ImGuiCol_Button` and only the transient hover/press colour differed, so the sidebar looked identical after a click — and at startup `Tab` is `TabDefault`, which is not in the sidebar, so nothing was marked at all | The selected entry holds `ButtonActive` and gets a 3px accent bar on its left edge |
+| 29 | Sidebar footer pinned to `SetCursorPosY(380)` / `(399)` — 19px apart, less than one 20px text line — so the two strings drew on top of each other, and both were tied to one particular window height | Bottom-anchored from `GetWindowHeight()`, lines stacked by normal advance and centred in the column |
+| 30 | Tab headings sat at `GetContentRegionAvail().x / 1.3f` in four tabs (a magic fraction that centres nothing and aligns to nothing) but flush-left in the Executor — five headings, five positions | Shared `Gui::SectionTitle()` |
+| 31 | Config tab sized its panes with `GetWindowWidth()` / `GetWindowHeight()` — the 900×540 *outer* window, not the ~658×492 table cell — plus a stray `SetCursorPosX(233)`, so the right-hand pane ran 900px wide off the window | Both panes measured from `GetContentRegionAvail()` |
+| 32 | Resources sub-tab buttons sized `GetWindowWidth()/4`: 3×225 + two item spacings = 691px did not fit the ~658px cell, clipping the third button; the file-preview editor used `GetWindowSize().x` (884px) inside the same cell | Cell width divided by three / `GetContentRegionAvail()` |
+| 33 | Tab bodies started flush against the column divider (`CellPadding (0,0)` + `NoPadOuterX`), so text and widgets touched the rule | `Menu::ContentPadding` left inset applied once to the content column |
 
 ---
 

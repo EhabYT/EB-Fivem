@@ -33,6 +33,16 @@ namespace Menu
 	static const float SidebarWidth        = 225.0f;
 	static const float SidebarButtonHeight = 46.0f;
 
+	// Left inset of the tab column.  The shell table uses NoPadOuterX and a
+	// (0,0) CellPadding so the sidebar keeps exactly SidebarWidth of usable
+	// width; the same flags leave the content column starting flush against the
+	// column divider, which this pushes the tab bodies away from.
+	static const float ContentPadding      = 8.0f;
+
+	// The brand red: title bar (menu_style.h), editor line numbers (the
+	// TextEditor palette) and the sidebar's selected-tab marker all share it.
+	static const ImU32 Accent              = IM_COL32(227, 0, 40, 255);
+
 	// Draws the whole menu window: sidebar column + tab content column.
 	// Implemented in menu.cpp.
 	void Render();
