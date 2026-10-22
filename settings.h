@@ -15,6 +15,8 @@ namespace Settings
 		int ToggleKey = 0x2D;    // VK_INSERT
 		bool Animations = true;  // open fade, sliding tab marker, switch easing
 		bool Toasts     = true;  // non-blocking notifications (toasts.h)
+		bool ShowWhitespace = false;  // editor whitespace dots
+		int  ResourceTab    = 0;      // Resources sub-tab: 0 none, 1 browser, 2 triggers, 3 stopper
 	};
 
 	extern Prefs Current;        // defined in settings.cpp

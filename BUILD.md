@@ -187,6 +187,9 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 62 | Editor actions were keyboard-shortcut-only: with the focus elsewhere, or under keyboard nav, undo/copy/paste were unreachable, and nothing made them discoverable | Icon toolbar above the editor (undo / redo / copy / paste / clear); tooltips name the shortcut each button mirrors |
 | 63 | The status line showed where the cursor is but not what a selection covers | With an active selection the line appends "n selected" |
 | 64 | Toasts could only expire on their own; a stack covering a widget had to be waited out | Clicking a card dismisses it; clicks on widgets under the stack are never stolen (`IsAnyItemHovered` / `IsAnyItemActive` guard) |
+| 65 | Whitespace-dot visibility in the editor was hardcoded off in `Executor::Init()` | "Whitespace" switch at the end of the editor toolbar, persisted as `[ui] whitespace` |
+| 66 | The Resources sub-tab (File Browser / Triggers / Stopper) fell back to the empty default view on every re-inject | Sub-tab persisted as `[menu] resourcetab`, clamped to 0–3 on load |
+| 67 | A bad key binding or a window dragged off-screen could only be undone by hand-editing or deleting `settings.ini` | Config → Interface "Reset interface settings" restores the compiled defaults and rewrites the ini in one click, with a toast saying what applies when |
 
 ---
 

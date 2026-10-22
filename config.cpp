@@ -95,6 +95,20 @@ namespace Config
 		ImGui::TextColored(ImColor(93, 156, 214, 153),
 			"Keyboard: Tab/arrows move, Enter/Space activates.");
 
+		ImGui::Spacing();
+		if (Gui::PrimaryButton("Reset interface settings", ImVec2(ImGui::GetContentRegionAvail().x, 30)))
+		{
+			// One click back to the compiled defaults - before this, a bad key
+			// bind or a window dragged off-screen meant hand-editing or
+			// deleting settings.ini.  Window position and tab apply on the next
+			// start (the position is restored with ImGuiCond_Once); the key,
+			// the switches and the whitespace dot take effect immediately.
+			Settings::Current = Settings::Prefs();
+			Settings::Save();
+			Activity::Push("Interface settings reset to defaults.");
+			Toasts::Push(Toasts::Info, "Interface settings reset; window position applies on next start.");
+		}
+
 		ImGui::EndChild();
 		ImGui::SameLine();
 		Gui::Seperator("##splitter", 1, avail.y);

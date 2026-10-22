@@ -37,7 +37,8 @@ std::vector<const char*> Triggers = {
 
 std::vector<const char*> BlockedEvents = {};
 
-static int ResourceTab = 0;
+// The open sub-tab is persisted (settings.ini [menu] resourcetab), so it
+// lives in Settings instead of a file-local static.
 static char g_resFilter[64] = { 0 };
 
 // Case-insensitive substring match for the list filter boxes.
@@ -203,15 +204,24 @@ namespace Resources
 		const float buttonWidth =
 			(ImGui::GetContentRegionAvail().x - 2.0f * ImGui::GetStyle().ItemSpacing.x) / 3.0f;
 		if (ImGui::Button(ICON_FA_FOLDER_OPEN " File Browser", ImVec2(buttonWidth, 33)))
-			ResourceTab = 1;
+		{
+			Settings::Current.ResourceTab = 1;
+			Settings::Save();
+		}
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_SEARCH_PLUS " Triggers", ImVec2(buttonWidth, 33)))
-			ResourceTab = 2;
+		{
+			Settings::Current.ResourceTab = 2;
+			Settings::Save();
+		}
 		ImGui::SameLine();
 		// Was GetContentRegionAvail().x, i.e. "whatever is left" - a different
 		// width from its two neighbours for no reason.
 		if (ImGui::Button(ICON_FA_TAGS " Stopper", ImVec2(buttonWidth, 33)))
-			ResourceTab = 3;
+		{
+			Settings::Current.ResourceTab = 3;
+			Settings::Save();
+		}
 
 		Gui::Seperator("##resources_seperator_3");
 
@@ -224,7 +234,7 @@ namespace Resources
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
 		const ImVec2 listSize(avail.x, avail.y - 48.0f);
 
-		if (ResourceTab == 1)
+		if (Settings::Current.ResourceTab == 1)
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::InputTextWithHint("##resfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
@@ -269,7 +279,7 @@ namespace Resources
 			Gui::Seperator("##saveresourcesbutton");
 			SaveResources();
 		}
-		else if (ResourceTab == 2) // Triggers
+		else if (Settings::Current.ResourceTab == 2) // Triggers
 		{
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##Triggers", listSize))
@@ -312,7 +322,7 @@ namespace Resources
 			Gui::Seperator("##resources_seperator_4");
 			SaveResources();
 		}
-		else if (ResourceTab == 3) // Stopper
+		else if (Settings::Current.ResourceTab == 3) // Stopper
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));

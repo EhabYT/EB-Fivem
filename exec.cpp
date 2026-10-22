@@ -31,7 +31,9 @@ namespace Executor
 	void Init()
 	{
 		editor.SetReadOnly(false);
-		editor.SetShowWhitespaces(false);
+		// Was hardcoded false; the visibility of whitespace dots is a preference
+		// and is persisted with the rest of the interface settings.
+		editor.SetShowWhitespaces(Settings::Current.ShowWhitespace);
 		editor.SetPalette(TextEditor::GetDarkPalette());
 
 		// This is a Lua editor; the widget defaults to C++.  Setting it here (once)
@@ -73,6 +75,12 @@ namespace Executor
 			editor.SetText("");
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Clear the buffer");
+		ImGui::SameLine();
+		if (Gui::Toggle("Whitespace##ed_ws", &Settings::Current.ShowWhitespace))
+		{
+			editor.SetShowWhitespaces(Settings::Current.ShowWhitespace);
+			Settings::Save();
+		}
 		ImGui::Spacing();
 
 		// The Resource stopper can shrink `resources`, so keep the selection in range.

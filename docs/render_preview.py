@@ -323,6 +323,14 @@ for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d"]):
     _bx = CX0 + _k * (TB + ITEM_SPACING_X)
     R(_bx, y, _bx + TB, y + TB, C_BUTTON)
     T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, C_TEXT, f_icon, 1.0)
+
+# whitespace toggle at the end of the toolbar (Gui::Toggle, off, persisted)
+_tkx = CX0 + 5 * (TB + ITEM_SPACING_X) + 6
+_tky = y + (TB - 20) / 2
+d.rounded_rectangle([_tkx*S, _tky*S, (_tkx+40)*S-1, (_tky+20)*S-1], radius=10*S, fill=C_FRAME_BG)
+d.ellipse([(_tkx+3)*S, (_tky+3)*S, (_tkx+17)*S-1, (_tky+17)*S-1], fill=C_TEXT)
+T(_tkx + 48, y + (TB - FONT_SIZE) / 2, "Whitespace", C_TEXT)
+
 y += TB + ITEM_SPACING_Y
 
 avail_w, avail_h = CX1 - CX0, CY1 - y
