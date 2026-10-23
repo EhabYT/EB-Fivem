@@ -287,6 +287,11 @@ msbuild "EBengin UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
 Output: `x64\Release\EBengin UI.dll`. Put `EBengin.png` in the same folder as the DLL, otherwise
 the sidebar falls back to a text logo.
 
+Heads-up: the output is a **DLL**, so Visual Studio's F5 / "Start Debugging" cannot launch
+it - the dialog ("is not a valid Win32 application" / "ist keine gültige Win32-Anwendung")
+is expected, not a build failure.  Build with Ctrl+Shift+B or `build.bat`; to debug live,
+attach to the process that loads the DLL.  See BUILD.md §8.
+
 A GitHub Actions workflow that does the same on `windows-latest` (Release and Debug, x64), verifies
 the DLL and its export table exist, and uploads it as an artifact is written, validated and
 **committed at [`ci/build.yml`](ci/build.yml) — but not yet enabled**. It cannot live in

@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## F5 cannot launch a DLL - documented, not "fixed"
+- A real Windows build (x64 Debug) followed by F5 produced Visual Studio's "EBengin UI.dll ist
+  keine gültige Win32-Anwendung / is not a valid Win32 application" dialog.  That is expected for
+  a DLL project: CreateProcess cannot launch a library, and the build had already succeeded.
+- Documented in three places so nobody reads it as a broken build again: BUILD.md Option C
+  warning, a new §8 Troubleshooting entry naming the two legitimate workflows (build-only via
+  Ctrl+Shift+B / build.bat; real debugging via Debugging -> Command or Attach to Process), and a
+  README note; BUILD row 98 logs it.
+- No project or `.user` file changed: a debugger command pointing at a host process is a
+  per-machine choice and stays untracked on purpose.
+
 ## Notes and counts after row 97
 - menu.cpp now documents why the splash skip must not age toasts: their lifetime runs in
   `Toasts::Render()`, so a warn toast queued at load waits behind the start card at full

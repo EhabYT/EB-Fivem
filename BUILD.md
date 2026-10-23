@@ -69,6 +69,12 @@ x64\Release\EBengin UI.dll
 2. Pick **Release / x64** in the toolbar.
 3. `Build → Build Solution` (Ctrl+Shift+B).
 
+**Do not press F5 / "Start Debugging".**  The output of this project is a **DLL**, and
+Windows cannot launch a DLL as a program - Visual Studio answers with
+*"…\EBengin UI.dll" is not a valid Win32 application* (German: *"… ist keine gültige
+Win32-Anwendung"*).  That dialog is not a build failure; the build already succeeded when
+it appears.  The two legitimate ways to build and to debug are in §8 Troubleshooting.
+
 ---
 
 ## 3. Runtime assets
@@ -222,6 +228,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 95 | The rebrand stayed invisible in the running UI beyond the title bar: no credit line, no start card, no brand block where a user actually looks | `RenderSplash()` shows a branded start card on the first open per inject (logo, name, "Remade : by EB", two honest hints, Continue); the sidebar footer gains a muted fourth credit line and Config's right pane an About block (name, credit, ImGui version); the renderer mirrors all three and adds a `--splash` preview |
 | 96 | The splash card replaces the shell on first open but never took keyboard focus: the shell's open-time `SetNextWindowFocus` handoff is skipped while the splash is up, so Continue was unreachable by keyboard until the first click | `RenderSplash()` performs the same handoff while `g_justOpened` is set (the flag stays alive so the sidebar still places the nav cursor after Continue); the renderer docstring now lists all five preview branches instead of only Executor/Config |
 | 97 | The start card's second hint hardcoded "INSERT" although the toggle key is user-bindable (Config -> Toggle key), so after a rebind the card's own instruction was wrong | The hint is formatted with `Settings::KeyName(Settings::Current.ToggleKey)` - the same helper the Config button and the key-change toast use; the renderer mirror keeps the default binding and says so in a comment; README file table and the Docs & render row now list the `--splash` render |
+| 98 | Pressing F5 in Visual Studio pops a scary dialog - "…\EBengin UI.dll is not a valid Win32 application" / "… ist keine gültige Win32-Anwendung" - which reads like a broken build although the build succeeded: a DLL has no executable entry point, so Windows refuses to launch it | Documented in three places: a warning under Option C, a Troubleshooting entry with the two legitimate workflows (build-only via Ctrl+Shift+B / build.bat; real debugging via Debugging → Command or Attach to Process), and a README note; no project file changed, the per-machine debugger command stays untracked |
 
 
 
@@ -434,6 +441,20 @@ Two things worth knowing:
 ---
 
 ## 8. Troubleshooting
+
+**F5 / "Start Debugging" pops "…\EBengin UI.dll is not a valid Win32 application"
+(German: "… ist keine gültige Win32-Anwendung")**
+Expected, and not a build error: the output of this project is a DLL, and `CreateProcess`
+cannot launch a library - it has no executable entry point.  The build succeeded when this
+dialog appears (check `x64\<Config>\EBengin UI.dll` exists).  Two legitimate workflows:
+
+1. **Build only** - Ctrl+Shift+B in the IDE, or `build.bat` / the MSBuild line above.  This
+   is what the CI job does as well.
+2. **Debug for real** - either point *Project properties → Debugging → Command* at the host
+   process that loads the DLL, or load the DLL first and then use
+   *Debug → Attach to Process…* on that process.  Neither is preconfigured on purpose: the
+   host is a per-machine choice and belongs in your local `.user` file, not in the tracked
+   project files.
 
 **`error LNK2019: unresolved external symbol ... d3d11`**
 `d3d11.lib` and `dxgi.lib` are in `AdditionalDependencies` for all four configs; if you
