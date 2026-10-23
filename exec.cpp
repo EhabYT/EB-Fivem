@@ -61,6 +61,16 @@ namespace Executor
 	{
 		Gui::SectionTitle("Executor", "##under_text1");
 
+		// Declared up here because the toolbar handlers below (clear, save)
+		// reset them: the widget reports edits for the frame they happen in
+		// (mTextChanged is cleared at the end of its own Render), so polling
+		// it right after Render() and accumulating gives a session dirty
+		// flag - true while the buffer holds edits the last load/save/clear
+		// does not.  SetText() raises the same widget flag, hence the
+		// one-frame suppression after our own load/clear calls.
+		static bool dirty = false;
+		static int suppress = 0;
+
 		// Mouse-reachable editor actions.  The Ctrl+Z/Y/C/V shortcuts work
 		// inside the editor, but with keyboard-nav focus a button is the only
 		// path, and icon buttons make the actions discoverable in the first
@@ -204,14 +214,6 @@ namespace Executor
 		editor.Render("##Null", ImVec2(avail.x - 16.0f,
 			avail.y - Settings::Px(52.0f) - statusH - tb - Settings::Px(4.0f)), true);
 
-		// The widget reports edits for the frame they happen in (mTextChanged
-		// is cleared at the end of its own Render), so polling it right after
-		// Render() and accumulating gives a session dirty flag: true while the
-		// buffer holds edits the last load/save/clear does not.  SetText() also
-		// raises the flag, hence the one-frame suppression after our own
-		// load/clear calls.
-		static bool dirty = false;
-		static int suppress = 0;
 		if (editor.IsTextChanged())
 		{
 			if (suppress > 0)

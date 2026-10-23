@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Row-119 flags hoisted above their first use (row 120)
+- The clear and save toolbar handlers sit above the editor render in `Executor::Render()`, so
+  the dirty flag declared below them was used before declaration - a compile error, caught in
+  review since the sandbox has no MSVC.  Both `static` declarations (and the comment explaining
+  the frame-scoped widget flag and the suppression) now open the function, above every handler
+  that reads or resets them.
+
 ## The editor shows unsaved work (row 119)
 - With Save and Load in the toolbar, the one remaining silent state was "the buffer holds
   edits that exist nowhere else".  `exec.cpp` now polls `TextEditor::IsTextChanged()` directly
