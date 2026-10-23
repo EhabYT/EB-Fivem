@@ -111,8 +111,14 @@ namespace Executor
 		// path, and icon buttons make the actions discoverable in the first
 		// place.  The tooltips name the shortcut each button mirrors.
 		const float tb = Settings::Px(26.0f);
-		// The three actions that need something to work on now say so: on a fresh
-		// buffer undo/redo/copy are greyed instead of clicking into a no-op, the
+		// IsClipboardFormatAvailable needs no OpenClipboard, and the buffer is
+		// only sampled once per frame here, so both checks stay cheap.
+		const bool clipAvail = ::IsClipboardFormatAvailable(CF_UNICODETEXT) != 0
+			|| ::IsClipboardFormatAvailable(CF_TEXT) != 0;
+		const bool bufEmpty = editor.GetText().empty();
+		// The actions that need something to work on now say so: on a fresh
+		// buffer undo/redo/copy are greyed instead of clicking into a no-op, paste
+		// waits for clipboard text and clear for buffer text - the
 		// same "dead control reads as broken" family as the old silent stubs, just
 		// smaller.  BeginDisabled is ImGui's own state (alpha + item flags), so
 		// hover, click and keyboard focus all stop on their own; the tooltip
@@ -140,11 +146,14 @@ namespace Executor
 			ImGui::SetTooltip(editor.HasSelection()
 				? "Copy selection (Ctrl+C)" : "Nothing selected");
 		ImGui::SameLine();
+		ImGui::BeginDisabled(!clipAvail);
 		if (ImGui::Button(ICON_FA_PASTE "##ed_paste", ImVec2(tb, tb)))
 			editor.Paste();
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Paste (Ctrl+V)");
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip(clipAvail ? "Paste (Ctrl+V)" : "Clipboard is empty");
 		ImGui::SameLine();
+		ImGui::BeginDisabled(bufEmpty);
 		if (ImGui::Button(ICON_FA_ERASER "##ed_clear", ImVec2(tb, tb)))
 		{
 			// SetText wipes the undo buffer, so a mis-click on an unsaved
@@ -169,8 +178,9 @@ namespace Executor
 			else
 				Activity::Push("Clear cancelled - buffer kept.");
 		}
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Clear the buffer");
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip(bufEmpty ? "Nothing to clear" : "Clear the buffer");
 		ImGui::SameLine();
 		// Load from File had no counterpart: a buffer could only leave the
 		// editor through the clipboard.  Same dialog family as the loader -

@@ -455,7 +455,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear, a save-to-file dialog
   and revert-to-last-file sit above the executor (tooltips
   name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
-  undo, redo or copy, and say so in the tooltip. Load and Clear confirm before discarding
+  undo, redo or copy, paste while the clipboard holds no text and clear while the buffer
+  is empty, each saying so in the tooltip. Load and Clear confirm before discarding
   a non-empty buffer (SetText wipes undo). The status line reports the selection size, the
   resource combo falls back to a muted line once the stopper erased the last entry, and toast
   cards dismiss on click without ever stealing a click from a widget under the stack.

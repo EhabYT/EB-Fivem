@@ -9,6 +9,12 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Paste and clear grey out instead of clicking into nothing (row 127)
+- Paste with an empty clipboard and clear on an empty buffer were the last toolbar buttons
+  that answered a click with silence.  Both join the disabled family the undo/redo/copy
+  buttons started: grey while there is nothing to work on, tooltip naming which side is
+  missing - clipboard or buffer - so a dead control reads as waiting, not broken.
+
 ## Revert: the way back from the dirty mark (row 126)
 - The dirty mark (row 119) said "unsaved edits" but offered no way back except undo keystrokes
   or a hand reload through the Load dialog.  A revert icon now ends the editor toolbar: it
