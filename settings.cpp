@@ -22,6 +22,15 @@ namespace Settings
 	void Load()
 	{
 		const std::string path = IniPath();
+		// First start on a machine: no ini means compiled defaults, and the
+		// file only appears with the first saved change.  Nothing said so -
+		// a "why is there no settings.ini?" report had no answer on screen.
+		if (GetFileAttributesA(path.c_str()) == INVALID_FILE_ATTRIBUTES)
+		{
+			Activity::Push("No settings.ini at " + path
+				+ " - compiled defaults in use; the file appears with the first saved change.");
+			Toasts::Push(Toasts::Info, "No settings.ini yet - running on compiled defaults.");
+		}
 		Current.WindowX   = GetPrivateProfileIntA("window", "x", -1, path.c_str());
 		Current.WindowY   = GetPrivateProfileIntA("window", "y", -1, path.c_str());
 		Current.Tab       = GetPrivateProfileIntA("menu", "tab", 0, path.c_str());

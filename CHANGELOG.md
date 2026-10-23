@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Overwrite protection and a first-start notice (rows 112-113)
+- `TextEditor::SetText` clears the undo buffer, so `Load from File` and the toolbar Clear used
+  to discard an unsaved buffer unrecoverably, without asking.  Both now confirm with
+  `MB_OKCANCEL` naming the byte count whenever the buffer is non-empty; Cancel keeps the
+  buffer and logs itself, a confirmed Clear also drops the status line's file reference.
+- `Settings::Load()` notices a missing `settings.ini` (`GetFileAttributesA`) and answers the
+  first start with an activity entry naming the path - "compiled defaults in use; the file
+  appears with the first saved change" - plus an info toast, so the state is visible instead
+  of inferred.
+
 ## Paths you can see and reach (rows 110-111)
 - The editor status line appends `| file: <base name>` once a load or save succeeded
   (`exec.cpp` file-static, base name only), so the origin of the buffer on screen survives the

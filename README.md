@@ -394,10 +394,12 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear and a save-to-file dialog
   sit above the executor (tooltips
   name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
-  undo, redo or copy, and say so in the tooltip. The status line reports the selection size, the
+  undo, redo or copy, and say so in the tooltip. Load and Clear confirm before discarding
+  a non-empty buffer (SetText wipes undo). The status line reports the selection size, the
   resource combo falls back to a muted line once the stopper erased the last entry, and toast
   cards dismiss on click without ever stealing a click from a widget under the stack.
-* **Small persistences:** the editor whitespace dots, the open Resources sub-tab and a one-click
+* **Small persistences:** a first start without `settings.ini` says so in the log and a toast,
+  the editor whitespace dots, the open Resources sub-tab and a one-click
   "Reset interface settings" button join window position, last tab, toggle key, the
   animation/toast switches and the interface scale in `settings.ini`.
 * **Interface scale:** Config → Interface carries a 70–200% slider, persisted as `[ui] scale` and

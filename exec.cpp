@@ -101,7 +101,27 @@ namespace Executor
 			ImGui::SetTooltip("Paste (Ctrl+V)");
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_ERASER "##ed_clear", ImVec2(tb, tb)))
-			editor.SetText("");
+		{
+			// SetText wipes the undo buffer, so a mis-click on an unsaved
+			// buffer is unrecoverable - ask first whenever there is anything
+			// to lose, and drop the file reference with the text.
+			const std::string cur = editor.GetText();
+			const bool go = cur.empty()
+				|| MessageBoxA(NULL, (std::string("Discard the current buffer (")
+					+ std::to_string(cur.size())
+					+ " bytes)?\nThis cannot be undone.").c_str(),
+					"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
+			if (go)
+			{
+				editor.SetText("");
+				g_lastFile.clear();
+				if (!cur.empty())
+					Activity::Push("Editor buffer cleared ("
+						+ std::to_string(cur.size()) + " bytes).");
+			}
+			else
+				Activity::Push("Clear cancelled - buffer kept.");
+		}
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Clear the buffer");
 		ImGui::SameLine();
@@ -282,14 +302,30 @@ namespace Executor
 						{
 							text.erase(0, 3);
 						}
-						editor.SetText(text);
-						g_lastFile = file;
-						// Reported size is what the editor holds, i.e. after the BOM
-						// strip, not what the file occupied on disk.
-						Activity::Push("Loaded " + std::string(file) + " ("
-							+ std::to_string(text.size()) + " bytes) into the editor.");
-						Toasts::Push(Toasts::Success, "Loaded " + std::string(file)
-							+ " (" + std::to_string(text.size()) + " bytes).");
+						// Same lossiness as Clear: SetText wipes undo, so replacing
+						// a non-empty buffer throws away whatever was not saved.
+						const std::string curBuf = editor.GetText();
+						const bool replace = curBuf.empty()
+							|| MessageBoxA(NULL, (std::string("Replace the current buffer (")
+								+ std::to_string(curBuf.size()) + " bytes) with\n"
+								+ file + "?\nUnsaved changes cannot be undone.").c_str(),
+								"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
+						if (replace)
+						{
+							editor.SetText(text);
+							g_lastFile = file;
+							// Reported size is what the editor holds, i.e. after the BOM
+							// strip, not what the file occupied on disk.
+							Activity::Push("Loaded " + std::string(file) + " ("
+								+ std::to_string(text.size()) + " bytes) into the editor.");
+							Toasts::Push(Toasts::Success, "Loaded " + std::string(file)
+								+ " (" + std::to_string(text.size()) + " bytes).");
+						}
+						else
+						{
+							Activity::Push(std::string("Load cancelled - buffer kept: ") + file);
+							Toasts::Push(Toasts::Info, "Load cancelled - buffer kept.");
+						}
 					}
 					fclose(fp);
 				}
