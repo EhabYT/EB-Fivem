@@ -207,11 +207,21 @@ namespace Executor
 						std::string text((size_t)size, '\0');
 						const size_t read = fread(&text[0], 1, (size_t)size, fp);
 						text.resize(read);
+						// A UTF-8 byte-order mark would land in the editor as a junk
+						// glyph in front of the first line.  The editor holds UTF-8
+						// text; the marker itself carries no information.
+						if (read >= 3 && (unsigned char)text[0] == 0xEF
+							&& (unsigned char)text[1] == 0xBB && (unsigned char)text[2] == 0xBF)
+						{
+							text.erase(0, 3);
+						}
 						editor.SetText(text);
+						// Reported size is what the editor holds, i.e. after the BOM
+						// strip, not what the file occupied on disk.
 						Activity::Push("Loaded " + std::string(file) + " ("
-							+ std::to_string(read) + " bytes) into the editor.");
+							+ std::to_string(text.size()) + " bytes) into the editor.");
 						Toasts::Push(Toasts::Success, "Loaded " + std::string(file)
-							+ " (" + std::to_string(read) + " bytes).");
+							+ " (" + std::to_string(text.size()) + " bytes).");
 					}
 					fclose(fp);
 				}

@@ -8,6 +8,13 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
 
+## Edge-case round
+- File browser: a one-open invariant for the resource headers - the shared dump
+  preview could previously show the wrong resource when two headers were open
+  (row 89).
+- Load-from-file strips a UTF-8 BOM and reports the stripped size; seven "rE"
+  message-box titles in the Resources tab unified to "redENGINE" (row 90).
+
 ## Menus render, visible selection, housekeeping
 - `docs/render_preview.py --menus`: the fourth preview, `docs/preview_menus.png`;
   every sidebar tab now has one (the landing tab stays unrendered - its

@@ -181,14 +181,14 @@ namespace Resources
 			// announced a dump that had not happened yet.
 			if (ok)
 			{
-				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "rE", MB_OK | MB_ICONINFORMATION);
+				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "redENGINE", MB_OK | MB_ICONINFORMATION);
 				Activity::Push("Dump saved to " + dir);
 				Toasts::Push(Toasts::Success, "Dump saved to " + dir);
 			}
 			else
 			{
 				MessageBoxA(NULL, (std::string("Failed to write the dump to:\n") + dir +
-					"\n\nIs the folder writable?").c_str(), "rE", MB_OK | MB_ICONERROR);
+					"\n\nIs the folder writable?").c_str(), "redENGINE", MB_OK | MB_ICONERROR);
 				Activity::Push("Dump FAILED for " + dir);
 			}
 		}
@@ -203,7 +203,7 @@ namespace Resources
 			if (!CopyToClipBoard(window, dumpDir))
 			{
 				MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
-					"rE", MB_OK | MB_ICONERROR);
+					"redENGINE", MB_OK | MB_ICONERROR);
 				Activity::Push("Copy failed: clipboard busy");
 			}
 			else
@@ -278,11 +278,25 @@ namespace Resources
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##resourcebox", listSize1))
 			{
+				// The dump preview is one shared TextEditor instance, so exactly
+				// one header may be open: with two, the second SetText retargeted
+				// the first header's preview to the wrong resource.  Re-asserting
+				// the invariant per frame closes the previous header on the frame
+				// after a new one opens, and clicks still toggle both ways.
+				static int openRes = -1;
+				if (openRes >= (int)resources.size())
+					openRes = -1;   // the stopper erases entries
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
-					if (ImGui::CollapsingHeader(resources[i]))
+					ImGui::SetNextItemOpen(openRes == i);
+					const bool open = ImGui::CollapsingHeader(resources[i]);
+					if (open)
+						openRes = i;
+					else if (openRes == i)
+						openRes = -1;
+					if (open)
 					{
 						if (strcmp(resources[i], "_cfx_internal") == 0 || strcmp(resources[i], "fivem") == 0)
 						{
@@ -336,7 +350,7 @@ namespace Resources
 							if (!CopyToClipBoard(window, Triggers[i]))
 							{
 								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
-									"rE", MB_OK | MB_ICONERROR);
+									"redENGINE", MB_OK | MB_ICONERROR);
 								Activity::Push("Copy failed: clipboard busy");
 							}
 							else
@@ -349,7 +363,7 @@ namespace Resources
 							}
 						}
 						else
-							MessageBoxA(NULL, "Nothing to copy.", "rE", MB_OK | MB_ICONERROR);
+							MessageBoxA(NULL, "Nothing to copy.", "redENGINE", MB_OK | MB_ICONERROR);
 					}
 					ImGui::PopID();
 				}
@@ -395,7 +409,7 @@ namespace Resources
 			{
 				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 				{
-					MessageBoxA(NULL, "You can't stop _cfx_internal", "rE", MB_OK | MB_ICONERROR);
+					MessageBoxA(NULL, "You can't stop _cfx_internal", "redENGINE", MB_OK | MB_ICONERROR);
 				}
 				else
 				{
@@ -416,7 +430,7 @@ namespace Resources
 					MessageBoxA(NULL,
 						(std::string("'") + stopped + "' removed from the list.\n\n"
 							"Stopping the resource on the server is not implemented in this build.").c_str(),
-						"rE", MB_OK | MB_ICONINFORMATION);
+						"redENGINE", MB_OK | MB_ICONINFORMATION);
 				}
 			}
 		}
