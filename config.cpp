@@ -27,25 +27,44 @@ namespace Config
 
 		ImGui::BeginChild("##config_side", ImVec2(leftWidth, avail.y), ImGuiChildFlags_None);
 
-		ImGui::Text("Safe Mode");
+		// Both sections below are inert.  Safemode/ShBypass are UI state only (see
+		// config.h): nothing in this build reads them and nothing persists them.
+		// The labels and tooltips used to describe behaviour that does not exist
+		// ("a private scripting environment", ".ASI plugins through the ScriptHook
+		// interface"), which reads as two working modes - the same defect the dead
+		// Execute/Run buttons had.  They now say plainly that they do nothing, and
+		// every flip is answered with the honest feedback those paths give too.
+		ImGui::TextDisabled("Safe Mode   (not implemented)");
 		ImGui::SameLine();
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "(?)"); ImGui::Spacing();
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Safe mode creates a private scripting environment.");
+			ImGui::SetTooltip("Inert in this build: the switch only stores a value\n"
+				"that nothing reads, and it is not written to settings.ini.");
 
 		Gui::Seperator("##config_seperator_1");
 
-		Gui::Toggle("Enabled##safemode", &Safemode);
+		if (Gui::Toggle("Enabled##safemode", &Safemode))
+		{
+			Activity::Push(std::string("Safe Mode switched ") + (Safemode ? "on" : "off")
+				+ " (not implemented - no effect).");
+			Toasts::Push(Toasts::Warn, "Safe Mode is not implemented; the switch has no effect.");
+		}
 
 		Gui::Seperator("##config_seperator_2");
-		ImGui::Text("ScriptHook Bypass");
+		ImGui::TextDisabled("ScriptHook Bypass   (not implemented)");
 		ImGui::SameLine();
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "(?)"); ImGui::Spacing();
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Loads .ASI plugins through the ScriptHook interface.");
+			ImGui::SetTooltip("Inert in this build: no .ASI plugin is loaded; the\n"
+				"switch only stores a value that nothing reads.");
 
 		Gui::Seperator("##config_seperator_3");
-		Gui::Toggle("Enabled##shbypass", &ShBypass);
+		if (Gui::Toggle("Enabled##shbypass", &ShBypass))
+		{
+			Activity::Push(std::string("ScriptHook Bypass switched ") + (ShBypass ? "on" : "off")
+				+ " (not implemented - no effect).");
+			Toasts::Push(Toasts::Warn, "ScriptHook Bypass is not implemented; the switch has no effect.");
+		}
 
 		Gui::Seperator("##config_seperator_4");
 

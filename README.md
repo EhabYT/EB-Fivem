@@ -36,7 +36,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`gui.h`](gui.h) | Small helpers (`Gui::Seperator`, cursor setters) |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor, Execute / Load-from-file, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
-| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — Safe Mode / ScriptHook Bypass toggles |
+| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders, labelled as such |
 | [`luamenus.h`](luamenus.h) · [`luamenus.cpp`](luamenus.cpp) | Menus tab — free / premium menu lists |
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab |
@@ -296,7 +296,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   the trigger clipboard list, resource dumps, and the resource-list stopper.
   What is **still a stub** (and now says so in a message box instead of doing nothing silently):
   actually executing a script, actually stopping a server resource, launching the listed menus,
-  and the Safe Mode / ScriptHook Bypass toggles.
+  and the Safe Mode / ScriptHook Bypass toggles — those two are labelled `(not implemented)` in
+  the tab itself, with inert tooltips and a toast on every flip, because nothing reads them.
 * `font_awesome.cpp` is `#include`d by `main.cpp` rather than compiled as its own translation
   unit; it is marked `ExcludedFromBuild` in the project so nobody adds it twice.
 * Every menu global is declared `extern` in its header and defined in exactly one `.cpp`, so
