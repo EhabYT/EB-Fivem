@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## README file table catches up with the codebase
+- The path table listed the tabs and vendored code but not the support modules every tab stands
+  on: `settings`, `toasts`, `activity`, `perf` and the new header-only `clipboard.h` now have
+  rows saying what each one owns.
+- The Executor, Config and Landing rows describe what those tabs actually contain today
+  (toolbar with save, status line with file and modified mark, confirmations; About block with
+  version/build/host/warning/both buttons; diagnostics card and copyable log), instead of their
+  early-branch state.
+
 ## Row-119 flags hoisted above their first use (row 120)
 - The clear and save toolbar handlers sit above the editor render in `Executor::Render()`, so
   the dirty flag declared below them was used before declaration - a compile error, caught in

@@ -76,14 +76,19 @@ the scene (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`).  Sixth 
 | [`menu.h`](menu.h) · [`menu.cpp`](menu.cpp) | Menu **shell**: the window, the 2-column `ImGui::Table`, the sidebar, `Menu::TabId` |
 | [`tabs.h`](tabs.h) · [`tabs.cpp`](tabs.cpp) | **Tab routing**: the only place that knows which tabs exist |
 | [`menu_style.h`](menu_style.h) | `ApplyStyle()` — colours, rounding, frame/cell padding (applied once) |
-| [`gui.h`](gui.h) | Small helpers (`Gui::Seperator`, cursor setters) |
-| [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor, Execute / Load-from-file, resource combo |
+| [`gui.h`](gui.h) | Small helpers (`Gui::Seperator`, cursor setters, toggles, primary buttons) |
+| [`settings.h`](settings.h) · [`settings.cpp`](settings.cpp) | Persisted interface prefs (`[ui]`, `[menu]`, `[window]`), host DPI scale, `ScaleFactor()`/`Px()`, save-failure flag, first-start notice |
+| [`toasts.h`](toasts.h) · [`toasts.cpp`](toasts.cpp) | Non-blocking feedback stack: four-second lifetime, click dismisses, capped, drawn above the tab content |
+| [`activity.h`](activity.h) · [`activity.cpp`](activity.cpp) | Timestamped in-memory session log (newest first, 32 kept, total counted) - the trace behind the landing tab |
+| [`perf.h`](perf.h) · [`perf.cpp`](perf.cpp) | Frame-time ring and session uptime: the sidebar FPS line and the landing sparkline |
+| [`clipboard.h`](clipboard.h) | Header-only Win32 `CF_TEXT` writer shared by Config (diagnostics), the landing log and the Resources copy buttons |
+| [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor with toolbar (undo/redo/copy/paste/clear/save), status line (cursor, lines, last file, modified mark), honest Execute stub, Load/Save dialogs with confirmations, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
-| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches
-labelled `Enabled (no effect)`, inert tooltips |
+| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, FPS HUD, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches
+labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, credit, ImGui version, build configuration, host scale, not-writable warning, Copy diagnostics, Open settings folder |
 | [`luamenus.h`](luamenus.h) · [`luamenus.cpp`](luamenus.cpp) | Menus tab — free / premium menu lists |
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
-| [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab |
+| [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab - diagnostics card (sparkline, uptime, action count) and the session activity log with Copy/Clear |
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
 | [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified). `imgui_demo.cpp` is on disk but not built — see [BUILD.md](BUILD.md) |
 | [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored, unmodified) |
