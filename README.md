@@ -180,7 +180,7 @@ context disappears under it.
 ### Include graph
 
 Rectangles are translation units, rounded boxes are headers, each subgraph is one `.cpp` plus the
-header it owns. **Generated from the actual `#include` lines** — 23 nodes, 33 edges.
+header it owns. **Generated from the actual `#include` lines** — 35 nodes, 63 edges (regenerate with `python docs/gen_include_graph.py`).
 
 ```mermaid
 flowchart LR
@@ -188,84 +188,131 @@ flowchart LR
         n0["TextEditor.cpp"]
         n1(["TextEditor.h"])
     end
+    subgraph sg_activity["activity"]
+        n2["activity.cpp"]
+        n3(["activity.h"])
+    end
     subgraph sg_config["config"]
-        n3["config.cpp"]
-        n4(["config.h"])
+        n4["config.cpp"]
+        n5(["config.h"])
     end
     subgraph sg_default["default"]
-        n5["default.cpp"]
-        n6(["default.h"])
+        n6["default.cpp"]
+        n7(["default.h"])
     end
     subgraph sg_demo["demo"]
-        n7["demo.cpp"]
-        n8(["demo.h"])
+        n8["demo.cpp"]
+        n9(["demo.h"])
     end
     subgraph sg_exec["exec"]
-        n9["exec.cpp"]
-        n10(["exec.h"])
+        n10["exec.cpp"]
+        n11(["exec.h"])
+    end
+    subgraph sg_font_awesome["font_awesome"]
+        n12["font_awesome.cpp"]
+        n13(["font_awesome.h"])
     end
     subgraph sg_luamenus["luamenus"]
-        n13["luamenus.cpp"]
-        n14(["luamenus.h"])
+        n14["luamenus.cpp"]
+        n15(["luamenus.h"])
     end
     subgraph sg_main["main"]
-        n15["main.cpp"]
+        n16["main.cpp"]
     end
     subgraph sg_menu["menu"]
-        n16["menu.cpp"]
-        n17(["menu.h"])
+        n17["menu.cpp"]
+        n18(["menu.h"])
+    end
+    subgraph sg_perf["perf"]
+        n19["perf.cpp"]
+        n20(["perf.h"])
     end
     subgraph sg_resources["resources"]
-        n19["resources.cpp"]
-        n20(["resources.h"])
+        n21["resources.cpp"]
+        n22(["resources.h"])
+    end
+    subgraph sg_settings["settings"]
+        n23["settings.cpp"]
+        n24(["settings.h"])
     end
     subgraph sg_tabs["tabs"]
-        n21["tabs.cpp"]
-        n22(["tabs.h"])
+        n25["tabs.cpp"]
+        n26(["tabs.h"])
     end
-    n2(["assets.h"])
-    n11(["gui.h"])
-    n12(["includes.h"])
-    n18(["menu_style.h"])
+    subgraph sg_toasts["toasts"]
+        n27["toasts.cpp"]
+        n28(["toasts.h"])
+    end
+    n29(["assets.h"])
+    n30(["clipboard.h"])
+    n31(["gui.h"])
+    n32(["includes.h"])
+    n33(["menu_style.h"])
+    n34(["stb_image.h"])
 
     n0 --> n1
-    n3 --> n4
-    n4 --> n11
-    n5 --> n6
-    n5 --> n11
-    n7 --> n8
-    n9 --> n10
-    n9 --> n11
-    n9 --> n20
-    n10 --> n1
-    n13 --> n11
-    n13 --> n14
-    n15 --> n2
-    n15 --> n10
-    n15 --> n12
-    n15 --> n17
-    n15 --> n18
-    n15 --> n20
-    n16 --> n11
-    n16 --> n17
-    n16 --> n22
-    n19 --> n2
+    n2 --> n3
+    n4 --> n3
+    n4 --> n5
+    n4 --> n24
+    n4 --> n28
+    n4 --> n30
+    n5 --> n13
+    n5 --> n31
+    n6 --> n3
+    n6 --> n7
+    n6 --> n20
+    n6 --> n28
+    n6 --> n30
+    n6 --> n31
+    n8 --> n9
+    n10 --> n3
+    n10 --> n11
+    n10 --> n22
+    n10 --> n28
+    n10 --> n31
+    n11 --> n1
+    n11 --> n13
+    n14 --> n3
+    n14 --> n13
+    n14 --> n15
+    n14 --> n28
+    n14 --> n31
+    n16 --> n13
+    n16 --> n18
+    n16 --> n32
+    n16 --> n34
+    n17 --> n13
+    n17 --> n18
+    n17 --> n20
+    n17 --> n24
+    n17 --> n26
+    n17 --> n28
+    n17 --> n31
     n19 --> n20
-    n20 --> n1
-    n20 --> n10
-    n20 --> n11
-    n21 --> n4
-    n21 --> n6
-    n21 --> n10
-    n21 --> n14
-    n21 --> n17
-    n21 --> n20
+    n21 --> n3
     n21 --> n22
-
-    classDef tu fill:#2b2b2b,stroke:#e30028,stroke-width:2px,color:#ffffff
-    classDef hdr fill:#1c1c1c,stroke:#666666,color:#dddddd
-    class n0,n3,n5,n7,n9,n13,n15,n16,n19,n21 tu
-    class n1,n2,n4,n6,n8,n10,n11,n12,n14,n17,n18,n20,n22 hdr
+    n21 --> n28
+    n21 --> n29
+    n21 --> n30
+    n22 --> n1
+    n22 --> n13
+    n22 --> n31
+    n23 --> n3
+    n23 --> n24
+    n23 --> n28
+    n23 --> n29
+    n25 --> n5
+    n25 --> n7
+    n25 --> n11
+    n25 --> n15
+    n25 --> n18
+    n25 --> n22
+    n25 --> n26
+    n27 --> n24
+    n27 --> n28
+    n31 --> n13
+    n31 --> n24
 ```
 
 What the shape of that graph is meant to show:
