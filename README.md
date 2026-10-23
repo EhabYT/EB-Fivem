@@ -355,8 +355,10 @@ Until then there is **no CI and no compile proof** — every check on this branc
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
   card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear sit above the executor (tooltips
-  name the shortcuts), the status line reports the selection size, and toast cards dismiss on
-  click without ever stealing a click from a widget under the stack.
+  name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
+  undo, redo or copy, and say so in the tooltip. The status line reports the selection size, the
+  resource combo falls back to a muted line once the stopper erased the last entry, and toast
+  cards dismiss on click without ever stealing a click from a widget under the stack.
 * **Small persistences:** the editor whitespace dots, the open Resources sub-tab and a one-click
   "Reset interface settings" button join window position, last tab, toggle key, the
   animation/toast switches and the interface scale in `settings.ini`.

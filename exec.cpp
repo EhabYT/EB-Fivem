@@ -56,20 +56,34 @@ namespace Executor
 		// path, and icon buttons make the actions discoverable in the first
 		// place.  The tooltips name the shortcut each button mirrors.
 		const float tb = Settings::Px(26.0f);
+		// The three actions that need something to work on now say so: on a fresh
+		// buffer undo/redo/copy are greyed instead of clicking into a no-op, the
+		// same "dead control reads as broken" family as the old silent stubs, just
+		// smaller.  BeginDisabled is ImGui's own state (alpha + item flags), so
+		// hover, click and keyboard focus all stop on their own; the tooltip
+		// explains why, which needs AllowWhenDisabled because IsItemHovered()
+		// ignores disabled items by default.
+		ImGui::BeginDisabled(!editor.CanUndo());
 		if (ImGui::Button(ICON_FA_UNDO "##ed_undo", ImVec2(tb, tb)))
 			editor.Undo();
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Undo (Ctrl+Z)");
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip(editor.CanUndo() ? "Undo (Ctrl+Z)" : "Nothing to undo");
 		ImGui::SameLine();
+		ImGui::BeginDisabled(!editor.CanRedo());
 		if (ImGui::Button(ICON_FA_REDO "##ed_redo", ImVec2(tb, tb)))
 			editor.Redo();
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Redo (Ctrl+Y)");
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip(editor.CanRedo() ? "Redo (Ctrl+Y)" : "Nothing to redo");
 		ImGui::SameLine();
+		ImGui::BeginDisabled(!editor.HasSelection());
 		if (ImGui::Button(ICON_FA_COPY "##ed_copy", ImVec2(tb, tb)))
 			editor.Copy();
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Copy selection (Ctrl+C)");
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip(editor.HasSelection()
+				? "Copy selection (Ctrl+C)" : "Nothing selected");
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_PASTE "##ed_paste", ImVec2(tb, tb)))
 			editor.Paste();
@@ -209,6 +223,10 @@ namespace Executor
 		// items_count is an int: size_t has no implicit conversion (C2664).
 		if (!resources.empty())
 			ImGui::Combo("##resources", &selectedResource, resources.data(), (int)resources.size());
+		else
+			// The stopper can erase the last entry; without a fallback the row
+			// would just be empty where a selection used to be.
+			ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to select.");
 		ImGui::PopItemWidth();
 	}
 }

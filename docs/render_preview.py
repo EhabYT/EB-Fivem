@@ -352,10 +352,19 @@ if TAB == "executor":
 
     # editor toolbar (exec.cpp): icon buttons for undo/redo/copy/paste/clear
     TB = 26
+    # undo/redo/copy sit inside BeginDisabled on a fresh buffer (nothing to
+    # undo, redo or copy): BeginDisabled multiplies style.Alpha by
+    # DisabledAlpha (0.60, stock), so fill and glyph both blend 60% over what
+    # is behind them.  paste/clear stay live.
     for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d"]):
         _bx = CX0 + _k * (TB + ITEM_SPACING_X)
-        R(_bx, y, _bx + TB, y + TB, C_BUTTON)
-        T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, C_TEXT, f_icon, 1.0)
+        if _k < 3:
+            _fill = blend(C_BUTTON + (153,), C_WINDOW_BG)
+            _ink = blend((255, 255, 255, 153), _fill)
+        else:
+            _fill, _ink = C_BUTTON, C_TEXT
+        R(_bx, y, _bx + TB, y + TB, _fill)
+        T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, _ink, f_icon, 1.0)
 
     # whitespace toggle at the end of the toolbar (Gui::Toggle, off, persisted)
     _tkx = CX0 + 5 * (TB + ITEM_SPACING_X) + 6
