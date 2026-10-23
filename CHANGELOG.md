@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Clipboard writer consolidated, stopper trace, folder fallback (rows 114-116)
+- `resources.cpp` carried its own file-static clipboard helper (HWND parameter, duplicated
+  OpenClipboard/GlobalAlloc/CF_TEXT sequence) plus an `extern HWND window` that existed only to
+  feed it; the dump-path and trigger copy buttons now use the shared `clipboard.h` writer, and
+  the legacy helper and the extern are deleted - one sequence, one failure behaviour.
+- The stopper's removal - the one honest stub that visibly changes state - answered only with a
+  modal box; it now also leaves an activity entry and an info toast, like the Execute and Run
+  requests do.
+- `Open settings folder` falls back to exploring the folder itself when `settings.ini` does not
+  exist yet (first start), instead of handing Explorer a `/select,` target that is not there.
+
 ## Overwrite protection and a first-start notice (rows 112-113)
 - `TextEditor::SetText` clears the undo buffer, so `Load from File` and the toolbar Clear used
   to discard an unsaved buffer unrecoverably, without asking.  Both now confirm with

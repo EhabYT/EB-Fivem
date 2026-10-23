@@ -288,9 +288,19 @@ namespace Config
 		if (ImGui::Button("Open settings folder",
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
 		{
-			const std::string sel = "/select," + Settings::IniPath();
-			const intptr_t r = (intptr_t)ShellExecuteA(
-				NULL, "explore", NULL, sel.c_str(), NULL, SW_SHOWNORMAL);
+			// On a first start the ini does not exist yet, and /select, on a
+			// missing file leaves Explorer with nothing to highlight - so the
+			// fallback opens the folder itself.
+			const std::string ini = Settings::IniPath();
+			const size_t slash = ini.find_last_of("\\/");
+			const std::string dir = slash == std::string::npos
+				? std::string(".") : ini.substr(0, slash);
+			const bool haveIni =
+				GetFileAttributesA(ini.c_str()) != INVALID_FILE_ATTRIBUTES;
+			const intptr_t r = (intptr_t)ShellExecuteA(NULL, "explore",
+				haveIni ? NULL : dir.c_str(),
+				haveIni ? ("/select," + ini).c_str() : NULL,
+				NULL, SW_SHOWNORMAL);
 			if (r > 32)
 				Activity::Push("Opened the settings folder in Explorer.");
 			else

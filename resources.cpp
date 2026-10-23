@@ -1,4 +1,5 @@
 #include "resources.h"
+#include "clipboard.h"
 #include "assets.h"
 #include "activity.h"
 #include "toasts.h"
@@ -12,7 +13,6 @@
 #include <string>
 #include <vector>
 
-extern HWND window;   // defined in main.cpp - clipboard owner
 
 std::vector<const char*> Triggers = {
 	"TriggerServerEvent('esx_truckerjob:pay', 1000000)",
@@ -72,40 +72,6 @@ server_script 'server.lua'
 
 )";
 
-// Returns false when nothing reached the clipboard (clipboard owned by another
-// process, allocation or lock failure), so the caller can say so instead of
-// looking like a successful copy.
-static bool CopyToClipBoard(HWND hwnd, const std::string& s)
-{
-	if (!OpenClipboard(hwnd))
-		return false;
-
-	EmptyClipboard();
-	HGLOBAL hGlobe = GlobalAlloc(GMEM_MOVEABLE, s.size() + 1);
-	if (hGlobe == NULL)
-	{
-		CloseClipboard();
-		return false;
-	}
-
-	void* locked = GlobalLock(hGlobe);
-	if (locked == NULL)
-	{
-		GlobalFree(hGlobe);
-		CloseClipboard();
-		return false;
-	}
-
-	memcpy(locked, s.c_str(), s.size() + 1);
-	GlobalUnlock(hGlobe);
-	// Ownership transfers to the clipboard on success; only free on failure.
-	const bool ok = (SetClipboardData(CF_TEXT, hGlobe) != NULL);
-	if (!ok)
-		GlobalFree(hGlobe);
-
-	CloseClipboard();
-	return ok;
-}
 
 // "<DLL folder>\Dumps" - writable without elevation, and travels with the build.
 // The previous version hardcoded C:\redENGINE\Dumps\127.0.0.1\, which needs an
@@ -200,7 +166,7 @@ namespace Resources
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
 		{
 			const std::string dumpDir = GetDumpDirectory();
-			if (!CopyToClipBoard(window, dumpDir))
+			if (!CopyTextToClipboard(dumpDir.c_str()))
 			{
 				MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
 					"EBengin", MB_OK | MB_ICONERROR);
@@ -347,7 +313,7 @@ namespace Resources
 						// at() returns a reference and the vector never holds NULL.
 						if (Triggers[i] != NULL && Triggers[i][0] != '\0')
 						{
-							if (!CopyToClipBoard(window, Triggers[i]))
+							if (!CopyTextToClipboard(Triggers[i]))
 							{
 								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
 									"EBengin", MB_OK | MB_ICONERROR);
@@ -431,6 +397,14 @@ namespace Resources
 						(std::string("'") + stopped + "' removed from the list.\n\n"
 							"Stopping the resource on the server is not implemented in this build.").c_str(),
 						"EBengin", MB_OK | MB_ICONINFORMATION);
+					// Execute and Run requests leave an activity entry and a toast
+					// behind the message box; the stopper's removal - the one stub
+					// that visibly changes state - had only the modal box, so once
+					// it was closed nothing in the persistent trace said it happened.
+					Activity::Push("'" + stopped + "' removed from the resource list "
+						"(server stop not implemented).");
+					Toasts::Push(Toasts::Info, "'" + stopped
+						+ "' removed from the list (not stopped on the server).");
 				}
 			}
 		}
