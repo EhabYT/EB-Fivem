@@ -211,10 +211,14 @@ namespace Config
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "Interface: ImGui 1.92.9 (ocornut)");
 		// A Debug DLL behaves visibly differently in a host (asserts on, no
 		// optimisation), so the About block says which configuration this is.
-#ifdef _DEBUG
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug (asserts on, slower)");
+#if defined(_DEBUG) && defined(_WIN64)
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug x64 (asserts on, slower)");
+#elif defined(_DEBUG)
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug Win32 (asserts on, slower)");
+#elif defined(_WIN64)
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release x64");
 #else
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release");
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release Win32 (x86)");
 #endif
 		Gui::Seperator("##about_seperator_2");
 		ImGui::EndChild();

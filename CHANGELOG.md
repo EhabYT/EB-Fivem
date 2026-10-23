@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Build marker gains bitness (row 100)
+- The About marker now distinguishes all four configurations via `_DEBUG` / `_WIN64`:
+  Debug x64, Debug Win32, Release x64, Release Win32 (x86).  Bitness matters: a Win32 DLL
+  cannot load into a 64-bit host, which section 8 of BUILD.md previously said only in prose.
+- The renderer mirrors "Build: Release x64" (the configuration the owner verified) and
+  width-asserts all four variants; only preview_config.png re-renders.
+
 ## About block names the build configuration
 - Config's About block ends with an `#ifdef _DEBUG` line - `Build: Debug (asserts on, slower)`
   or `Build: Release` - because a Debug DLL behaves visibly differently in a host and nothing
