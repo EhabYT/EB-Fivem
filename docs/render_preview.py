@@ -534,8 +534,9 @@ if TAB == "executor":
             R(cx + 1, ly + 6, cx + 2, ly + LINE_ADV - 6, P["cursor"])
 
     # status line (exec.cpp): cursor + document size, muted accent
-    # code appends "| file: <name>" once a load or save happened; the
-    # preview depicts a buffer with no file behind it
+    # code appends "| file: <name>" once a load or save happened and
+    # "| modified" while the buffer holds unsaved edits; the preview
+    # depicts a buffer with no file behind it and nothing unsaved
     T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
 
     # button row: Execute 116x30, Load from File 180x30, combo fills the rest

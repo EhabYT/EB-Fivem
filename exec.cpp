@@ -115,6 +115,8 @@ namespace Executor
 			{
 				editor.SetText("");
 				g_lastFile.clear();
+				dirty = false;
+				suppress = 1;
 				if (!cur.empty())
 					Activity::Push("Editor buffer cleared ("
 						+ std::to_string(cur.size()) + " bytes).");
@@ -169,6 +171,7 @@ namespace Executor
 					else
 					{
 						g_lastFile = file;
+						dirty = false;
 						Activity::Push("Saved " + std::to_string(written)
 							+ " bytes to " + file + ".");
 						Toasts::Push(Toasts::Success, "Saved "
@@ -201,6 +204,22 @@ namespace Executor
 		editor.Render("##Null", ImVec2(avail.x - 16.0f,
 			avail.y - Settings::Px(52.0f) - statusH - tb - Settings::Px(4.0f)), true);
 
+		// The widget reports edits for the frame they happen in (mTextChanged
+		// is cleared at the end of its own Render), so polling it right after
+		// Render() and accumulating gives a session dirty flag: true while the
+		// buffer holds edits the last load/save/clear does not.  SetText() also
+		// raises the flag, hence the one-frame suppression after our own
+		// load/clear calls.
+		static bool dirty = false;
+		static int suppress = 0;
+		if (editor.IsTextChanged())
+		{
+			if (suppress > 0)
+				--suppress;
+			else
+				dirty = true;
+		}
+
 		// Status line: the editor widget shows neither cursor position nor
 		// document size, so a 400-line paste looked identical to an empty buffer.
 		const TextEditor::Coordinates cur = editor.GetCursorPosition();
@@ -211,6 +230,8 @@ namespace Executor
 		std::string statusLine = status;
 		if (!g_lastFile.empty())
 			statusLine += "  |  file: " + BaseName(g_lastFile);
+		if (dirty)
+			statusLine += "  |  modified";
 		if (editor.HasSelection())
 			statusLine += "  |  " + std::to_string(editor.GetSelectedText().size()) + " selected";
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", statusLine.c_str());
@@ -314,6 +335,8 @@ namespace Executor
 						{
 							editor.SetText(text);
 							g_lastFile = file;
+							dirty = false;
+							suppress = 1;
 							// Reported size is what the editor holds, i.e. after the BOM
 							// strip, not what the file occupied on disk.
 							Activity::Push("Loaded " + std::string(file) + " ("

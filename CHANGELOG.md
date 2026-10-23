@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The editor shows unsaved work (row 119)
+- With Save and Load in the toolbar, the one remaining silent state was "the buffer holds
+  edits that exist nowhere else".  `exec.cpp` now polls `TextEditor::IsTextChanged()` directly
+  after the widget render - the flag is frame-scoped, cleared at the end of the editor's own
+  `Render()` - and accumulates it into a session dirty flag that a successful load, save or
+  clear resets.  While set, the status line appends `| modified`.
+- `SetText()` from our own load/clear raises the same widget flag, so those calls suppress one
+  frame; otherwise loading a file would immediately report itself as modified.
+- BUILD section 9's config cell also catches up with the About block's current contents
+  (not-writable flag, both buttons).
+
 ## First-start toast arrives readable; diagnostics name the shell size (rows 117-118)
 - Toasts live four seconds, and `Settings::Load()` runs long before the overlay first opens -
   so the row-113 "no settings.ini yet" toast expired unseen on every first start.  `Load()` now
