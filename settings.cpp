@@ -1,5 +1,7 @@
 #include "settings.h"
 #include "assets.h"
+#include "activity.h"
+#include "toasts.h"
 
 #include "imgui/imgui.h"
 
@@ -9,6 +11,8 @@
 namespace Settings
 {
 	Prefs Current;
+	float DpiScale = 1.0f;
+	static bool g_saveFailed = false;
 
 	static std::string IniPath()
 	{
@@ -42,25 +46,38 @@ namespace Settings
 			Current.ScalePercent = 100;
 	}
 
-	static void WriteInt(const char* section, const char* key, int value)
+	static bool WriteInt(const char* section, const char* key, int value)
 	{
 		char buf[16];
 		snprintf(buf, sizeof(buf), "%d", value);
-		WritePrivateProfileStringA(section, key, buf, IniPath().c_str());
+		return WritePrivateProfileStringA(section, key, buf, IniPath().c_str()) != 0;
 	}
 
 	void Save()
 	{
-		WriteInt("window", "x", Current.WindowX);
-		WriteInt("window", "y", Current.WindowY);
-		WriteInt("menu", "tab", Current.Tab);
-		WriteInt("menu", "togglekey", Current.ToggleKey);
-		WriteInt("ui", "anim", Current.Animations ? 1 : 0);
-		WriteInt("ui", "toasts", Current.Toasts ? 1 : 0);
-		WriteInt("ui", "whitespace", Current.ShowWhitespace ? 1 : 0);
-		WriteInt("menu", "resourcetab", Current.ResourceTab);
-		WriteInt("ui", "scale", Current.ScalePercent);
+		// A DLL folder without write permission (program files, read-only media)
+		// used to fail silently here: every preference looked saved and nothing
+		// survived a re-inject.  Report the first failure once, loudly.
+		bool ok = true;
+		ok = WriteInt("window", "x", Current.WindowX) && ok;
+		ok = WriteInt("window", "y", Current.WindowY) && ok;
+		ok = WriteInt("menu", "tab", Current.Tab) && ok;
+		ok = WriteInt("menu", "togglekey", Current.ToggleKey) && ok;
+		ok = WriteInt("ui", "anim", Current.Animations ? 1 : 0) && ok;
+		ok = WriteInt("ui", "toasts", Current.Toasts ? 1 : 0) && ok;
+		ok = WriteInt("ui", "whitespace", Current.ShowWhitespace ? 1 : 0) && ok;
+		ok = WriteInt("menu", "resourcetab", Current.ResourceTab) && ok;
+		ok = WriteInt("ui", "scale", Current.ScalePercent) && ok;
+		if (!ok && !g_saveFailed)
+		{
+			g_saveFailed = true;
+			Activity::Push("Settings could not be written to " + IniPath()
+				+ " - is the folder writable?");
+			Toasts::Push(Toasts::Warn, "Settings could not be saved - is the DLL folder writable?");
+		}
 	}
+
+	bool SaveFailed() { return g_saveFailed; }
 
 	void ApplyScale()
 	{
@@ -76,13 +93,17 @@ namespace Settings
 		// a restyle pass.
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.FontScaleMain = (float)Current.ScalePercent / 100.0f;
+		// Per-monitor DPI: 1.92 multiplies FontScaleMain * FontScaleDpi into every
+		// font size (imgui.cpp:9215), and ScaleFactor() folds the same factor into
+		// every shell metric and Settings::Px(), so the whole layout follows.
+		style.FontScaleDpi = DpiScale;
 
 		// menu.cpp sizes the window from style.WindowMinSize, so that has to follow
 		// the scale too - a 200% font inside a fixed 900x540 shell would clip.
 		// Recomputed from the compiled base, so repeated calls are idempotent.
 		// ApplyStyle() resets it to the 100% base, hence the call order in
 		// InitImGui(): ApplyStyle() -> Load() -> ApplyScale().
-		style.WindowMinSize = ImVec2(900.0f * style.FontScaleMain, 540.0f * style.FontScaleMain);
+		style.WindowMinSize = ImVec2(900.0f * ScaleFactor(), 540.0f * ScaleFactor());
 	}
 
 	void SaveWindowPos(float x, float y)

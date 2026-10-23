@@ -8,6 +8,16 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
 
+## Environment-compatibility round
+- High-DPI: the layout follows the host window's contents scale via
+  `Settings::DpiScale` and `style.FontScaleDpi`; on 96-DPI or DPI-unaware hosts
+  every factor stays the identity (row 91).
+- A failed `settings.ini` write (read-only DLL folder) is answered once with an
+  activity entry and a warn toast instead of staying silent (row 92).
+- README states what compatibility covers here - and what it explicitly does
+  not: no live-client testing, no inject-hook, graphics-API or anti-cheat
+  adaptation to any game version.
+
 ## Edge-case round
 - File browser: a one-open invariant for the resource headers - the shared dump
   preview could previously show the wrong resource when two headers were open

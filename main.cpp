@@ -233,6 +233,12 @@ void InitImGui()
 	// Interface preferences (window position, last tab, toggle key) live next to
 	// the DLL so a re-inject restores the previous session instead of resetting
 	// the window to the top-left and the tab to the landing page.
+	// Host window contents scale, before ApplyScale() reads it: 96 DPI on an
+	// unaware host means every factor stays the identity; a per-monitor-aware
+	// host sizes the window in physical pixels, where the compiled layout would
+	// otherwise render small.
+	const UINT dpi = GetDpiForWindow(window);
+	Settings::DpiScale = dpi > 0 ? (float)dpi / 96.0f : 1.0f;
 	Settings::Load();
 	// Font/window scale: must follow Load() (it reads the persisted value) and
 	// ApplyStyle() above (which resets WindowMinSize to the 100% base).

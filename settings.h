@@ -22,13 +22,20 @@ namespace Settings
 
 	extern Prefs Current;        // defined in settings.cpp
 
+	// Host window contents scale (GetDpiForWindow / 96), set once in InitImGui.
+	// 1.0 on DPI-unaware hosts, i.e. the identity everywhere; 1.5/2.0/... on
+	// per-monitor-aware ones, where the window is sized in physical pixels and
+	// the compiled 900x540 layout would otherwise render small.  Environment-
+	// derived, so it is not part of the persisted Prefs.
+	extern float DpiScale;
+
 	void Load();
 	void Save();
 	void SaveWindowPos(float x, float y);
 
 	// Interface scale as a factor (1.0f == the compiled layout).  Inline because
 	// the shell metrics in menu.h multiply their 100% base by it every frame.
-	inline float ScaleFactor() { return (float)Current.ScalePercent / 100.0f; }
+	inline float ScaleFactor() { return (float)Current.ScalePercent / 100.0f * DpiScale; }
 
 	// Explicit widget sizes (ImVec2(116, 30) and friends) do NOT follow
 	// style.FontScaleMain on their own - only font-derived metrics such as
@@ -41,6 +48,11 @@ namespace Settings
 	// minimum size; the shell metrics in menu.h follow through ScaleFactor().
 	// Clamps to 70..200 itself.  Call after Load() and whenever the value changes.
 	void ApplyScale();
+
+	// True once any settings.ini write has failed this session (read-only or
+	// missing folder).  The first failure is answered with an activity entry
+	// and a warn toast instead of staying silent.
+	bool SaveFailed();
 
 	// Human-readable name for a virtual key, for the capture button.
 	const char* KeyName(int vk);

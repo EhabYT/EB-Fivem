@@ -381,6 +381,14 @@ Until then there is **no CI and no compile proof** — every check on this branc
   — 1.92 bakes a font for every distinct size it sees, so a live drag would bake ~130 of them.
   The shell is re-clamped on screen whenever the scale changes, so growing it to 200% cannot push
   the title bar off-screen and leave nothing to grab.
+* **Environment compatibility:** the menu degrades honestly instead of breaking — a missing
+  `Bahnschrift.ttf` falls back to ImGui's default font, a missing `rE.png` to the text logo, and the
+  first failed `settings.ini` write (read-only DLL folder) answers with a warn toast instead of
+  pretending the preference was saved. On per-monitor-DPI-aware hosts the layout follows the
+  window's contents scale through `style.FontScaleDpi`; on 96-DPI hosts every factor is the
+  identity. What this branch explicitly does *not* do: it has never run against a live FiveM or GTA
+  client, and nothing here adapts the inject hook, the graphics-API path or any anti-cheat
+  interaction to a game version.
 * **Two honest details:** the Resources tab can copy the dump folder path to the clipboard (before,
   that path only ever appeared inside a message box), and switching toast notifications off now
   empties the stack instead of letting a half-faded card reappear when they are switched back on.
