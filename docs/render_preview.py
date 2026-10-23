@@ -19,7 +19,7 @@ invented:
   menu.cpp       Begin("EBengin", NoScrollbar|NoCollapse|NoResize), SidebarItems[]
                  labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
-                 Load from File 180x30, resource combo,
+                 Load from File 180x30, toolbar save icon, resource combo,
                  status line (Ln/Col/lines) between editor and buttons
   gui.h          PrimaryButton fill (rest #3778B5, hover #5D9CD6, press #1D5188)
   toasts.cpp     card metrics: 320 max width, 3px kind bar, 8px inner padding
@@ -476,13 +476,14 @@ if TAB == "executor":
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
 
-    # editor toolbar (exec.cpp): icon buttons for undo/redo/copy/paste/clear
+    # editor toolbar (exec.cpp): icon buttons for undo/redo/copy/paste/clear/save
     TB = 26
     # undo/redo/copy sit inside BeginDisabled on a fresh buffer (nothing to
     # undo, redo or copy): BeginDisabled multiplies style.Alpha by
     # DisabledAlpha (0.60, stock), so fill and glyph both blend 60% over what
-    # is behind them.  paste/clear stay live.
-    for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d"]):
+    # is behind them.  paste/clear/save stay live.
+    for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d",
+                             "\uf0c7"]):
         _bx = CX0 + _k * (TB + ITEM_SPACING_X)
         if _k < 3:
             _fill = blend(C_BUTTON + (153,), C_WINDOW_BG)
@@ -493,7 +494,7 @@ if TAB == "executor":
         T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, _ink, f_icon, 1.0)
 
     # whitespace toggle at the end of the toolbar (Gui::Toggle, off, persisted)
-    _tkx = CX0 + 5 * (TB + ITEM_SPACING_X) + 6
+    _tkx = CX0 + 6 * (TB + ITEM_SPACING_X) + 6
     _tky = y + (TB - 20) / 2
     d.rounded_rectangle([_tkx*S, _tky*S, (_tkx+40)*S-1, (_tky+20)*S-1], radius=10*S, fill=C_FRAME_BG)
     d.ellipse([(_tkx+3)*S, (_tky+3)*S, (_tkx+17)*S-1, (_tky+17)*S-1], fill=C_TEXT)

@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Save to File: the editor buffer can leave the menu as a file (row 107)
+- The Executor had `Load from File` but no save path - a buffer written or pasted in the menu
+  could only leave through the clipboard.  A save icon now ends the editor toolbar:
+  `GetSaveFileNameA` with the same filter, `lua` default extension and the dialog's own
+  overwrite prompt; byte-accurate `fwrite` with the written count checked against the buffer
+  size (partial write = "disk full?" warn toast), and open/write failures reported by message
+  box, activity entry and toast instead of silence.
+- Renderer mirrors the sixth toolbar icon (toggle shifted one slot right) and the docstring
+  names it; README toolbar bullet and BUILD section 9 follow; preview_executor.png re-rendered.
+
 ## Version strings from the compiled library, settings path in diagnostics (row 106)
 - The About line and the Copy diagnostics string hardcoded `1.92.9`; both now format
   `ImGui::GetVersion()`, i.e. the version the linked imgui.cpp was actually compiled with, so

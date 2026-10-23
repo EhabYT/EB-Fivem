@@ -387,7 +387,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * **Tab comfort:** the editor carries a status line (Ln/Col, line count, language), the Resources
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
   card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
-* **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear sit above the executor (tooltips
+* **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear and a save-to-file dialog
+  sit above the executor (tooltips
   name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
   undo, redo or copy, and say so in the tooltip. The status line reports the selection size, the
   resource combo falls back to a muted line once the stopper erased the last entry, and toast

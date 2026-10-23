@@ -95,6 +95,60 @@ namespace Executor
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Clear the buffer");
 		ImGui::SameLine();
+		// Load from File had no counterpart: a buffer could only leave the
+		// editor through the clipboard.  Same dialog family as the loader -
+		// the overwrite prompt is the dialog's own, every failure path says
+		// what happened instead of doing nothing.
+		if (ImGui::Button(ICON_FA_SAVE "##ed_save", ImVec2(tb, tb)))
+		{
+			char file[MAX_PATH] = { 0 };
+			OPENFILENAMEA ofn;
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = FindWindowA(NULL, "FiveM");
+			ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
+			ofn.lpstrFile = file;
+			ofn.nMaxFile = MAX_PATH;
+			ofn.lpstrDefExt = "lua";
+			ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+
+			if (GetSaveFileNameA(&ofn))
+			{
+				const std::string text = editor.GetText();
+				FILE* fp = NULL;
+				if (fopen_s(&fp, file, "wb") != 0 || fp == NULL)
+				{
+					MessageBoxA(NULL, (std::string("Could not write:\n") + file).c_str(),
+						"EBengin", MB_OK | MB_ICONERROR);
+					Activity::Push(std::string("Save failed: ") + file);
+					Toasts::Push(Toasts::Warn, std::string("Save failed: ") + file);
+				}
+				else
+				{
+					const size_t written = fwrite(text.data(), 1, text.size(), fp);
+					fclose(fp);
+					if (written != text.size())
+					{
+						MessageBoxA(NULL, (std::string("Write stopped after "
+							+ std::to_string(written) + " of "
+							+ std::to_string(text.size()) + " bytes:\n") + file).c_str(),
+							"EBengin", MB_OK | MB_ICONERROR);
+						Activity::Push(std::string("Save incomplete: ") + file);
+						Toasts::Push(Toasts::Warn, "Save incomplete - disk full?");
+					}
+					else
+					{
+						Activity::Push("Saved " + std::to_string(written)
+							+ " bytes to " + file + ".");
+						Toasts::Push(Toasts::Success, "Saved "
+							+ std::to_string(written) + " bytes.");
+					}
+				}
+			}
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Save the buffer to a file");
+		ImGui::SameLine();
 		if (Gui::Toggle("Whitespace##ed_ws", &Settings::Current.ShowWhitespace))
 		{
 			ApplyPrefs();
