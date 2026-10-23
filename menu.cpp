@@ -310,6 +310,19 @@ namespace Menu
 	{
 		//Remade : by EB
 
+		// The first-start notice toast cannot be pushed from Settings::Load():
+		// toasts live four seconds and the overlay opens later than that, so
+		// the toast expired unseen.  Load() leaves a flag instead; the first
+		// frame the menu is actually visible consumes it.
+		static bool firstStartChecked = false;
+		if (!firstStartChecked)
+		{
+			firstStartChecked = true;
+			if (Settings::ConsumeFirstStartNotice())
+				Toasts::Push(Toasts::Info,
+					"No settings.ini yet - running on compiled defaults.");
+		}
+
 		// Open fade.  Render() only runs while the overlay is open, so a gap in
 		// the call stream means the menu was closed and has just come back.
 		const double tNow = ImGui::GetTime();
