@@ -9,6 +9,12 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Row-124 comment sync
+- The three places that describe `RenderHud()` in one line - BUILD section 9's Shell row, the
+  `menu.h` declaration comment and the `--hud` branch comment in the renderer - now name the
+  `MADE BY EB` credit line alongside the FPS line, so the credit is visible in the architecture
+  notes too, not only in the code and the figure captions.
+
 ## The HUD carries the credit: MADE BY EB (row 124)
 - The FPS HUD plate was the one surface that stays visible while the overlay is closed - and
   the one place the owner credit did not appear (splash card, sidebar footer and Config About

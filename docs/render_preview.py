@@ -328,7 +328,8 @@ def wrap_text(s, w):
 if TAB == "hud":
     # ------------------------------------------------------------------
     # main.cpp: while the overlay is closed and Settings::Current.Hud is
-    # on, Menu::RenderHud() draws the sidebar's FPS line on the background
+    # on, Menu::RenderHud() draws the sidebar's FPS line plus the MADE BY EB
+    # credit line on the background
     # draw list - over the game scene, under any window.  The scene is
     # arbitrary in game, so this render uses a mid-tone stand-in that lets
     # the 63%-alpha plate read the way it does over a bright frame.
