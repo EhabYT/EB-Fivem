@@ -13,6 +13,7 @@ namespace Settings
 	Prefs Current;
 	float DpiScale = 1.0f;
 	static bool g_saveFailed = false;
+	static bool g_firstStart = false;
 
 	std::string IniPath()
 	{
@@ -29,7 +30,7 @@ namespace Settings
 		{
 			Activity::Push("No settings.ini at " + path
 				+ " - compiled defaults in use; the file appears with the first saved change.");
-			Toasts::Push(Toasts::Info, "No settings.ini yet - running on compiled defaults.");
+			g_firstStart = true;
 		}
 		Current.WindowX   = GetPrivateProfileIntA("window", "x", -1, path.c_str());
 		Current.WindowY   = GetPrivateProfileIntA("window", "y", -1, path.c_str());
@@ -89,6 +90,13 @@ namespace Settings
 	}
 
 	bool SaveFailed() { return g_saveFailed; }
+
+	bool ConsumeFirstStartNotice()
+	{
+		const bool had = g_firstStart;
+		g_firstStart = false;
+		return had;
+	}
 
 	void ApplyScale()
 	{

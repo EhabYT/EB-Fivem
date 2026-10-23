@@ -55,6 +55,12 @@ namespace Settings
 	// and a warn toast instead of staying silent.
 	bool SaveFailed();
 
+	// True once, on the first call after a Load() that found no settings.ini.
+	// The toast cannot be pushed from Load() itself - toasts live four
+	// seconds and the overlay opens later than that - so the menu consumes
+	// this on its first visible frame.
+	bool ConsumeFirstStartNotice();
+
 	// Absolute path of the persisted settings.ini; the Config diagnostics
 	// line reports it so a report names the file it should attach.
 	std::string IniPath();
