@@ -169,6 +169,26 @@ namespace Menu
 		// its tallest cell, so that hack is gone.
 	}
 
+	// Clamps a window position so that at least an 80px strip - enough of the
+	// title bar to grab - stays inside the virtual screen, for a shell of the
+	// given size.  Shared by the restore path and the scale-change guard below:
+	// both answer the same question ("is this window still reachable?") about a
+	// window the user cannot resize.
+	static void ClampToVirtualScreen(float& x, float& y, float w, float h)
+	{
+		const float vx = (float)GetSystemMetrics(SM_XVIRTUALSCREEN);
+		const float vy = (float)GetSystemMetrics(SM_YVIRTUALSCREEN);
+		const float vw = (float)GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		const float vh = (float)GetSystemMetrics(SM_CYVIRTUALSCREEN);
+		if (vw <= 0.0f || vh <= 0.0f)
+			return;   // no usable metrics (headless / RDP startup): leave it alone
+		const float strip = 80.0f;
+		if (x < vx - w + strip) x = vx - w + strip;
+		if (x > vx + vw - strip) x = vx + vw - strip;
+		if (y < vy - h + strip) y = vy - h + strip;
+		if (y > vy + vh - strip) y = vy + vh - strip;
+	}
+
 	void Render()
 	{
 		//redENGINE Remade : by xo1337
@@ -232,29 +252,40 @@ namespace Menu
 		{
 			// A position persisted from another monitor setup (laptop undocked,
 			// monitor swapped) can be entirely off-screen today, which would
-			// leave the menu unreachable.  Clamp so an 80px strip - enough of
-			// the title bar to grab - always stays inside the virtual screen.
-			const float W = ImGui::GetStyle().WindowMinSize.x;
-			const float H = ImGui::GetStyle().WindowMinSize.y;
-			const float vx = (float)GetSystemMetrics(SM_XVIRTUALSCREEN);
-			const float vy = (float)GetSystemMetrics(SM_YVIRTUALSCREEN);
-			const float vw = (float)GetSystemMetrics(SM_CXVIRTUALSCREEN);
-			const float vh = (float)GetSystemMetrics(SM_CYVIRTUALSCREEN);
+			// leave the menu unreachable.
 			float px = (float)Settings::Current.WindowX;
 			float py = (float)Settings::Current.WindowY;
-			const float strip = 80.0f;
-			if (vw > 0.0f && vh > 0.0f)
-			{
-				if (px < vx - W + strip) px = vx - W + strip;
-				if (px > vx + vw - strip) px = vx + vw - strip;
-				if (py < vy - H + strip) py = vy - H + strip;
-				if (py > vy + vh - strip) py = vy + vh - strip;
-			}
+			ClampToVirtualScreen(px, py,
+				ImGui::GetStyle().WindowMinSize.x, ImGui::GetStyle().WindowMinSize.y);
 			ImGui::SetNextWindowPos(ImVec2(px, py), ImGuiCond_Once);
 		}
 
 		ImGui::Begin("redENGINE", NULL,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+
+		// Reachability guard for a shell that changes size mid-session.  Config's
+		// interface scale resizes the window (900x540 at 100% -> 1800x1080 at
+		// 200%), but the persisted position above is clamped only on the first
+		// frame after open - so growing the shell could push its title bar off
+		// screen, and with NoResize there would be nothing left to grab.  Re-clamp
+		// whenever style.WindowMinSize differs from the previous frame, which is
+		// exactly the one thing Settings::ApplyScale() writes: no Win32 calls in
+		// the common frame, and no false triggers from tab switches (those change
+		// the content, not the minimum size).
+		//
+		// The move is picked up by the position saver at the end of this function,
+		// which is the point: the corrected position is the one worth persisting.
+		static ImVec2 lastMinSize(0.0f, 0.0f);
+		const ImVec2 minSize = ImGui::GetStyle().WindowMinSize;
+		if (lastMinSize.x > 0.0f
+			&& (minSize.x != lastMinSize.x || minSize.y != lastMinSize.y))
+		{
+			const ImVec2 shell = ImMax(ImGui::GetWindowSize(), minSize);
+			ImVec2 live = ImGui::GetWindowPos();
+			ClampToVirtualScreen(live.x, live.y, shell.x, shell.y);
+			ImGui::SetWindowPos(live);
+		}
+		lastMinSize = minSize;
 
 		// Thin brand rule under the title bar: accent -> pressed blue, L->R.
 		{

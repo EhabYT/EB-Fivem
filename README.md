@@ -340,6 +340,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   applied through ImGui 1.92's `style.FontScaleMain`, so fonts, frames, sidebar and window size
   grow together instead of text overflowing fixed widgets. It applies when the slider is released
   — 1.92 bakes a font for every distinct size it sees, so a live drag would bake ~130 of them.
+  The shell is re-clamped on screen whenever the scale changes, so growing it to 200% cannot push
+  the title bar off-screen and leave nothing to grab.
 * **Two honest details:** the Resources tab can copy the dump folder path to the clipboard (before,
   that path only ever appeared inside a message box), and switching toast notifications off now
   empties the stack instead of letting a half-faded card reappear when they are switched back on.

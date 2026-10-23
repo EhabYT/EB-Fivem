@@ -172,7 +172,16 @@
     <ClCompile Include="kiero\minhook\src\trampoline.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="resources.cpp" />
-    <ClCompile Include="TextEditor.cpp" />
+    <ClCompile Include="TextEditor.cpp">
+      <!-- Vendored ImGuiColorTextEdit.  Its int-vs-size_t comparisons are
+           upstream style and flood a /W3 build with C4018/C4267 without
+           pointing at a defect, so they are silenced for this one file.
+           Every project-owned translation unit stays unsuppressed at /W3,
+           and the diagnostics that did point at real bugs (C4091, C2039,
+           C2228, C4244) were fixed in the sources instead - see BUILD.md
+           section 5, rows 71-75. -->
+      <DisableSpecificWarnings>4018;4267</DisableSpecificWarnings>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="font_awesome.cpp">
