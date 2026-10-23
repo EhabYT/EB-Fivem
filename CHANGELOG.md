@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Tooling regression: seven renders byte-identical, graph generator idempotent
+- Full re-run of the docs tooling after the sandbox reset: all seven preview renders reproduce
+  their committed bytes exactly (executor 789c95b8, config dc2c17a0, resources c4011405, menus
+  7b58708a, default 51470a8b, splash e5e09f8b, hud 5c810d43), every renderer assert passes, and
+  `api_sweep.py` reports clean - the working tree stays untouched by the run.
+- The re-run exposed that `gen_include_graph.py` was not idempotent: its counts regex expected
+  the sentence to end right after "N edges", but the script's own output appends the
+  "(regenerate with ...)" parenthesis, so a second run died with "counts paragraph not found".
+  The regex now tolerates its own parenthetical; two consecutive runs leave README unchanged.
+
 ## api_sweep.py: an executable compile-risk check without MSVC
 - `docs/api_sweep.py` greps every root .cpp/.h for ImGui API names the vendored 1.92.9 no
   longer provides - removed outright or left only as commented-out obsolete redirects - and

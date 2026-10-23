@@ -108,7 +108,10 @@ def main():
     fence_close = readme.index("```", fence_open + 10)
     readme = readme[:fence_open + 10] + "\n" + block + readme[fence_close:]
 
-    count_re = re.compile(r"\*\*Generated from the actual `#include` lines\*\* — \d+ nodes, \d+ edges\.")
+    # tolerate the script's own output: the counts sentence ends with the
+    # "(regenerate with ...)" parenthesis it writes itself
+    count_re = re.compile(r"\*\*Generated from the actual `#include` lines\*\* — \d+ nodes, "
+                          r"\d+ edges(?: \([^)]*\))?\.")
     new_counts = ("**Generated from the actual `#include` lines** — %d nodes, %d edges "
                   "(regenerate with `python docs/gen_include_graph.py`)."
                   % (counter, len(edges)))
