@@ -75,7 +75,7 @@ namespace Menus
 				// indication that it was a stub.
 				MessageBoxA(NULL,
 					(std::string("'") + items[selected] + "' is not bundled with this build.").c_str(),
-					"redENGINE", MB_OK | MB_ICONINFORMATION);
+					"EBengin", MB_OK | MB_ICONINFORMATION);
 				Activity::Push(std::string("Run requested for '") + items[selected]
 					+ "' (not bundled).");
 				Toasts::Push(Toasts::Info, std::string("Run requested for '") + items[selected]

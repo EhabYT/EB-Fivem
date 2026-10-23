@@ -134,11 +134,11 @@ namespace Executor
 		{
 			if (resources.empty())
 			{
-				MessageBoxA(NULL, "No resource selected.", "redENGINE", MB_OK | MB_ICONERROR);
+				MessageBoxA(NULL, "No resource selected.", "EBengin", MB_OK | MB_ICONERROR);
 			}
 			else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 			{
-				MessageBoxA(NULL, "You can't execute in _cfx_internal.", "redENGINE", MB_OK | MB_ICONERROR);
+				MessageBoxA(NULL, "You can't execute in _cfx_internal.", "EBengin", MB_OK | MB_ICONERROR);
 			}
 			else
 			{
@@ -149,7 +149,7 @@ namespace Executor
 					(std::string("Execution is not implemented in this build.\n\nTarget: ")
 						+ resources[selectedResource]
 						+ "\nScript: " + std::to_string(script.size()) + " bytes").c_str(),
-					"redENGINE", MB_OK | MB_ICONINFORMATION);
+					"EBengin", MB_OK | MB_ICONINFORMATION);
 				Activity::Push(std::string("Execute requested for ")
 					+ resources[selectedResource] + " (not implemented).");
 				Toasts::Push(Toasts::Info, std::string("Execute requested for ")
@@ -182,7 +182,7 @@ namespace Executor
 				if (fopen_s(&fp, file, "rb") != 0 || fp == NULL)
 				{
 					MessageBoxA(NULL, (std::string("Could not open:\n") + file).c_str(),
-						"redENGINE", MB_OK | MB_ICONERROR);
+						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load failed: ") + file);
 				}
 				else
@@ -193,13 +193,13 @@ namespace Executor
 					if (size <= 0)
 					{
 						MessageBoxA(NULL, "The selected file is empty.",
-							"redENGINE", MB_OK | MB_ICONERROR);
+							"EBengin", MB_OK | MB_ICONERROR);
 						Activity::Push(std::string("Load failed (empty): ") + file);
 					}
 					else if (size >= 4 * 1024 * 1024)
 					{
 						MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
-							"redENGINE", MB_OK | MB_ICONERROR);
+							"EBengin", MB_OK | MB_ICONERROR);
 						Activity::Push(std::string("Load refused (>4 MB): ") + file);
 					}
 					else

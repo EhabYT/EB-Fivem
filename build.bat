@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 REM ============================================================================
-REM  redENGINE UI - command line build
+REM  EBengin UI - command line build
 REM
 REM    build.bat                 Release x64   (the only config that makes sense:
 REM                                             FiveM / GTA V are 64-bit)
@@ -16,7 +16,7 @@ REM ============================================================================
 
 set "CONFIG=Release"
 set "PLATFORM=x64"
-set "SOLUTION=redENGINE UI.sln"
+set "SOLUTION=EBengin UI.sln"
 
 if /i "%~1"=="Clean" (
     if exist "%~dp0x64"     rd /s /q "%~dp0x64"
@@ -77,17 +77,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "OUT=%~dp0%PLATFORM%\%CONFIG%\redENGINE UI.dll"
+set "OUT=%~dp0%PLATFORM%\%CONFIG%\EBengin UI.dll"
 if not exist "%OUT%" set "OUT=%~dp0%PLATFORM%\%CONFIG%\ImGui DirectX 11 Kiero Hook.dll"
 
 echo.
 echo  BUILD OK
 echo  DLL   : %OUT%
-if exist "%~dp0rE.png" (
-    copy /y "%~dp0rE.png" "%~dp0%PLATFORM%\%CONFIG%\rE.png" >nul
-    echo  Logo  : copied rE.png next to the DLL ^(the menu loads it from there^)
+if exist "%~dp0EBengin.png" (
+    copy /y "%~dp0EBengin.png" "%~dp0%PLATFORM%\%CONFIG%\EBengin.png" >nul
+    echo  Logo  : copied EBengin.png next to the DLL ^(the menu loads it from there^)
 ) else (
-    echo  Logo  : rE.png not found - the menu falls back to a text logo
+    echo  Logo  : EBengin.png not found - the menu falls back to a text logo
 )
 echo.
 endlocal

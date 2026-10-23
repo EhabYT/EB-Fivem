@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerates the redENGINE preview images: the menu shell with either the
+"""Regenerates the EBengin preview images: the menu shell with either the
 Executor tab open (docs/preview.png) or the Config tab (docs/preview_config.png).
 
 Self-contained on purpose: it needs only Pillow and the repository itself. The
@@ -12,7 +12,7 @@ invented:
 
   menu_style.h   the two theme ramps and every ImGuiCol_* below
   menu.h         SidebarWidth (225), SidebarButtonHeight (46), ContentPadding (8), Accent
-  menu.cpp       Begin("redENGINE", NoScrollbar|NoCollapse|NoResize), SidebarItems[]
+  menu.cpp       Begin("EBengin", NoScrollbar|NoCollapse|NoResize), SidebarItems[]
                  labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
                  Load from File 180x30, resource combo,
@@ -239,7 +239,7 @@ def colorize(lines):
 
 
 SAMPLE = [
-    '-- redENGINE | Lua executor',
+    '-- EBengin | Lua executor',
     'local players = GetActivePlayers()',
     '',
     'for _, id in ipairs(players) do',
@@ -249,7 +249,7 @@ SAMPLE = [
     '    end',
     'end',
     '',
-    'TriggerServerEvent("rE:sync", 0x1F, 3.14)',
+    'TriggerServerEvent("EB:sync", 0x1F, 3.14)',
 ]
 
 # ---------------------------------------------------------------------------
@@ -303,7 +303,7 @@ def wrap_text(s, w):
 # window + title bar (WindowTitleAlign 0,0.5; NoCollapse + p_open NULL)
 R(0, 0, W, H, C_WINDOW_BG)
 R(0, 0, W, TITLE_H, C_TITLE_BG)
-T(WIN_PAD, (TITLE_H - FONT_SIZE) / 2, "redENGINE", C_TEXT)
+T(WIN_PAD, (TITLE_H - FONT_SIZE) / 2, "EBengin", C_TEXT)
 
 # brand rule under the title bar (menu.cpp): accent -> pressed blue, left to right
 for _x in range(W):
@@ -315,7 +315,7 @@ for _x in range(W):
 R(SX1, CY0, SX1 + 1, CY1, C_BORDER)
 
 # sidebar: logo centred (74 == (225-76)/2) at CursorPosY + 9
-logo = Image.open(os.path.join(REPO, "rE.png")).convert("RGBA")
+logo = Image.open(os.path.join(REPO, "EBengin.png")).convert("RGBA")
 logo = logo.resize((int(76*S), int(87*S)), Image.LANCZOS)
 img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
 

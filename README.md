@@ -1,15 +1,15 @@
-# EB-Fivem — redENGINE UI
+# EB-Fivem — EBengin UI
 
 An in-game **Dear ImGui overlay for FiveM**, delivered as a Windows x64 DLL.
 
 `main.cpp` hooks `IDXGISwapChain::Present` (vtable index 8) with [Kiero](kiero/kiero.h) +
 MinHook, subclasses the window procedure, initialises ImGui with the DX11/Win32 backends and
-draws the **redENGINE** menu on top of the game. Press the toggle key (**INSERT** by default,
+draws the **EBengin** menu on top of the game. Press the toggle key (**INSERT** by default,
 rebindable in Config → Interface) to toggle it.
 
 Everything is vendored in-tree — no submodules, no package manager, no external downloads.
 
-![redENGINE menu preview — Executor tab](docs/preview.png)
+![EBengin menu preview — Executor tab](docs/preview.png)
 
 > **This is a render, not a screenshot.** The DLL cannot be executed on the machine that produced
 > this branch (no MSVC, no Windows), so the image is drawn from the repository's own constants
@@ -23,7 +23,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > and ImGui's exact layout engine, which is not running here. The Lua snippet in the editor is
 > illustrative; on first launch the menu opens on the empty landing tab.
 
-![redENGINE menu preview - Config tab](docs/preview_config.png)
+![EBengin menu preview - Config tab](docs/preview_config.png)
 
 > The same render with the **Config tab** open (`python docs/render_preview.py --config`):
 > the Interface preferences - toggle-key capture, animations, toasts, the persisted
@@ -32,7 +32,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > answers every flip. The asserts in the renderer are what keep this pane's labels
 > inside its ~216 px column.
 
-![redENGINE menu preview - Resources tab](docs/preview_resources.png)
+![EBengin menu preview - Resources tab](docs/preview_resources.png)
 
 > Third render (`python docs/render_preview.py --resources`), File Browser sub-tab:
 > the filter field, the resource list with one header open and its read-only dump
@@ -41,7 +41,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > repository's own resource list from `exec.cpp`; the Triggers sub-tab is
 > deliberately never depicted in preview imagery.
 
-![redENGINE menu preview - Menus tab](docs/preview_menus.png)
+![EBengin menu preview - Menus tab](docs/preview_menus.png)
 
 > Fourth render (`python docs/render_preview.py --menus`): the two menu lists
 > with their selected rows visible — BUILD.md row 88 fixed a highlight that
@@ -73,7 +73,7 @@ labelled `Enabled (no effect)`, inert tooltips |
 | [`ci/`](ci) | The GitHub Actions build workflow, staged as [`ci/build.yml`](ci/build.yml) + [`ci/enable.bat`](ci/enable.bat) — written and validated, **not yet enabled**. See [`ci/README.md`](ci/README.md) |
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
-| [`rE.png`](rE.png) | Menu logo, loaded from beside the DLL at runtime |
+| [`EBengin.png`](EBengin.png) | Menu logo, loaded from beside the DLL at runtime |
 | [`docs/preview.png`](docs/preview.png) | The preview render shown above, with its caption explaining exactly what is and is not faithful |
 | [`docs/preview_config.png`](docs/preview_config.png) | The same render with the Config tab open, produced by `docs/render_preview.py --config` |
 | [`docs/preview_resources.png`](docs/preview_resources.png) | The same render with the Resources tab open (`--resources`); the Triggers sub-tab is never depicted |
@@ -92,7 +92,7 @@ From injection to the first rendered frame, and what happens on resize, device l
 
 ```mermaid
 flowchart TD
-    A(["Injector loads redENGINE UI.dll"]) --> B["DllMain: DLL_PROCESS_ATTACH"]
+    A(["Injector loads EBengin UI.dll"]) --> B["DllMain: DLL_PROCESS_ATTACH"]
     B --> B1["g_hModule = hMod<br/>DisableThreadLibraryCalls"]
     B1 --> C["CreateThread → MainThread"]
 
@@ -114,7 +114,7 @@ flowchart TD
     J --> K{"all succeeded?"}
     K -- "no" --> Z
     K -- "yes" --> L["subclass WndProc<br/>only when oWndProc == NULL"]
-    L --> M["InitImGui: fonts, rE.png beside the DLL,<br/>ApplyStyle once, Executor::Init, Resources::Init"]
+    L --> M["InitImGui: fonts, EBengin.png beside the DLL,<br/>ApplyStyle once, Executor::Init, Resources::Init"]
     M --> N["init = true"]
 
     I -- "later frames" --> O{"back buffer size<br/>changed?"}
@@ -274,10 +274,10 @@ build.bat
 or from a Developer Command Prompt:
 
 ```bat
-msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
+msbuild "EBengin UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
 ```
 
-Output: `x64\Release\redENGINE UI.dll`. Put `rE.png` in the same folder as the DLL, otherwise
+Output: `x64\Release\EBengin UI.dll`. Put `EBengin.png` in the same folder as the DLL, otherwise
 the sidebar falls back to a text logo.
 
 A GitHub Actions workflow that does the same on `windows-latest` (Release and Debug, x64), verifies
@@ -382,7 +382,7 @@ Until then there is **no CI and no compile proof** — every check on this branc
   The shell is re-clamped on screen whenever the scale changes, so growing it to 200% cannot push
   the title bar off-screen and leave nothing to grab.
 * **Environment compatibility:** the menu degrades honestly instead of breaking — a missing
-  `Bahnschrift.ttf` falls back to ImGui's default font, a missing `rE.png` to the text logo, and the
+  `Bahnschrift.ttf` falls back to ImGui's default font, a missing `EBengin.png` to the text logo, and the
   first failed `settings.ini` write (read-only DLL folder) answers with a warn toast instead of
   pretending the preference was saved. On per-monitor-DPI-aware hosts the layout follows the
   window's contents scale through `style.FontScaleDpi`; on 96-DPI hosts every factor is the

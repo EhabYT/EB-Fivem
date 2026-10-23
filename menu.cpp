@@ -69,9 +69,9 @@ namespace Menu
 		}
 		else
 		{
-			// rE.png was not found next to the DLL: keep the sidebar the same height.
+			// EBengin.png was not found next to the DLL: keep the sidebar the same height.
 			ImGui::SetCursorPosX(58);
-			ImGui::TextColored(ImColor(93, 156, 214, 255), "redENGINE");
+			ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
 			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
 		}
 		ImGui::NewLine();
@@ -261,7 +261,7 @@ namespace Menu
 			ImGui::SetNextWindowPos(ImVec2(px, py), ImGuiCond_Once);
 		}
 
-		ImGui::Begin("redENGINE", NULL,
+		ImGui::Begin("EBengin", NULL,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
 		// Reachability guard for a shell that changes size mid-session.  Config's

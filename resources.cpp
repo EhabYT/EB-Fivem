@@ -181,14 +181,14 @@ namespace Resources
 			// announced a dump that had not happened yet.
 			if (ok)
 			{
-				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "redENGINE", MB_OK | MB_ICONINFORMATION);
+				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "EBengin", MB_OK | MB_ICONINFORMATION);
 				Activity::Push("Dump saved to " + dir);
 				Toasts::Push(Toasts::Success, "Dump saved to " + dir);
 			}
 			else
 			{
 				MessageBoxA(NULL, (std::string("Failed to write the dump to:\n") + dir +
-					"\n\nIs the folder writable?").c_str(), "redENGINE", MB_OK | MB_ICONERROR);
+					"\n\nIs the folder writable?").c_str(), "EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push("Dump FAILED for " + dir);
 			}
 		}
@@ -203,7 +203,7 @@ namespace Resources
 			if (!CopyToClipBoard(window, dumpDir))
 			{
 				MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
-					"redENGINE", MB_OK | MB_ICONERROR);
+					"EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push("Copy failed: clipboard busy");
 			}
 			else
@@ -350,7 +350,7 @@ namespace Resources
 							if (!CopyToClipBoard(window, Triggers[i]))
 							{
 								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
-									"redENGINE", MB_OK | MB_ICONERROR);
+									"EBengin", MB_OK | MB_ICONERROR);
 								Activity::Push("Copy failed: clipboard busy");
 							}
 							else
@@ -363,7 +363,7 @@ namespace Resources
 							}
 						}
 						else
-							MessageBoxA(NULL, "Nothing to copy.", "redENGINE", MB_OK | MB_ICONERROR);
+							MessageBoxA(NULL, "Nothing to copy.", "EBengin", MB_OK | MB_ICONERROR);
 					}
 					ImGui::PopID();
 				}
@@ -409,7 +409,7 @@ namespace Resources
 			{
 				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 				{
-					MessageBoxA(NULL, "You can't stop _cfx_internal", "redENGINE", MB_OK | MB_ICONERROR);
+					MessageBoxA(NULL, "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
 				}
 				else
 				{
@@ -430,7 +430,7 @@ namespace Resources
 					MessageBoxA(NULL,
 						(std::string("'") + stopped + "' removed from the list.\n\n"
 							"Stopping the resource on the server is not implemented in this build.").c_str(),
-						"redENGINE", MB_OK | MB_ICONINFORMATION);
+						"EBengin", MB_OK | MB_ICONINFORMATION);
 				}
 			}
 		}

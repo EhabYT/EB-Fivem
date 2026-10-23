@@ -2,7 +2,7 @@
 
 #include "imgui/imgui.h"
 
-// Applies the redENGINE colour scheme / metrics.
+// Applies the EBengin colour scheme / metrics.
 //
 // Called once from InitImGui() rather than every frame: the style is static, and
 // re-writing ~30 ImStyleVars + colours 60-144 times a second is pure waste.

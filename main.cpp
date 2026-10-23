@@ -221,11 +221,11 @@ void InitImGui()
 	ImGui_ImplWin32_Init(window);
 	ImGui_ImplDX11_Init(pDevice, pContext);
 
-	// Ship rE.png next to the DLL (or in the working directory).  A missing logo
+	// Ship EBengin.png next to the DLL (or in the working directory).  A missing logo
 	// must not take the whole host process down, so no IM_ASSERT here.
 	int LogoWidth = 16;
 	int LogoHeight = 16;
-	LogoLoaded = LoadTextureFromFile(ResolveAssetPath("rE.png").c_str(), &logo, &LogoWidth, &LogoHeight);
+	LogoLoaded = LoadTextureFromFile(ResolveAssetPath("EBengin.png").c_str(), &logo, &LogoWidth, &LogoHeight);
 
 	// Style is static: apply it once here instead of on every single frame.
 	ApplyStyle();

@@ -8,6 +8,21 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
 
+## Rebrand: redENGINE -> EBengin
+- New logo asset `EBengin.png` replaces `rE.png` (same 1682x1982 transparent canvas, same double
+  frame): monogram "EB" - E in the #5D9CD6 -> #3778B5 -> #1D5188 ramp, B in white - plus a two-tone
+  wordmark, "EB" in #1D5188 and "engin" in white, in the band below the frame.
+- Displayed name renamed to `EBengin`: menu window title (`ImGui::Begin`), sidebar text-logo
+  fallback, all 14 MessageBox captions (exec/luamenus/resources), `menu_style.h` comment and the
+  preview renderer's title/sample strings.
+- Build names follow: `redENGINE UI.sln` -> `EBengin UI.sln` (git mv), `<ProjectName>` and hence the
+  DLL/PDB output `EBengin UI`, logo copy in `build.bat`, `ci/build.yml` (and the parked working-tree
+  copy of the workflow) updated to the new file names.
+- Docs: README title/prose/alt texts/asset table, BUILD.md prose plus row 93, ci/README.md; all four
+  preview images re-rendered from the new logo and strings.
+- Historical mentions kept on purpose: the `//redENGINE Remade : by xo1337` credit in menu.cpp, the
+  recolour note in README, BUILD rows 105/111/112/138/163/217 and this changelog.
+
 ## Environment-compatibility round
 - High-DPI: the layout follows the host window's contents scale via
   `Settings::DpiScale` and `style.FontScaleDpi`; on 96-DPI or DPI-unaware hosts

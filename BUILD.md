@@ -1,4 +1,4 @@
-# Building redENGINE UI
+# Building EBengin UI
 
 Windows-only C++ project. The output is a **DLL** (`ConfigurationType=DynamicLibrary`) that
 hooks `IDXGISwapChain::Present` through Kiero/MinHook and renders a Dear ImGui 1.92.9 overlay
@@ -43,7 +43,7 @@ build.bat Release Win32   REM Release | x86 (will NOT inject into FiveM)
 build.bat Clean           REM delete intermediate output
 ```
 
-The script locates MSBuild via `vswhere`, rebuilds, prints the DLL path and copies `rE.png`
+The script locates MSBuild via `vswhere`, rebuilds, prints the DLL path and copies `EBengin.png`
 next to the DLL so the menu logo resolves at runtime.
 
 ### Option B — MSBuild by hand
@@ -51,21 +51,21 @@ next to the DLL so the menu logo resolves at runtime.
 From a **Developer Command Prompt for VS 2022**:
 
 ```bat
-msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
+msbuild "EBengin UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
 ```
 
 Output:
 
 ```
-x64\Release\redENGINE UI.dll
+x64\Release\EBengin UI.dll
 ```
 
-(`ProjectName` is `redENGINE UI`, so that is the produced file name — not
+(`ProjectName` is `EBengin UI`, so that is the produced file name — not
 `ImGui DirectX 11 Kiero Hook.dll`, which is only the `.vcxproj` file name.)
 
 ### Option C — inside Visual Studio
 
-1. Open `redENGINE UI.sln`.
+1. Open `EBengin UI.sln`.
 2. Pick **Release / x64** in the toolbar.
 3. `Build → Build Solution` (Ctrl+Shift+B).
 
@@ -78,14 +78,14 @@ working directory):
 
 | Asset | Where it is looked up | If missing |
 |---|---|---|
-| `rE.png` | next to the injected `.dll` | the sidebar prints a red `redENGINE` text logo instead — no crash |
+| `EBengin.png` | next to the injected `.dll` | the sidebar prints a light-blue `EBengin` text logo instead — no crash |
 | `C:\Windows\Fonts\Bahnschrift.ttf` | fixed Windows path | falls back to ImGui's built-in default font |
 
 So a working deployment is just:
 
 ```
-<folder>\redENGINE UI.dll
-<folder>\rE.png
+<folder>\EBengin UI.dll
+<folder>\EBengin.png
 ```
 
 The menu is toggled with the bound key — **INSERT** by default, rebindable in Config →
@@ -217,6 +217,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 90 | Two small truthfulness/presentation defects: a loaded file with a UTF-8 byte-order mark put a junk glyph in front of the first editor line (and the "Loaded ... (N bytes)" toast counted the marker as content), and seven Resources message boxes titled themselves "rE" while every other box in the menu says "redENGINE" | The three BOM bytes are stripped after the read and the reported size is what the editor holds; the seven titles are unified to "redENGINE" |
 | 91 | On a per-monitor-DPI-aware host the window is sized in physical pixels, but the whole layout was compiled against 96 DPI: at 150% the 900x540 shell and every metric kept their logical size and the menu rendered visibly small inside its own window | `Settings::DpiScale` (`GetDpiForWindow(window) / 96`, read once in `InitImGui`, 1.0 on unaware hosts or on failure) folds into `ScaleFactor()`, so `Settings::Px()`, the shell metrics in `menu.h` and `style.FontScaleDpi` (multiplied into every font size at imgui.cpp:9215) all follow; `ApplyScale()` now sizes `WindowMinSize` from `ScaleFactor()` |
 | 92 | A `settings.ini` in a folder without write permission failed silently: `WritePrivateProfileStringA`'s return value was ignored, so every preference looked saved and nothing survived a re-inject — indistinguishable from working persistence | `WriteInt` reports success, `Save()` aggregates it, and the first failure pushes an activity entry plus a warn toast ("is the DLL folder writable?"); `Settings::SaveFailed()` exposes the state |
+| 93 | The product still carried its upstream name everywhere a user looks - window title, 14 message-box captions, the sidebar text-logo fallback, the logo asset `rE.png`, the solution / project / output file names and the docs prose - although the project is EBengin | Rebranded end to end: new `EBengin.png` (EB monogram in the user's blue ramp + two-tone "EBengin" wordmark, same frame geometry and canvas as before), window title, fallback text, all 14 captions and the renderer strings say "EBengin", the solution is `EBengin UI.sln` with `ProjectName`/DLL `EBengin UI`, `build.bat` and `ci/build.yml` copy the new logo; historical mentions (credit comment, recolour note, earlier fix rows) were deliberately left untouched |
 
 
 
@@ -404,11 +405,11 @@ The workflow builds **Release\|x64** and **Debug\|x64** on `windows-latest` for 
 1. `microsoft/setup-msbuild@v2` — MSBuild is installed on the runner but is not on `PATH`.
 2. prints the resolved VS installation, its version and the MSBuild version, so a toolchain
    difference shows up in the log rather than as a mystery failure;
-3. `msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=… /p:Platform=… /m`;
-4. **fails the job if `x64\<Config>\redENGINE UI.dll` does not exist**, then prints its size and
+3. `msbuild "EBengin UI.sln" /t:Rebuild /p:Configuration=… /p:Platform=… /m`;
+4. **fails the job if `x64\<Config>\EBengin UI.dll` does not exist**, then prints its size and
    `/exports` — a `DynamicLibrary` that lost its entry point would still link, so the export table
    is checked rather than trusted;
-5. uploads the DLL, its PDB and `rE.png` as an artifact (14 days).
+5. uploads the DLL, its PDB and `EBengin.png` as an artifact (14 days).
 
 `Win32` is deliberately not in the matrix: the DLL is injected into FiveM, which is 64-bit only, so
 a Win32 artifact could never be loaded. The configuration still exists in the `.vcxproj`.
@@ -416,7 +417,7 @@ a Win32 artifact could never be loaded. The configuration still exists in the `.
 Until it is enabled, the equivalent local command is `build.bat`, or:
 
 ```bat
-msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
+msbuild "EBengin UI.sln" /t:Rebuild /p:Configuration=Release /p:Platform=x64 /m
 ```
 
 Two things worth knowing:

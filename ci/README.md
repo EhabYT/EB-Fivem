@@ -15,7 +15,7 @@ The file itself is fine. It parses as YAML, has 6 steps, 2 matrix combinations
 command is exactly the one `BUILD.md` documents:
 
 ```
-msbuild "redENGINE UI.sln" /t:Rebuild /p:Configuration=<Config> /p:Platform=x64 /m /nologo /clp:"Summary;Verbosity=normal"
+msbuild "EBengin UI.sln" /t:Rebuild /p:Configuration=<Config> /p:Platform=x64 /m /nologo /clp:"Summary;Verbosity=normal"
 ```
 
 Moving it into place takes one commit from an account that has the `workflows` permission —
@@ -68,8 +68,8 @@ local `msbuild` command above is unchanged either way.
 | Add MSBuild to PATH | `microsoft/setup-msbuild@v2` — MSBuild is on the runner but not on `PATH` |
 | Report toolchain | prints the resolved VS install path, product version and `msbuild -version` |
 | Build | `msbuild /t:Rebuild`, `shell: cmd`, `Release`+`Debug` × `x64`, `fail-fast: false` |
-| Verify the artifact | fails if `x64\<Config>\redENGINE UI.dll` is missing; runs `dumpbin /exports` on it |
-| Upload artifact | DLL + PDB + `rE.png`, `if-no-files-found: error`, 14 days retention |
+| Verify the artifact | fails if `x64\<Config>\EBengin UI.dll` is missing; runs `dumpbin /exports` on it |
+| Upload artifact | DLL + PDB + `EBengin.png`, `if-no-files-found: error`, 14 days retention |
 
 Two deliberate choices worth knowing about:
 

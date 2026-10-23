@@ -59,7 +59,7 @@ jobs:
       - name: Build
         shell: cmd
         run: >
-          msbuild "redENGINE UI.sln"
+          msbuild "EBengin UI.sln"
           /t:Rebuild
           /p:Configuration=${{ matrix.configuration }}
           /p:Platform=${{ matrix.platform }}
@@ -70,7 +70,7 @@ jobs:
       - name: Verify the artifact
         shell: pwsh
         run: |
-          $dll = "${{ matrix.platform }}\${{ matrix.configuration }}\redENGINE UI.dll"
+          $dll = "${{ matrix.platform }}\${{ matrix.configuration }}\EBengin UI.dll"
           if (-not (Test-Path $dll)) {
             Write-Error "expected build output not found: $dll"
             exit 1
@@ -93,10 +93,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: redENGINE-UI-${{ matrix.configuration }}-${{ matrix.platform }}
+          name: EBengin-UI-${{ matrix.configuration }}-${{ matrix.platform }}
           path: |
-            ${{ matrix.platform }}/${{ matrix.configuration }}/redENGINE UI.dll
-            ${{ matrix.platform }}/${{ matrix.configuration }}/redENGINE UI.pdb
-            rE.png
+            ${{ matrix.platform }}/${{ matrix.configuration }}/EBengin UI.dll
+            ${{ matrix.platform }}/${{ matrix.configuration }}/EBengin UI.pdb
+            EBengin.png
           if-no-files-found: error
           retention-days: 14
