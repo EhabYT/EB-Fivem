@@ -26,7 +26,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 ![EBengin menu preview - Config tab](docs/preview_config.png)
 
 > The same render with the **Config tab** open (`python docs/render_preview.py --config`):
-> the Interface preferences - toggle-key capture, animations, toasts, the persisted
+> the Interface preferences - toggle-key capture, animations, toasts, FPS HUD, the persisted
 > 70-200 % scale slider, reset - and the two inert switches: greyed headings,
 > `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
 > answers every flip. The asserts in the renderer are what keep this pane's labels

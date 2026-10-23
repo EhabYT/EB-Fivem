@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Doc consistency after the HUD batch
+- The renderer docstring lists all six outputs now (--hud included); the README Config
+  caption names the FPS HUD switch among the Interface preferences.
+- PR summary refreshed in one authoritative pass: the bullet list now covers the style
+  refinement, the build-configuration marker and the FPS HUD, and counts the BUILD.md table
+  at 102 rows / six preview renders.  The earlier "rows 1-97" correction had been clobbered
+  by a later full-body PATCH built from a stale local copy - full-body PATCHes replace
+  everything, so the summary is now rewritten from the live body in a single step.
+
 ## FPS line becomes a HUD
 - `Menu::RenderHud()` draws the sidebar's FPS string as a top-left plate over the game scene
   whenever the overlay is closed: background draw list (over the scene, under any window),

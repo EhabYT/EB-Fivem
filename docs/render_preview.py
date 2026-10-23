@@ -3,7 +3,8 @@
 tab open (docs/preview.png), the Config tab (docs/preview_config.png), the
 Resources tab (docs/preview_resources.png) or the Menus tab
 (docs/preview_menus.png) - plus the first-open start card on its own
-(docs/preview_splash.png, --splash).
+(docs/preview_splash.png, --splash) and the FPS HUD plate over a scene
+stand-in (docs/preview_hud.png, --hud).
 
 Self-contained on purpose: it needs only Pillow and the repository itself. The
 sidebar/button glyphs come from the project's *own* embedded Font Awesome font
