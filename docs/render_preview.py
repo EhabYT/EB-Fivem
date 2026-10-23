@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-"""Regenerates the EBengin preview images: the menu shell with either the
-Executor tab open (docs/preview.png) or the Config tab (docs/preview_config.png).
+"""Regenerates the EBengin preview images: the menu shell with the Executor
+tab open (docs/preview.png), the Config tab (docs/preview_config.png), the
+Resources tab (docs/preview_resources.png) or the Menus tab
+(docs/preview_menus.png) - plus the first-open start card on its own
+(docs/preview_splash.png, --splash).
 
 Self-contained on purpose: it needs only Pillow and the repository itself. The
 sidebar/button glyphs come from the project's *own* embedded Font Awesome font

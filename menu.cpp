@@ -208,6 +208,14 @@ namespace Menu
 		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
 			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
+		// Keyboard users: the shell hands focus over with SetNextWindowFocus
+		// when it opens; while the splash replaces the shell it does the same
+		// handoff, so Continue is reachable by keyboard from the first frame.
+		// g_justOpened stays set: the sidebar still places the nav cursor on
+		// the open tab on the shell's first frame after Continue.
+		if (g_justOpened)
+			ImGui::SetNextWindowFocus();
+
 		ImGui::Begin("EBengin Splash", NULL,
 			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |

@@ -8,6 +8,16 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
 
+## Splash keyboard focus + renderer docstring
+- `RenderSplash()` now performs the shell's open-time focus handoff (`SetNextWindowFocus` while
+  `g_justOpened` is set), so the Continue button is reachable by keyboard on the first open.
+  The flag deliberately stays set: the sidebar's nav-cursor handoff still runs on the shell's
+  first frame after Continue.
+- The render_preview.py docstring claimed it renders "either the Executor tab ... or the Config
+  tab"; it now lists all five outputs including the `--splash` branch.
+- Recon: no live old-brand tokens remain - every surviving redENGINE/rE.png mention is a
+  historical record (fix-table rows, recolour note, changelog).
+
 ## Visible branding in the UI
 - Splash / start card: on the first open after inject, `RenderSplash()` in menu.cpp draws a
   centred card instead of the shell - logo 110x127, the muted credit "Remade : by EB", a
