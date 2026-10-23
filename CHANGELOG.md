@@ -9,6 +9,12 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Notes and counts after row 97
+- menu.cpp now documents why the splash skip must not age toasts: their lifetime runs in
+  `Toasts::Render()`, so a warn toast queued at load waits behind the start card at full
+  lifetime instead of expiring unseen.
+- The PR summary bullet still said "rows 1-96" after row 97 landed; it now says 1-97.
+
 ## Splash hint follows the bound toggle key
 - The start card's second hint hardcoded "INSERT" although the toggle key is bindable in Config;
   a rebind made the card's own instruction wrong.  It is now formatted with

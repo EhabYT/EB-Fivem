@@ -307,6 +307,10 @@ namespace Menu
 
 		// First open per session: the branded start card replaces the shell
 		// until dismissed; nothing else runs, so no state is touched.
+		// Side effect worth keeping: toast ageing lives in Toasts::Render(),
+		// which this skip bypasses - a warn toast queued at load (e.g. unwritable
+		// settings.ini) therefore waits behind the card at full lifetime instead
+		// of expiring unseen.  Do not "fix" that by ageing toasts here.
 		if (!g_splashDone)
 		{
 			RenderSplash(fade);
