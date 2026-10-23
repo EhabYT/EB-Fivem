@@ -193,6 +193,7 @@
     <ClInclude Include="assets.h" />
     <ClInclude Include="default.h" />
     <ClInclude Include="exec.h" />
+    <ClInclude Include="clipboard.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="activity.h" />
     <ClInclude Include="settings.h" />

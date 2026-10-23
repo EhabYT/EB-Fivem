@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## clipboard.h joins the project file (row 122)
+- A static audit of `ImGui DirectX 11 Kiero Hook.vcxproj` against the root file list found one
+  gap: `clipboard.h` was the only root header missing from the `ClInclude` list (the build never
+  needs it - includes resolve by path - but Solution Explorer and header search skipped it).
+  It now sits in alphabetical position.
+- The same audit confirms every root `.cpp` is a `ClCompile` entry, `font_awesome.cpp` carries
+  `ExcludedFromBuild` as intended (main.cpp includes it), and no stale entries point at files
+  that no longer exist.
+
 ## Caption and docstring say what the landing render guarantees
 - The README fidelity caption already named the Lua snippet as illustrative; the landing
   render's sparkline and log entries are illustrative runtime data in exactly the same way, and
