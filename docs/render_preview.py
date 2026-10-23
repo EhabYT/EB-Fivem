@@ -338,7 +338,8 @@ if TAB == "splash":
 
     CREDIT = "Remade : by EB"
     HINT1 = "Interface-level: no game state is read or written."
-    HINT2 = "INSERT toggles this overlay at any time."
+    HINT2 = "INSERT toggles this overlay at any time."  # code formats
+    # KeyName(bound key); the preview depicts the default binding, INSERT
     BTN = "Continue"
     for t in (CREDIT, HINT1, HINT2, BTN):
         assert TW(t) <= CWc - 16, "splash line clipped: " + t

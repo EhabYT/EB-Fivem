@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Splash hint follows the bound toggle key
+- The start card's second hint hardcoded "INSERT" although the toggle key is bindable in Config;
+  a rebind made the card's own instruction wrong.  It is now formatted with
+  `Settings::KeyName(Settings::Current.ToggleKey)` - the same helper the Config button and the
+  key-change toast use.  The renderer mirror keeps the default binding (previews depict default
+  settings) and says so in a comment.
+- README's file table gained the missing `preview_splash.png` row; BUILD.md's Docs & render row
+  now lists the `--splash` render; row 97 logs the fix.
+
 ## PR body condensed
 - On owner request the PR body's 40 numbered per-batch sections were removed; it now carries
   a summary plus the verification anchor.  The write-ups live in this changelog, the commit

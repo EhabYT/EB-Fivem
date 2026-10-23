@@ -252,8 +252,13 @@ namespace Menu
 
 		Centered("Interface-level: no game state is read or written.",
 			ImColor(255, 255, 255, 255));
-		Centered("INSERT toggles this overlay at any time.",
-			ImColor(255, 255, 255, 255));
+		// The toggle key is user-bindable (Config -> Toggle key), so the hint
+		// names whatever is actually bound; KeyName is the same helper the
+		// Config button and the key-change toast use.
+		char hint2[96];
+		snprintf(hint2, sizeof(hint2), "%s toggles this overlay at any time.",
+			Settings::KeyName(Settings::Current.ToggleKey));
+		Centered(hint2, ImColor(255, 255, 255, 255));
 
 		ImGui::Spacing();
 		const float bw = Settings::Px(140.0f);
