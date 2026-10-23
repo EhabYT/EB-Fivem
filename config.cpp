@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "toasts.h"
 #include "exec.h"      // Executor::ApplyPrefs() for the settings reset
+#include "clipboard.h"
 
 #include <Windows.h>
 #include <string>
@@ -10,33 +11,6 @@
 
 namespace Config
 {
-	// Puts one line of plain text on the Windows clipboard - the exact string
-	// the About block shows, so a size/behaviour report from any machine arrives
-	// with its environment already attached.
-	static bool CopyTextToClipboard(const char* text)
-	{
-		if (!OpenClipboard(NULL))
-			return false;
-		bool ok = false;
-		EmptyClipboard();
-		const size_t len = std::strlen(text) + 1;
-		HGLOBAL g = GlobalAlloc(GMEM_MOVEABLE, len);
-		if (g)
-		{
-			void* p = GlobalLock(g);
-			if (p)
-			{
-				std::memcpy(p, text, len);
-				GlobalUnlock(g);
-				ok = SetClipboardData(CF_TEXT, g) != NULL;
-			}
-			if (!ok)
-				GlobalFree(g);
-		}
-		CloseClipboard();
-		return ok;
-	}
-
 	bool Safemode = true;
 	bool ShBypass = true;
 
@@ -263,6 +237,12 @@ namespace Config
 		snprintf(hostLine, sizeof(hostLine), "Host: DPI %.2f, interface %d%%",
 			Settings::DpiScale, Settings::Current.ScalePercent);
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", hostLine);
+		// A failed settings.ini write answers once with a toast (settings.cpp),
+		// but a toast is gone in seconds and the consequence - every change
+		// lost on restart - deserves a permanent line while it is true.
+		if (Settings::SaveFailed())
+			ImGui::TextColored(ImColor(255, 0, 0, 255),
+				"Settings not writable - changes are lost on restart.");
 		Gui::Seperator("##about_seperator_2");
 
 		// One click puts exactly the four lines above (plus ImGui version and

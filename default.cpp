@@ -1,9 +1,12 @@
 #include "default.h"
 #include "gui.h"
 #include "activity.h"
+#include "clipboard.h"
+#include "toasts.h"
 #include "perf.h"
 
 #include <cstdio>
+#include <string>
 
 #include "imgui/imgui.h"
 
@@ -39,7 +42,33 @@ namespace Default
 			// nothing called it - the log could only grow until it capped.
 			ImGui::SameLine();
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x
-			- Settings::Px(60.0f));
+			- Settings::Px(50.0f) - Settings::Px(4.0f) - Settings::Px(60.0f));
+			if (ImGui::Button("Copy##activity", ImVec2(Settings::Px(50.0f), Settings::Px(20.0f))))
+			{
+				// The log is the only timestamped trace the session leaves -
+				// failures, refusals, file operations.  Copy takes it along as
+				// displayed (newest first); retyping it was the lossy path.
+				std::string joined;
+				for (size_t i = 0; i < entries.size(); ++i)
+				{
+					if (!joined.empty())
+						joined += "\r\n";
+					joined += entries[i];
+				}
+				const unsigned n = (unsigned)entries.size();
+				if (CopyTextToClipboard(joined.c_str()))
+				{
+					Toasts::Push(Toasts::Success, "Activity log copied ("
+						+ std::to_string(n) + " entries).");
+					Activity::Push("Activity log copied to the clipboard.");
+				}
+				else
+				{
+					Toasts::Push(Toasts::Warn, "Clipboard unavailable - log not copied.");
+					Activity::Push("Clipboard unavailable - log not copied.");
+				}
+			}
+			ImGui::SameLine();
 			if (ImGui::Button("Clear##activity", ImVec2(Settings::Px(60.0f), Settings::Px(20.0f))))
 				Activity::Clear();
 		}

@@ -687,7 +687,9 @@ elif TAB == "config":
     # code prints this via #ifdef _DEBUG / _WIN64; previews depict Release x64
     T(rx0, ry, "Build: Release x64", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
-    # code formats DpiScale x ScalePercent; previews depict the 96-DPI default
+    # code formats DpiScale x ScalePercent; previews depict the 96-DPI default.
+    # A red "Settings not writable" line can join this block when a
+    # settings.ini write failed; the writable default draws nothing.
     T(rx0, ry, "Host: DPI 1.00, interface 100%", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
     ry = sep(rx0, rx1, ry)

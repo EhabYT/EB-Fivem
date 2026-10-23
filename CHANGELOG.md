@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Failure visibility and a copyable session log (rows 108-109)
+- A failed settings.ini write used to answer once (warn toast + activity entry) and then go
+  silent, although the consequence - every later change lost on restart - persists for the
+  whole session.  The Config About block now shows a permanent red
+  `Settings not writable - changes are lost on restart.` line while `Settings::SaveFailed()`
+  is true.
+- The landing tab's session log gains a `Copy` button next to `Clear`: all entries, as
+  displayed (newest first), CRLF-joined, onto the Windows clipboard - the report path for the
+  only timestamped trace the session leaves.  Success and clipboard-unavailable paths answer
+  with a toast and an activity entry of their own.
+- Both use a new header-only `clipboard.h` (CF_TEXT, moveable global, free-on-refuse), so the
+  Win32 clipboard writer exists once instead of once per tab; no project-file change needed.
+
 ## Save to File: the editor buffer can leave the menu as a file (row 107)
 - The Executor had `Load from File` but no save path - a buffer written or pasted in the menu
   could only leave through the clipboard.  A save icon now ends the editor toolbar:
