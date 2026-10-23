@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## First-start toast arrives readable; diagnostics name the shell size (rows 117-118)
+- Toasts live four seconds, and `Settings::Load()` runs long before the overlay first opens -
+  so the row-113 "no settings.ini yet" toast expired unseen on every first start.  `Load()` now
+  leaves a flag, and `Menu::Render()` consumes it via `Settings::ConsumeFirstStartNotice()` on
+  the first visible frame; the activity entry stays where it was (the log does not expire).
+- The Copy diagnostics line appends `| shell: WxH` from `900/540 * Settings::ScaleFactor()` -
+  the same factor `ApplyScale()` writes into `style.WindowMinSize` - so a report carries the
+  produced pixel size, not just the factors behind it.
+
 ## Clipboard writer consolidated, stopper trace, folder fallback (rows 114-116)
 - `resources.cpp` carried its own file-static clipboard helper (HWND parameter, duplicated
   OpenClipboard/GlobalAlloc/CF_TEXT sequence) plus an `extern HWND window` that existed only to
