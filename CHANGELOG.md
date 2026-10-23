@@ -9,6 +9,12 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Docs & render cell lists all seven preview files
+- BUILD section 9's Docs & render row enumerated six preview PNGs in its file column while the
+  branch renders seven since row 121; `docs/preview_default.png` now sits in the list next to
+  the others, so the cell, the README file table, the figure captions and the renderer docstring
+  all name the same seven outputs.
+
 ## Row-124 comment sync
 - The three places that describe `RenderHud()` in one line - BUILD section 9's Shell row, the
   `menu.h` declaration comment and the `--hud` branch comment in the renderer - now name the
