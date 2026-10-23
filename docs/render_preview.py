@@ -34,6 +34,7 @@ screenshot.
 Usage:  python docs/render_preview.py            -> docs/preview.png         (Executor tab)
         python docs/render_preview.py --config   -> docs/preview_config.png  (Config tab)
         python docs/render_preview.py --resources -> docs/preview_resources.png
+        python docs/render_preview.py --menus    -> docs/preview_menus.png
         (requires Pillow)
 """
 import os
@@ -53,11 +54,14 @@ if "--config" in sys.argv[1:]:
     TAB = "config"
 elif "--resources" in sys.argv[1:]:
     TAB = "resources"
+elif "--menus" in sys.argv[1:]:
+    TAB = "menus"
 else:
     TAB = "executor"
 OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
                                   "config": "preview_config.png",
-                                  "resources": "preview_resources.png"}[TAB])
+                                  "resources": "preview_resources.png",
+                                  "menus": "preview_menus.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -317,7 +321,7 @@ img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
 
 SIDEBAR = [("\uf121", " Executor"), ("\uf019", " Resources"),
            ("\uf02d", " Menus"),    ("\uf085", " Config")]
-ACTIVE = {"executor": 0, "resources": 1, "config": 3}[TAB]
+ACTIVE = {"executor": 0, "resources": 1, "menus": 2, "config": 3}[TAB]
 
 sep_y = 170
 R(SX0, sep_y, SX1, sep_y + 1, C_BORDER)
@@ -560,7 +564,7 @@ elif TAB == "config":
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)
 
 
-else:
+elif TAB == "resources":
     # ------------------------------------------------------------------
     # content column: Resources::Render(), File Browser sub-tab open.
     # The Triggers sub-tab is deliberately never rendered: its list is a
@@ -663,6 +667,60 @@ else:
     assert y <= CY1 + 0.5, "Resources column overflows: %.1f > %.1f" % (y, CY1)
 
 
+elif TAB == "menus":
+    # ------------------------------------------------------------------
+    # content column: Menus::Render() - two list panes around an unbordered
+    # 1px splitter (invisible by design), stock-FrameBg list boxes, and the
+    # honest "Run <name>" stubs.  The names are the repository's own lists.
+    # ------------------------------------------------------------------
+    row = FONT_SIZE + ITEM_SPACING_Y
+    C_HEADER = RGBA(42, 74, 123)                    # ImGuiCol_Header since row 88
+    T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Menus", C_TEXT)
+    y = CY0 + LINE_ADV
+    R(CX0, y, CX1, y + 1, C_BORDER)
+    y += 1 + ITEM_SPACING_Y
+    y += LINE_ADV                                   # ImGui::NewLine()
+
+    half = (CX1 - CX0) / 2.0
+    PANES = [(CX0, CX0 + half - 2.0, "\uf015", " Free Menus ",
+              ["HoaX_2.0", "Lynx_8.1", "Lynx_10.0", "InSec_1.0", "SkidMenu_1.0",
+               "TiagoMenu_3.0", "TiagoMenu_4.0", "TiagoMenu_4.1", "Strata_1.0",
+               "Lydia_Enterprise"], "Run HoaX_2.0"),
+             (CX0 + half + 7.0, CX1, "\uf005", " Premium Menus ",
+              ["Lux", "Dopamine", "Absolute", "Reaper", "Fallout"], "Run Lux")]
+    for px0, px1, glyph, title, items, run in PANES:
+        ix, ir = px0 + 8, px1 - 8                   # child WindowPadding
+        lw = ir - ix
+        cy = y + 8
+        T(ix, cy, glyph, C_TEXT, f_icon, 1.0)
+        T(ix + TW(glyph, f_icon, 1.0), cy, title, C_TEXT)
+        T(ix + TW(glyph, f_icon, 1.0) + TW(title), cy, glyph, C_TEXT, f_icon, 1.0)
+        cy += row
+        R(ix, cy, ir, cy + 1, C_BORDER)             # Gui::Seperator inside the child
+        cy += 1 + ITEM_SPACING_Y
+        R(ix, cy, ix + lw, cy + 300, C_FRAME_BG)    # BeginListBox, stock FrameBg
+        d.rectangle([ix*S, cy*S, (ix+lw)*S-1, (cy+300)*S-1], outline=C_BORDER, width=S)
+        ry = cy + 8
+        for j, nm in enumerate(items):
+            if j == 0:                              # selected == ImGuiCol_Header
+                R(ix + 1, ry, ix + lw - 1, ry + FONT_SIZE, C_HEADER)
+            T(ix + 8, ry, nm, C_TEXT)
+            ry += row
+        cy += 300 + ITEM_SPACING_Y
+        d.rounded_rectangle([ix*S, cy*S, (ix+lw)*S-1, (cy+33)*S-1], radius=6*S, fill=C_PRIMARY)
+        d.rounded_rectangle([(ix+1)*S, (cy+1)*S, (ix+lw-1)*S-1, (cy+16.5)*S-1], radius=6*S,
+                            fill=blend((255, 255, 255, 26), C_PRIMARY))
+        T(ix + (lw - TW(run)) / 2, cy + (33-FONT_SIZE)/2, run, C_TEXT)
+        cy += 33 + ITEM_SPACING_Y
+
+        tw = 2 * TW(glyph, f_icon, 1.0) + TW(title)
+        assert tw <= lw, "menu title clipped: " + title
+        assert TW(run) <= lw, "run label clipped: " + run
+        assert max(TW(nm) for nm in items) + 8 <= lw, "menu name clipped"
+        assert len(items) * row + 16 <= 300, "list needs a scrollbar: " + title
+        assert cy <= CY1 + 0.5, "menu pane overflows: %.1f > %.1f" % (cy, CY1)
+
+
 # toast stack (toasts.cpp): one card, 10px off the window's bottom-right corner.
 # Card metrics straight from the source: 320px max width, 3px kind bar, 8px inner
 # padding, text wrapped at maxW - barW - inner*3, height = text height + 2*inner.
@@ -687,10 +745,10 @@ if TAB == "config":
     # two inert switches.  Safemode is drawn off above, because this is the frame
     # right after that flip.
     draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 0, 0))
-elif TAB == "resources":
+elif TAB in ("resources", "menus"):
     # No toast here: the frame shows the tab right after opening it, and a card
-    # anchored 10px off the bottom-right would cover exactly the dump button
-    # block this view exists to show (row 86).
+    # anchored 10px off the bottom-right would cover content these views exist
+    # to show (the dump button block, row 86 / the Run stubs).
     pass
 else:
     draw_toast("Dump saved to Dumps", C_ACCENT)      # Success card

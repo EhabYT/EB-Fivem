@@ -41,6 +41,14 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > repository's own resource list from `exec.cpp`; the Triggers sub-tab is
 > deliberately never depicted in preview imagery.
 
+![redENGINE menu preview - Menus tab](docs/preview_menus.png)
+
+> Fourth render (`python docs/render_preview.py --menus`): the two menu lists
+> with their selected rows visible — BUILD.md row 88 fixed a highlight that
+> used to be the exact colour of the list background — and the honest "Run"
+> stubs. The names are the repository's own lists; launching them remains
+> unimplemented and says so.
+
 ## Layout
 
 | Path | What it is |
@@ -69,6 +77,8 @@ labelled `Enabled (no effect)`, inert tooltips |
 | [`docs/preview.png`](docs/preview.png) | The preview render shown above, with its caption explaining exactly what is and is not faithful |
 | [`docs/preview_config.png`](docs/preview_config.png) | The same render with the Config tab open, produced by `docs/render_preview.py --config` |
 | [`docs/preview_resources.png`](docs/preview_resources.png) | The same render with the Resources tab open (`--resources`); the Triggers sub-tab is never depicted |
+| [`docs/preview_menus.png`](docs/preview_menus.png) | The same render with the Menus tab open (`--menus`) |
+| [`CHANGELOG.md`](CHANGELOG.md) | One entry per batch on this branch, newest first - the condensed view of the fix table in BUILD.md |
 
 ## Architecture
 

@@ -63,7 +63,12 @@ inline void ApplyStyle()
 	style.Colors[ImGuiCol_FrameBgActive]		= ImColor(42, 74, 123, 255);
 	style.Colors[ImGuiCol_FrameBgHovered]		= ImColor(42, 74, 123, 255);
 
-	style.Colors[ImGuiCol_Header]				= ImColor(31, 58, 97, 255);		// for collapsing headers , etc
+	// Was the same #1F3A61 as FrameBg, i.e. the list background: a selected row
+	// in the Menus lists, the resource combo or any ListBox was invisible, and
+	// keyboard-nav focus had nothing to land on visually.  The solid border navy
+	// reads as "selected" against the frame background while staying below the
+	// half-transparent HeaderHovered and the brand-blue HeaderActive.
+	style.Colors[ImGuiCol_Header]				= ImColor(42, 74, 123, 255);		// for collapsing headers , etc
 	style.Colors[ImGuiCol_HeaderActive]			= ImColor(55, 120, 181);
 	style.Colors[ImGuiCol_HeaderHovered]		= ImColor(42, 74, 123, 100);
 

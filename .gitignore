@@ -1,0 +1,13 @@
+# MSVC build artefacts - nothing binary is tracked in this repository
+.vs/
+Release/
+Debug/
+x64/
+*.obj
+*.pdb
+*.ilk
+*.log
+
+# Python cache (docs/render_preview.py)
+__pycache__/
+*.pyc
