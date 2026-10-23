@@ -192,7 +192,7 @@ namespace Menu
 
 	void Render()
 	{
-		//redENGINE Remade : by xo1337
+		//Remade : by EB
 
 		// Open fade.  Render() only runs while the overlay is open, so a gap in
 		// the call stream means the menu was closed and has just come back.

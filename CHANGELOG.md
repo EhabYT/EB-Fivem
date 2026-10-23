@@ -8,6 +8,13 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
 
+## Credit line re-credited
+- The source credit comment in menu.cpp now reads `//Remade : by EB` (owner decision); it
+  previously carried the upstream line `//redENGINE Remade : by xo1337`.
+- Upstream attribution stays on record: the README credits still say "Menu UI remade by
+  xo1337", and this changelog keeps the historical mentions; BUILD row 94 logs the change.
+- No functional or visual change: the comment is source-only, previews unchanged.
+
 ## Rebrand: redENGINE -> EBengin
 - New logo asset `EBengin.png` replaces `rE.png` (same 1682x1982 transparent canvas, same double
   frame): monogram "EB" - E in the #5D9CD6 -> #3778B5 -> #1D5188 ramp, B in white - plus a two-tone
@@ -20,8 +27,9 @@ say so in the UI - see README and PR #1.
   copy of the workflow) updated to the new file names.
 - Docs: README title/prose/alt texts/asset table, BUILD.md prose plus row 93, ci/README.md; all four
   preview images re-rendered from the new logo and strings.
-- Historical mentions kept on purpose: the `//redENGINE Remade : by xo1337` credit in menu.cpp, the
-  recolour note in README, BUILD rows 105/111/112/138/163/217 and this changelog.
+- Historical mentions kept on purpose: the recolour note and the upstream credit line in
+  README, BUILD rows 105/111/112/138/163/217 and this changelog; the menu.cpp credit comment
+  was re-credited afterwards (entry above).
 
 ## Environment-compatibility round
 - High-DPI: the layout follows the host window's contents scale via
