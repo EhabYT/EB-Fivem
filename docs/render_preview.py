@@ -61,13 +61,16 @@ elif "--menus" in sys.argv[1:]:
     TAB = "menus"
 elif "--splash" in sys.argv[1:]:
     TAB = "splash"
+elif "--hud" in sys.argv[1:]:
+    TAB = "hud"
 else:
     TAB = "executor"
 OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
                                   "config": "preview_config.png",
                                   "resources": "preview_resources.png",
                                   "menus": "preview_menus.png",
-                                  "splash": "preview_splash.png"}[TAB])
+                                  "splash": "preview_splash.png",
+                                  "hud": "preview_hud.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -310,6 +313,38 @@ def wrap_text(s, w):
     return lines
 
 
+if TAB == "hud":
+    # ------------------------------------------------------------------
+    # main.cpp: while the overlay is closed and Settings::Current.Hud is
+    # on, Menu::RenderHud() draws the sidebar's FPS line on the background
+    # draw list - over the game scene, under any window.  The scene is
+    # arbitrary in game, so this render uses a mid-tone stand-in that lets
+    # the 63%-alpha plate read the way it does over a bright frame.
+    # ------------------------------------------------------------------
+    SCENE = RGBA(34, 44, 58)
+    FW, FH = W + 2 * 28, H + 2 * 28
+    canvas = Image.new("RGBA", (FW * S, FH * S), SCENE)
+    d = ImageDraw.Draw(canvas)
+    SURF = canvas
+
+    HUD = "FPS 144  |  6.9 ms"
+    assert TW(HUD) <= FW - 40, "hud line clipped"
+    ts_w, ts_h = TW(HUD), FONT_SIZE
+    pad, pos = 6.0, (10.0, 10.0)
+    plate = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
+    ImageDraw.Draw(plate).rounded_rectangle(
+        [(pos[0] - pad) * S, (pos[1] - pad) * S,
+         (pos[0] + ts_w + pad) * S - 1, (pos[1] + ts_h + pad) * S - 1],
+        radius=6 * S, fill=(12, 18, 28, 160))
+    canvas.alpha_composite(plate)
+    d = ImageDraw.Draw(canvas)
+    T(pos[0], pos[1], HUD, C_ACCENT)
+
+    canvas.save(OUT, optimize=True)
+    os.unlink(fa_path)
+    print("geschrieben:", OUT, "(hud)", os.path.getsize(OUT), "Bytes", canvas.size)
+    sys.exit(0)
+
 if TAB == "splash":
     # ------------------------------------------------------------------
     # menu.cpp RenderSplash(): on the first open after inject the branded
@@ -538,7 +573,7 @@ elif TAB == "config":
     TEXT_LH = FONT_SIZE
     C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
     C_MUTED = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
-    HINT = "Keyboard: Tab/arrows move, Enter/Space activates."
+    HINT = "Tab/arrows move, Enter/Space activates."
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)
     y = CY0 + LINE_ADV
@@ -617,6 +652,7 @@ elif TAB == "config":
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     ly = toggle(lx0, ly, "Animations", True)
     ly = toggle(lx0, ly, "Toast notifications", True)
+    ly = toggle(lx0, ly, "FPS HUD", True)          # Settings::Current.Hud
     ly += ITEM_SPACING_Y
     ly = slider(lx0, ly, pane_w, "Interface scale 100%", (100 - 70) / 130.0)
     ly += ITEM_SPACING_Y
@@ -654,7 +690,7 @@ elif TAB == "config":
     # wrap, so these asserts are what keeps a label from being clipped ---
     for s in ("Safe Mode", "ScriptHook Bypass", "Interface"):
         assert TW(s) + TW("(?)") <= pane_w, "heading clipped: " + s
-    for lab in ("Enabled (no effect)", "Animations", "Toast notifications"):
+    for lab in ("Enabled (no effect)", "Animations", "Toast notifications", "FPS HUD"):
         assert 40 + ITEM_SPACING_X + TW(lab) <= pane_w, "switch clipped: " + lab
     for lab in ("Toggle key:  INSERT", "press any key... (ESC)"):
         assert TW(lab) + 2 * FRAME_PAD_X <= pane_w, "button label clipped: " + lab

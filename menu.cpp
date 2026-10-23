@@ -283,6 +283,29 @@ namespace Menu
 		ImGui::PopStyleVar();
 	}
 
+	// FPS / frame-time HUD over the game scene while the overlay is closed: the
+	// same string as the sidebar footer line, drawn on the background draw list
+	// (over the scene, under any ImGui window) with a dark plate behind it so it
+	// stays legible on bright frames.  Interface-level diagnostics only - the
+	// numbers are ImGui's own smoothed present-loop counters, not game state.
+	void RenderHud()
+	{
+		const float fps = ImGui::GetIO().Framerate;
+		char line[48];
+		snprintf(line, sizeof(line), "FPS %.0f  |  %.1f ms",
+			fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
+
+		const ImVec2 ts = ImGui::CalcTextSize(line);
+		const float pad = Settings::Px(6.0f);
+		const ImVec2 pos(Settings::Px(10.0f), Settings::Px(10.0f));
+		ImDrawList* bg = ImGui::GetBackgroundDrawList();
+		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
+			ImVec2(pos.x + ts.x + pad, pos.y + ts.y + pad),
+			IM_COL32(12, 18, 28, 160), Settings::Px(6.0f));
+		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(), pos,
+			ImColor(93, 156, 214, 255), line);
+	}
+
 	void Render()
 	{
 		//Remade : by EB

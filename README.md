@@ -55,6 +55,12 @@ name and the credit line, dismissed with Continue.  Fifth render
 
 ![EBengin splash card](docs/preview_splash.png)
 
+While the overlay is closed, the frame-rate line lives on as a small HUD plate over
+the scene (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`).  Sixth render
+(`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
+
+![EBengin FPS HUD](docs/preview_hud.png)
+
 ## Layout
 
 | Path | What it is |
@@ -85,6 +91,7 @@ labelled `Enabled (no effect)`, inert tooltips |
 | [`docs/preview_resources.png`](docs/preview_resources.png) | The same render with the Resources tab open (`--resources`); the Triggers sub-tab is never depicted |
 | [`docs/preview_menus.png`](docs/preview_menus.png) | The same render with the Menus tab open (`--menus`) |
 | [`docs/preview_splash.png`](docs/preview_splash.png) | The first-open start card (`--splash`): logo, credit line, two honest hints, Continue |
+| [`docs/preview_hud.png`](docs/preview_hud.png) | The FPS HUD plate over the scene while the overlay is closed (`--hud`) |
 | [`CHANGELOG.md`](CHANGELOG.md) | One entry per batch on this branch, newest first - the condensed view of the fix table in BUILD.md |
 
 ## Architecture

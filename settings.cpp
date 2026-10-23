@@ -28,6 +28,7 @@ namespace Settings
 		Current.ToggleKey = GetPrivateProfileIntA("menu", "togglekey", 0x2D, path.c_str());
 		Current.Animations = GetPrivateProfileIntA("ui", "anim", 1, path.c_str()) != 0;
 		Current.Toasts     = GetPrivateProfileIntA("ui", "toasts", 1, path.c_str()) != 0;
+		Current.Hud        = GetPrivateProfileIntA("ui", "hud", 1, path.c_str()) != 0;
 		Current.ShowWhitespace = GetPrivateProfileIntA("ui", "whitespace", 0, path.c_str()) != 0;
 		Current.ResourceTab    = GetPrivateProfileIntA("menu", "resourcetab", 0, path.c_str());
 		Current.ScalePercent   = GetPrivateProfileIntA("ui", "scale", 100, path.c_str());
@@ -65,6 +66,7 @@ namespace Settings
 		ok = WriteInt("menu", "togglekey", Current.ToggleKey) && ok;
 		ok = WriteInt("ui", "anim", Current.Animations ? 1 : 0) && ok;
 		ok = WriteInt("ui", "toasts", Current.Toasts ? 1 : 0) && ok;
+		ok = WriteInt("ui", "hud", Current.Hud ? 1 : 0) && ok;
 		ok = WriteInt("ui", "whitespace", Current.ShowWhitespace ? 1 : 0) && ok;
 		ok = WriteInt("menu", "resourcetab", Current.ResourceTab) && ok;
 		ok = WriteInt("ui", "scale", Current.ScalePercent) && ok;

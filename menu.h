@@ -58,4 +58,5 @@ namespace Menu
 	// Draws the whole menu window: sidebar column + tab content column.
 	// Implemented in menu.cpp.
 	void Render();
+	void RenderHud();   // FPS/frame-time plate over the scene, overlay closed
 }

@@ -9,6 +9,21 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## FPS line becomes a HUD
+- `Menu::RenderHud()` draws the sidebar's FPS string as a top-left plate over the game scene
+  whenever the overlay is closed: background draw list (over the scene, under any window),
+  dark rounded backing so it stays legible on bright frames, accent text, scale-aware via
+  `Settings::Px()` and `ImGui::GetFontSize()`.  The numbers remain ImGui's own smoothed
+  present-loop counters - interface diagnostics, not game state.
+- Config -> `FPS HUD` switch (default on), persisted as `[ui] hud` with the other interface
+  prefs; the present loop draws the HUD only while the overlay is closed, so the line is
+  never shown twice.
+- The switch first overflowed the Config left pane by 18px - the renderer's pane-overflow
+  assert caught it before shipping; the keyboard hint was compacted from three wrapped lines
+  to two (same information) to make room.
+- New `--hud` render (`docs/preview_hud.png`) on a mid-tone scene stand-in; README paragraph
+  and table row, BUILD Docs & render row and row 102.
+
 ## Style refinement: depth and palette cohesion (row 101)
 - Nav rail: the sidebar table cell is painted one notch darker than the canvas via
   `TableSetBgColor(ImGuiTableBgTarget_CellBg)` - WindowBg darkened 18%, z-safe because cell

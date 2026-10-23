@@ -131,6 +131,11 @@ namespace Config
 			Settings::Save();
 		}
 
+		// The sidebar footer carries this line while the overlay is open; the
+		// HUD keeps it over the scene while the overlay is closed.
+		if (Gui::Toggle("FPS HUD##ui_hud", &Settings::Current.Hud))
+			Settings::Save();
+
 		// Interface scale, 70..200%.  Applied through ImGui 1.92's global font
 		// scale factor (style.FontScaleMain), so the whole shell - fonts, frames,
 		// sidebar, window size - grows together instead of text overflowing fixed
@@ -163,7 +168,7 @@ namespace Config
 		// converts to both ImU32 and ImVec4, which PushStyleColor would find
 		// ambiguous.
 		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(93, 156, 214, 153));
-		ImGui::TextWrapped("Keyboard: Tab/arrows move, Enter/Space activates.");
+		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates.");
 		ImGui::PopStyleColor();
 
 		ImGui::Spacing();

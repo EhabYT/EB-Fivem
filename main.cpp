@@ -411,6 +411,8 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 
 	if (Menu::IsMenuOpen)
 		Menu::Render();
+	else if (Settings::Current.Hud)
+		Menu::RenderHud();
 
 	ImGui::Render();
 
