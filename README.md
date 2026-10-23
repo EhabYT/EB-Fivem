@@ -23,6 +23,15 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > and ImGui's exact layout engine, which is not running here. The Lua snippet in the editor is
 > illustrative; on first launch the menu opens on the empty landing tab.
 
+![redENGINE menu preview - Config tab](docs/preview_config.png)
+
+> The same render with the **Config tab** open (`python docs/render_preview.py --config`):
+> the Interface preferences - toggle-key capture, animations, toasts, the persisted
+> 70-200 % scale slider, reset - and the two inert switches: greyed headings,
+> `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
+> answers every flip. The asserts in the renderer are what keep this pane's labels
+> inside its ~216 px column.
+
 ## Layout
 
 | Path | What it is |
@@ -36,7 +45,8 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`gui.h`](gui.h) | Small helpers (`Gui::Seperator`, cursor setters) |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor, Execute / Load-from-file, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
-| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders, labelled as such |
+| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches
+labelled `Enabled (no effect)`, inert tooltips |
 | [`luamenus.h`](luamenus.h) · [`luamenus.cpp`](luamenus.cpp) | Menus tab — free / premium menu lists |
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab |
@@ -48,6 +58,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
 | [`rE.png`](rE.png) | Menu logo, loaded from beside the DLL at runtime |
 | [`docs/preview.png`](docs/preview.png) | The preview render shown above, with its caption explaining exactly what is and is not faithful |
+| [`docs/preview_config.png`](docs/preview_config.png) | The same render with the Config tab open, produced by `docs/render_preview.py --config` |
 
 ## Architecture
 
@@ -296,8 +307,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   the trigger clipboard list, resource dumps, and the resource-list stopper.
   What is **still a stub** (and now says so in a message box instead of doing nothing silently):
   actually executing a script, actually stopping a server resource, launching the listed menus,
-  and the Safe Mode / ScriptHook Bypass toggles — those two are labelled `(not implemented)` in
-  the tab itself, with inert tooltips and a toast on every flip, because nothing reads them.
+  and the Safe Mode / ScriptHook Bypass toggles — those two carry greyed headings and switches
+  labelled `Enabled (no effect)` in the tab itself, with inert tooltips and a toast on every
+  flip, because nothing reads them.
 * `font_awesome.cpp` is `#include`d by `main.cpp` rather than compiled as its own translation
   unit; it is marked `ExcludedFromBuild` in the project so nobody adds it twice.
 * Every menu global is declared `extern` in its header and defined in exactly one `.cpp`, so
@@ -316,7 +328,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   fallback text share `#5D9CD6`. Semantic reds (editor error markers, the "no files" warning) stay
   red on purpose. `rE.png` was recoloured to the light ramp as a vertical gradient — white outline
   and alpha channel untouched — and [`docs/render_preview.py`](docs/render_preview.py) regenerates
-  `docs/preview.png` from exactly these constants.
+  `docs/preview.png` (and, with `--config`, `docs/preview_config.png`) from exactly these
+  constants.
 * **Interface preferences persist** in `<DLL folder>\settings.ini`: window position, last open tab
   and the overlay toggle key (Config → "Toggle key", click-to-capture, ESC cancels). The sidebar
   footer carries a live FPS / frame-time readout, and the landing tab lists a timestamped session

@@ -32,9 +32,15 @@ namespace Config
 		// The labels and tooltips used to describe behaviour that does not exist
 		// ("a private scripting environment", ".ASI plugins through the ScriptHook
 		// interface"), which reads as two working modes - the same defect the dead
-		// Execute/Run buttons had.  They now say plainly that they do nothing, and
-		// every flip is answered with the honest feedback those paths give too.
-		ImGui::TextDisabled("Safe Mode   (not implemented)");
+		// Execute/Run buttons had.  So the heading is greyed, the switch itself says
+		// "(no effect)", the tooltip spells it out, and every flip is answered with
+		// an activity entry plus a warn toast.
+		//
+		// The wording has to stay short: this pane is a third of the content column
+		// (~216px at the 900px shell) and ImGui::Text does not wrap, so
+		// "Safe Mode   (not implemented)" (~270px) was silently clipped at the pane
+		// edge.  docs/render_preview.py measures these strings and asserts the fit.
+		ImGui::TextDisabled("Safe Mode");
 		ImGui::SameLine();
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "(?)"); ImGui::Spacing();
 		if (ImGui::IsItemHovered())
@@ -43,7 +49,7 @@ namespace Config
 
 		Gui::Seperator("##config_seperator_1");
 
-		if (Gui::Toggle("Enabled##safemode", &Safemode))
+		if (Gui::Toggle("Enabled (no effect)##safemode", &Safemode))
 		{
 			Activity::Push(std::string("Safe Mode switched ") + (Safemode ? "on" : "off")
 				+ " (not implemented - no effect).");
@@ -51,7 +57,7 @@ namespace Config
 		}
 
 		Gui::Seperator("##config_seperator_2");
-		ImGui::TextDisabled("ScriptHook Bypass   (not implemented)");
+		ImGui::TextDisabled("ScriptHook Bypass");
 		ImGui::SameLine();
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "(?)"); ImGui::Spacing();
 		if (ImGui::IsItemHovered())
@@ -59,7 +65,7 @@ namespace Config
 				"switch only stores a value that nothing reads.");
 
 		Gui::Seperator("##config_seperator_3");
-		if (Gui::Toggle("Enabled##shbypass", &ShBypass))
+		if (Gui::Toggle("Enabled (no effect)##shbypass", &ShBypass))
 		{
 			Activity::Push(std::string("ScriptHook Bypass switched ") + (ShBypass ? "on" : "off")
 				+ " (not implemented - no effect).");
@@ -74,11 +80,17 @@ namespace Config
 		Gui::Seperator("##config_seperator_5");
 
 		static bool capturing = false;
+		// "press any key...  (ESC cancels)" measured ~377px against a ~216px pane and
+		// was clipped at the edge - so while capturing, the button never actually
+		// told the user that ESC cancels, the one thing they need to know then.
+		// Shortened to fit; the full sentence moved into the tooltip.
 		const std::string label = capturing
-			? std::string("press any key...  (ESC cancels)")
+			? std::string("press any key... (ESC)")
 			: std::string("Toggle key:  ") + Settings::KeyName(Settings::Current.ToggleKey);
 		if (ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 30)))
 			capturing = !capturing;
+		if (capturing && ImGui::IsItemHovered())
+			ImGui::SetTooltip("Press the key you want to bind.\nESC cancels the capture.");
 
 		if (capturing)
 		{
@@ -144,8 +156,14 @@ namespace Config
 		}
 
 		ImGui::Spacing();
-		ImGui::TextColored(ImColor(93, 156, 214, 153),
-			"Keyboard: Tab/arrows move, Enter/Space activates.");
+		// TextColored does not wrap, and this hint is ~448px against a ~216px pane:
+		// it was clipped after "Tab/arrows".  There is no TextWrappedColored, so the
+		// colour goes through the style stack.  The cast is required - ImColor
+		// converts to both ImU32 and ImVec4, which PushStyleColor would find
+		// ambiguous.
+		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(93, 156, 214, 153));
+		ImGui::TextWrapped("Keyboard: Tab/arrows move, Enter/Space activates.");
+		ImGui::PopStyleColor();
 
 		ImGui::Spacing();
 		if (Gui::PrimaryButton("Reset interface settings", ImVec2(ImGui::GetContentRegionAvail().x, 30)))

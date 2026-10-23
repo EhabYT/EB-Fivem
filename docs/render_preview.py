@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Regenerates docs/preview.png - the redENGINE menu shell, Executor tab open.
+"""Regenerates the redENGINE preview images: the menu shell with either the
+Executor tab open (docs/preview.png) or the Config tab (docs/preview_config.png).
 
 Self-contained on purpose: it needs only Pillow and the repository itself. The
 sidebar/button glyphs come from the project's *own* embedded Font Awesome font
@@ -21,6 +22,8 @@ invented:
   menu.cpp       drop shadow (three stacked rects), brand rule under the title
                  bar, toast stack anchored 10px off the window's bottom-right
   TextEditor.cpp GetDarkPalette(), mLeftMargin (10), mLineSpacing (1.0)
+  config.cpp       pane split (avail.x / 3), the two inert switch sections and
+                   the Interface prefs - used by the --config branch only
 
 Two things CANNOT be faithful and are substituted, exactly as the README caption
 says: Bahnschrift.ttf is a Windows-only font (a horizontally condensed DejaVu
@@ -28,18 +31,25 @@ Sans stands in for its DIN advance widths), and ImGui's layout engine is not
 running, so positions follow the constants above. This is a render, not a
 screenshot.
 
-Usage:  python docs/render_preview.py      (requires Pillow)
+Usage:  python docs/render_preview.py            -> docs/preview.png         (Executor tab)
+        python docs/render_preview.py --config   -> docs/preview_config.png  (Config tab)
+        (requires Pillow)
 """
 import os
 import re
 import struct
+import sys
 import tempfile
 import zlib
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(REPO, "docs", "preview.png")
+# Which tab the shell is rendered with.  "executor" is the product shot;
+# "config" shows the Interface preferences and the two inert switches, i.e. the
+# pane whose labels are narrow enough to be clipped without anyone noticing.
+TAB = "config" if "--config" in sys.argv[1:] else "executor"
+OUT = os.path.join(REPO, "docs", "preview_config.png" if TAB == "config" else "preview.png")
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -264,6 +274,20 @@ def TW(s, font=f_ui, condense=CONDENSE):
     return font.getlength(s) * condense / S
 
 
+def wrap_text(s, w):
+    """ImGui's word wrap (TextWrapped / CalcTextSize with wrap_width)."""
+    lines, cur = [], ""
+    for wd in s.split():
+        cand = (cur + " " + wd).strip()
+        if cur == "" or TW(cand) <= w:
+            cur = cand
+        else:
+            lines.append(cur)
+            cur = wd
+    lines.append(cur)
+    return lines
+
+
 # window + title bar (WindowTitleAlign 0,0.5; NoCollapse + p_open NULL)
 R(0, 0, W, H, C_WINDOW_BG)
 R(0, 0, W, TITLE_H, C_TITLE_BG)
@@ -285,7 +309,7 @@ img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
 
 SIDEBAR = [("\uf121", " Executor"), ("\uf019", " Resources"),
            ("\uf02d", " Menus"),    ("\uf085", " Config")]
-ACTIVE = 0
+ACTIVE = 3 if TAB == "config" else 0
 
 sep_y = 170
 R(SX0, sep_y, SX1, sep_y + 1, C_BORDER)
@@ -311,99 +335,241 @@ for k, (line, col) in enumerate(FOOTER):
     assert TW(line) <= SIDEBAR_W, "Footer ueberlaeuft die Sidebar: %s" % line
     T(SX0 + (SIDEBAR_W - TW(line)) / 2, FOOTER_TOP + k * LINE_ADV, line, col)
 
-# content column: Executor::Render()
-T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)
-y = CY0 + LINE_ADV
-R(CX0, y, CX1, y + 1, C_WINDOW_BG)
-y += 1 + ITEM_SPACING_Y
+if TAB == "executor":
+    # content column: Executor::Render()
+    T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)
+    y = CY0 + LINE_ADV
+    R(CX0, y, CX1, y + 1, C_BORDER)
+    y += 1 + ITEM_SPACING_Y
 
-# editor toolbar (exec.cpp): icon buttons for undo/redo/copy/paste/clear
-TB = 26
-for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d"]):
-    _bx = CX0 + _k * (TB + ITEM_SPACING_X)
-    R(_bx, y, _bx + TB, y + TB, C_BUTTON)
-    T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, C_TEXT, f_icon, 1.0)
+    # editor toolbar (exec.cpp): icon buttons for undo/redo/copy/paste/clear
+    TB = 26
+    for _k, _g in enumerate(["\uf0e2", "\uf01e", "\uf0c5", "\uf0ea", "\uf12d"]):
+        _bx = CX0 + _k * (TB + ITEM_SPACING_X)
+        R(_bx, y, _bx + TB, y + TB, C_BUTTON)
+        T(_bx + (TB - TW(_g, f_icon, 1.0)) / 2, y + (TB - ICON_SIZE) / 2 + 1, _g, C_TEXT, f_icon, 1.0)
 
-# whitespace toggle at the end of the toolbar (Gui::Toggle, off, persisted)
-_tkx = CX0 + 5 * (TB + ITEM_SPACING_X) + 6
-_tky = y + (TB - 20) / 2
-d.rounded_rectangle([_tkx*S, _tky*S, (_tkx+40)*S-1, (_tky+20)*S-1], radius=10*S, fill=C_FRAME_BG)
-d.ellipse([(_tkx+3)*S, (_tky+3)*S, (_tkx+17)*S-1, (_tky+17)*S-1], fill=C_TEXT)
-T(_tkx + 48, y + (TB - FONT_SIZE) / 2, "Whitespace", C_TEXT)
+    # whitespace toggle at the end of the toolbar (Gui::Toggle, off, persisted)
+    _tkx = CX0 + 5 * (TB + ITEM_SPACING_X) + 6
+    _tky = y + (TB - 20) / 2
+    d.rounded_rectangle([_tkx*S, _tky*S, (_tkx+40)*S-1, (_tky+20)*S-1], radius=10*S, fill=C_FRAME_BG)
+    d.ellipse([(_tkx+3)*S, (_tky+3)*S, (_tkx+17)*S-1, (_tky+17)*S-1], fill=C_TEXT)
+    T(_tkx + 48, y + (TB - FONT_SIZE) / 2, "Whitespace", C_TEXT)
 
-y += TB + ITEM_SPACING_Y
+    y += TB + ITEM_SPACING_Y
 
-avail_w, avail_h = CX1 - CX0, CY1 - y
-ed_w, ed_h = int(avail_w - 16), int(avail_h - 52 - LINE_ADV)
-ex0, ey0, ex1, ey1 = CX0, y, CX0 + ed_w, y + ed_h
+    avail_w, avail_h = CX1 - CX0, CY1 - y
+    ed_w, ed_h = int(avail_w - 16), int(avail_h - 52 - LINE_ADV)
+    ex0, ey0, ex1, ey1 = CX0, y, CX0 + ed_w, y + ed_h
 
-R(ex0, ey0, ex1, ey1, P["bg"])
-d.rectangle([ex0*S, ey0*S, ex1*S-1, ey1*S-1], outline=C_BORDER, width=S)
+    R(ex0, ey0, ex1, ey1, P["bg"])
+    d.rectangle([ex0*S, ey0*S, ex1*S-1, ey1*S-1], outline=C_BORDER, width=S)
 
-gutter = TW("0" * len(str(len(SAMPLE)))) + 10      # mTextStart = digits + mLeftMargin
-tx = ex0 + gutter + 4
-CURSOR_LINE = len(SAMPLE) - 1
+    gutter = TW("0" * len(str(len(SAMPLE)))) + 10      # mTextStart = digits + mLeftMargin
+    tx = ex0 + gutter + 4
+    CURSOR_LINE = len(SAMPLE) - 1
 
-# the widget scrolls the cursor into view when the box is shorter than the
-# document, so only the last cap lines are visible
-_cols = colorize(SAMPLE)
-_cap = max(1, int((ed_h - 8) // LINE_ADV))
-_first = max(0, len(SAMPLE) - _cap)
-for ln in range(_first, len(SAMPLE)):
-    runs = _cols[ln]
-    ly = ey0 + 4 + (ln - _first) * LINE_ADV
-    if ln == CURSOR_LINE:
-        R(ex0+1, ly, ex1-1, ly+LINE_ADV, blend(P["cline_inact"], P["bg"]))
-        R(ex0+1, ly, ex1-1, ly+1, blend(P["cline_edge"], P["bg"]))
-        R(ex0+1, ly+LINE_ADV-1, ex1-1, ly+LINE_ADV, blend(P["cline_edge"], P["bg"]))
-    num = str(ln + 1)
-    T(ex0 + gutter - TW(num), ly + (LINE_ADV - FONT_SIZE) / 2, num, P["lineno"])
-    cx, top = tx, ly + (LINE_ADV - FONT_SIZE) / 2
-    for txt, key in runs:
-        T(cx, top, txt, P[key]); cx += TW(txt)
-    if ln == CURSOR_LINE:
-        R(cx + 1, ly + 6, cx + 2, ly + LINE_ADV - 6, P["cursor"])
+    # the widget scrolls the cursor into view when the box is shorter than the
+    # document, so only the last cap lines are visible
+    _cols = colorize(SAMPLE)
+    _cap = max(1, int((ed_h - 8) // LINE_ADV))
+    _first = max(0, len(SAMPLE) - _cap)
+    for ln in range(_first, len(SAMPLE)):
+        runs = _cols[ln]
+        ly = ey0 + 4 + (ln - _first) * LINE_ADV
+        if ln == CURSOR_LINE:
+            R(ex0+1, ly, ex1-1, ly+LINE_ADV, blend(P["cline_inact"], P["bg"]))
+            R(ex0+1, ly, ex1-1, ly+1, blend(P["cline_edge"], P["bg"]))
+            R(ex0+1, ly+LINE_ADV-1, ex1-1, ly+LINE_ADV, blend(P["cline_edge"], P["bg"]))
+        num = str(ln + 1)
+        T(ex0 + gutter - TW(num), ly + (LINE_ADV - FONT_SIZE) / 2, num, P["lineno"])
+        cx, top = tx, ly + (LINE_ADV - FONT_SIZE) / 2
+        for txt, key in runs:
+            T(cx, top, txt, P[key]); cx += TW(txt)
+        if ln == CURSOR_LINE:
+            R(cx + 1, ly + 6, cx + 2, ly + LINE_ADV - 6, P["cursor"])
 
-# status line (exec.cpp): cursor + document size, muted accent
-T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
+    # status line (exec.cpp): cursor + document size, muted accent
+    T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
 
-# button row: Execute 116x30, Load from File 180x30, combo fills the rest
-y = ey1 + LINE_ADV + ITEM_SPACING_Y
-bh = 30
-# Execute is a Gui::PrimaryButton: brand fill, soft top highlight, centred label
-d.rounded_rectangle([CX0*S, y*S, (CX0+116)*S-1, (y+bh)*S-1], radius=6*S, fill=C_PRIMARY)
-d.rounded_rectangle([(CX0+1)*S, (y+1)*S, (CX0+115)*S-1, (y+bh/2)*S-1], radius=6*S,
-                    fill=blend((255, 255, 255, 26), C_PRIMARY))
-_exe_w = TW("\uf121", f_icon, 1.0) + TW(" Execute")
-_exe_x = CX0 + (116 - _exe_w) / 2
-T(_exe_x, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf121", C_TEXT, f_icon, 1.0)
-T(_exe_x + TW("\uf121", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Execute", C_TEXT)
+    # button row: Execute 116x30, Load from File 180x30, combo fills the rest
+    y = ey1 + LINE_ADV + ITEM_SPACING_Y
+    bh = 30
+    # Execute is a Gui::PrimaryButton: brand fill, soft top highlight, centred label
+    d.rounded_rectangle([CX0*S, y*S, (CX0+116)*S-1, (y+bh)*S-1], radius=6*S, fill=C_PRIMARY)
+    d.rounded_rectangle([(CX0+1)*S, (y+1)*S, (CX0+115)*S-1, (y+bh/2)*S-1], radius=6*S,
+                        fill=blend((255, 255, 255, 26), C_PRIMARY))
+    _exe_w = TW("\uf121", f_icon, 1.0) + TW(" Execute")
+    _exe_x = CX0 + (116 - _exe_w) / 2
+    T(_exe_x, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf121", C_TEXT, f_icon, 1.0)
+    T(_exe_x + TW("\uf121", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Execute", C_TEXT)
 
-x2 = CX0 + 116 + ITEM_SPACING_X
-R(x2, y, x2 + 180, y + bh, C_BUTTON)
-T(x2 + FRAME_PAD_X, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf15b", C_TEXT, f_icon, 1.0)
-T(x2 + FRAME_PAD_X + TW("\uf15b", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Load from File", C_TEXT)
+    x2 = CX0 + 116 + ITEM_SPACING_X
+    R(x2, y, x2 + 180, y + bh, C_BUTTON)
+    T(x2 + FRAME_PAD_X, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf15b", C_TEXT, f_icon, 1.0)
+    T(x2 + FRAME_PAD_X + TW("\uf15b", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Load from File", C_TEXT)
 
-x3 = x2 + 180 + ITEM_SPACING_X
-fh = FONT_SIZE + FRAME_PAD_Y * 2
-R(x3, y, CX1, y + fh, C_FRAME_BG)
-d.rectangle([x3*S, y*S, CX1*S-1, (y+fh)*S-1], outline=C_BORDER, width=S)
-T(x3 + FRAME_PAD_X, y + (fh-FONT_SIZE)/2, "_cfx_internal", C_TEXT)
-aw, ax, ay = 9, CX1 - FRAME_PAD_X - 9, y + fh / 2
-d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
+    x3 = x2 + 180 + ITEM_SPACING_X
+    fh = FONT_SIZE + FRAME_PAD_Y * 2
+    R(x3, y, CX1, y + fh, C_FRAME_BG)
+    d.rectangle([x3*S, y*S, CX1*S-1, (y+fh)*S-1], outline=C_BORDER, width=S)
+    T(x3 + FRAME_PAD_X, y + (fh-FONT_SIZE)/2, "_cfx_internal", C_TEXT)
+    aw, ax, ay = 9, CX1 - FRAME_PAD_X - 9, y + fh / 2
+    d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
 
-# toast stack (toasts.cpp): one Success card, 10px off the bottom-right corner
-_toast = "Dump saved to Dumps"
-_tw = min(320.0, TW(_toast) + 3 + 8 * 3)
-_th = FONT_SIZE + 8 * 2
-_tx1, _ty1 = W - 10, H - 10
-_tx0, _ty0 = _tx1 - _tw, _ty1 - _th
-d.rounded_rectangle([_tx0*S, _ty0*S, _tx1*S-1, _ty1*S-1], radius=6*S, fill=(31, 58, 97, 242))
-d.rounded_rectangle([_tx0*S, _ty0*S, _tx1*S-1, _ty1*S-1], radius=6*S,
-                    outline=(93, 156, 214, 110), width=S)
-d.rounded_rectangle([_tx0*S, _ty0*S, (_tx0+3)*S-1, _ty1*S-1], radius=6*S, fill=C_ACCENT,
-                    corners=(True, False, False, True))
-T(_tx0 + 3 + 8, _ty0 + 8, _toast, C_TEXT)
+
+else:
+    # ------------------------------------------------------------------
+    # content column: Config::Render()
+    #   left pane  = avail.x / 3   the two inert switches + Interface prefs
+    #   splitter   = Gui::Seperator("##splitter", 1, avail.y)
+    #   right pane = the rest      "Server related stuff"
+    # Text rows here use ImGui's real GetTextLineHeight() == g.FontSize
+    # (imgui.cpp:11835), so the vertical budget below is the one config.cpp
+    # actually has.  The Executor branch keeps its published calibration.
+    # ------------------------------------------------------------------
+    TEXT_LH = FONT_SIZE
+    C_DIS = RGBA(128, 128, 128)                     # ImGuiCol_TextDisabled (stock grey)
+    C_MUTED = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
+    HINT = "Keyboard: Tab/arrows move, Enter/Space activates."
+
+    T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)
+    y = CY0 + LINE_ADV
+    R(CX0, y, CX1, y + 1, C_BORDER)                 # Gui::Seperator under the title
+    y += 1 + ITEM_SPACING_Y
+
+    pane_w = (CX1 - CX0) / 3.0                      # config.cpp: avail.x / 3.0f
+    lx0, lx1 = CX0, CX0 + pane_w
+    spl = lx1 + ITEM_SPACING_X
+    rx0, rx1 = spl + 1 + ITEM_SPACING_X, CX1
+    top, bot = y, CY1
+    R(spl, top, spl + 1, bot, C_BORDER)             # the vertical splitter
+
+    def sep(x0, x1, sy):
+        R(x0, sy, x1, sy + 1, C_BORDER)
+        return sy + 1 + ITEM_SPACING_Y
+
+    def toggle(x, ty, label, on):
+        """Gui::Toggle: 40x20 track, knob radius 7, row height = GetFrameHeight()."""
+        trk_w, trk_h, t = 40.0, 20.0, (1.0 if on else 0.0)
+        col = tuple(int(round(C_FRAME_BG[i] + (C_PRIMARY[i] - C_FRAME_BG[i]) * t))
+                    for i in range(3)) + (255,)
+        ty0 = ty + (LINE_H - trk_h) / 2
+        d.rounded_rectangle([x*S, ty0*S, (x+trk_w)*S-1, (ty0+trk_h)*S-1],
+                            radius=(trk_h/2)*S, fill=col)
+        kr = trk_h / 2 - 3
+        kx = x + trk_h / 2 + (trk_w - trk_h) * t
+        d.ellipse([(kx-kr)*S, (ty0+trk_h/2-kr)*S, (kx+kr)*S-1, (ty0+trk_h/2+kr)*S-1],
+                  fill=C_TEXT)
+        T(x + trk_w + ITEM_SPACING_X, ty + (LINE_H - FONT_SIZE) / 2, label, C_TEXT)
+        return ty + LINE_H + ITEM_SPACING_Y
+
+    def button(x, by, w, h, label, primary=False):
+        if primary:
+            d.rounded_rectangle([x*S, by*S, (x+w)*S-1, (by+h)*S-1], radius=6*S, fill=C_PRIMARY)
+            d.rounded_rectangle([(x+1)*S, (by+1)*S, (x+w-1)*S-1, (by+h/2)*S-1], radius=6*S,
+                                fill=blend((255, 255, 255, 26), C_PRIMARY))
+            T(x + (w - TW(label)) / 2, by + (h - FONT_SIZE) / 2, label, C_TEXT)
+        else:
+            d.rounded_rectangle([x*S, by*S, (x+w)*S-1, (by+h)*S-1], radius=6*S, fill=C_BUTTON)
+            T(x + FRAME_PAD_X, by + (h - FONT_SIZE) / 2, label, C_TEXT)
+        return by + h + ITEM_SPACING_Y
+
+    def slider(x, sy, w, label, t):
+        """SliderInt: frame + border + GrabMinSize (12) grab + centred format text."""
+        h, grab = LINE_H, 12.0
+        d.rounded_rectangle([x*S, sy*S, (x+w)*S-1, (sy+h)*S-1], radius=6*S, fill=C_FRAME_BG)
+        d.rectangle([x*S, sy*S, (x+w)*S-1, (sy+h)*S-1], outline=C_BORDER, width=S)
+        gx = x + grab / 2 + t * (w - grab)
+        d.rounded_rectangle([(gx-grab/2)*S, sy*S, (gx+grab/2)*S-1, (sy+h)*S-1],
+                            radius=4*S, fill=C_ACCENT)
+        T(x + (w - TW(label)) / 2, sy + (h - FONT_SIZE) / 2, label, C_TEXT)
+        return sy + h + ITEM_SPACING_Y
+
+    def heading(x, hy, s, col, q=False):
+        T(x, hy, s, col)
+        if q:                                         # SameLine() -> ItemSpacing.x gap
+            T(x + TW(s) + ITEM_SPACING_X, hy, "(?)", C_ACCENT)
+        return hy + TEXT_LH + ITEM_SPACING_Y
+
+    # --- left pane: the two inert switches, then the Interface prefs ----
+    ly = top
+    ly = heading(lx0, ly, "Safe Mode", C_DIS, q=True)
+    ly += ITEM_SPACING_Y                              # the Spacing() after the "(?)"
+    ly = sep(lx0, lx1, ly)
+    ly = toggle(lx0, ly, "Enabled (no effect)", False)   # flipped off -> the warn toast
+    ly = sep(lx0, lx1, ly)
+    ly = heading(lx0, ly, "ScriptHook Bypass", C_DIS, q=True)
+    ly += ITEM_SPACING_Y
+    ly = sep(lx0, lx1, ly)
+    ly = toggle(lx0, ly, "Enabled (no effect)", True)
+    ly = sep(lx0, lx1, ly)
+    ly = heading(lx0, ly, "Interface", C_TEXT)
+    ly = sep(lx0, lx1, ly)
+    ly = button(lx0, ly, pane_w, 30, "Toggle key:  INSERT")
+    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
+    ly = toggle(lx0, ly, "Animations", True)
+    ly = toggle(lx0, ly, "Toast notifications", True)
+    ly += ITEM_SPACING_Y
+    ly = slider(lx0, ly, pane_w, "Interface scale 100%", (100 - 70) / 130.0)
+    ly += ITEM_SPACING_Y
+    hint_lines = wrap_text(HINT, pane_w)              # TextWrapped: 3 lines at this width
+    for k, hl in enumerate(hint_lines):
+        T(lx0, ly + k * TEXT_LH, hl, C_MUTED)
+    ly += len(hint_lines) * TEXT_LH + ITEM_SPACING_Y
+    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
+    ly = button(lx0, ly, pane_w, 30, "Reset interface settings", primary=True)
+
+    # --- right pane ----------------------------------------------------
+    ry = heading(rx0, top, "Server related stuff", C_TEXT)
+    ry += ITEM_SPACING_Y                              # ImGui::Spacing()
+    ry = sep(rx0, rx1, ry)
+    ry = heading(rx0, ry, "Server IP: not connected", C_MUTED)
+    ry = sep(rx0, rx1, ry)
+
+    # --- the pane is only a third of the column and ImGui::Text does not
+    # wrap, so these asserts are what keeps a label from being clipped ---
+    for s in ("Safe Mode", "ScriptHook Bypass", "Interface"):
+        assert TW(s) + TW("(?)") <= pane_w, "heading clipped: " + s
+    for lab in ("Enabled (no effect)", "Animations", "Toast notifications"):
+        assert 40 + ITEM_SPACING_X + TW(lab) <= pane_w, "switch clipped: " + lab
+    for lab in ("Toggle key:  INSERT", "press any key... (ESC)"):
+        assert TW(lab) + 2 * FRAME_PAD_X <= pane_w, "button label clipped: " + lab
+    for lab in ("Reset interface settings", "Interface scale 100%"):
+        assert TW(lab) <= pane_w, "label clipped: " + lab
+    for s in ("Server related stuff", "Server IP: not connected"):
+        assert TW(s) <= rx1 - rx0, "right pane clipped: " + s
+    assert ly <= bot + 0.5, "left Config pane overflows: %.1f > %.1f" % (ly, bot)
+    assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)
+
+
+# toast stack (toasts.cpp): one card, 10px off the window's bottom-right corner.
+# Card metrics straight from the source: 320px max width, 3px kind bar, 8px inner
+# padding, text wrapped at maxW - barW - inner*3, height = text height + 2*inner.
+def draw_toast(text, bar):
+    inner, bar_w, max_w = 8.0, 3.0, 320.0
+    lines = wrap_text(text, max_w - bar_w - inner * 3)
+    tw = min(max_w, max(TW(l) for l in lines) + bar_w + inner * 3)
+    th = len(lines) * FONT_SIZE + inner * 2      # CalcTextSize height == lines * GetTextLineHeight()
+    x1, y1 = W - 10, H - 10
+    x0, y0 = x1 - tw, y1 - th
+    d.rounded_rectangle([x0*S, y0*S, x1*S-1, y1*S-1], radius=6*S, fill=(31, 58, 97, 242))
+    d.rounded_rectangle([x0*S, y0*S, x1*S-1, y1*S-1], radius=6*S,
+                        outline=(93, 156, 214, 110), width=S)
+    d.rounded_rectangle([x0*S, y0*S, (x0+bar_w)*S-1, y1*S-1], radius=6*S, fill=bar,
+                        corners=(True, False, False, True))
+    for k, tl in enumerate(lines):
+        T(x0 + bar_w + inner, y0 + inner + k * FONT_SIZE, tl, C_TEXT)
+
+
+if TAB == "config":
+    # Warn card (KindColor -> red bar): the honest answer to flipping one of the
+    # two inert switches.  Safemode is drawn off above, because this is the frame
+    # right after that flip.
+    draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 0, 0))
+else:
+    draw_toast("Dump saved to Dumps", C_ACCENT)      # Success card
+
 
 # window chrome (menu_style.h + menu.cpp): rounded corners on a desktop
 # background, three-rect drop shadow behind, exactly as the DLL draws it
@@ -420,4 +586,4 @@ canvas.paste(img, (M * S, M * S), _mask)
 
 canvas.save(OUT, optimize=True)
 os.unlink(fa_path)
-print("geschrieben:", OUT, os.path.getsize(OUT), "Bytes", canvas.size)
+print("geschrieben:", OUT, "(%s-Tab)" % TAB, os.path.getsize(OUT), "Bytes", canvas.size)
