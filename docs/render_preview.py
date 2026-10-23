@@ -685,6 +685,9 @@ elif TAB == "config":
     # code prints this via #ifdef _DEBUG / _WIN64; previews depict Release x64
     T(rx0, ry, "Build: Release x64", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
+    # code formats DpiScale x ScalePercent; previews depict the 96-DPI default
+    T(rx0, ry, "Host: DPI 1.00, interface 100%", C_MUTED)
+    ry += TEXT_LH + ITEM_SPACING_Y
     ry = sep(rx0, rx1, ry)
 
     # --- the pane is only a third of the column and ImGui::Text does not
@@ -701,7 +704,8 @@ elif TAB == "config":
               "EBengin", "Remade : by EB", "Interface: ImGui 1.92.9 (ocornut)",
               "Build: Release x64", "Build: Release Win32 (x86)",
               "Build: Debug x64 (asserts on, slower)",
-              "Build: Debug Win32 (asserts on, slower)"):
+              "Build: Debug Win32 (asserts on, slower)",
+              "Host: DPI 1.00, interface 100%"):
         assert TW(s) <= rx1 - rx0, "right pane clipped: " + s
     assert ly <= bot + 0.5, "left Config pane overflows: %.1f > %.1f" % (ly, bot)
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)

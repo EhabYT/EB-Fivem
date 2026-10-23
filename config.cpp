@@ -225,6 +225,13 @@ namespace Config
 #else
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release Win32 (x86)");
 #endif
+		// Environment factors behind the shell size: host contents scale
+		// (GetDpiForWindow / 96) times the persisted interface scale - the two
+		// numbers any size report from another machine needs.
+		char hostLine[96];
+		snprintf(hostLine, sizeof(hostLine), "Host: DPI %.2f, interface %d%%",
+			Settings::DpiScale, Settings::Current.ScalePercent);
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", hostLine);
 		Gui::Seperator("##about_seperator_2");
 		ImGui::EndChild();
 	}

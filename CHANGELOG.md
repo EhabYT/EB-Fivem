@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## About block reports the two scale factors (row 104)
+- The shell size on any machine is host contents scale (`Settings::DpiScale`, row 91) times the
+  persisted interface scale, but neither number was visible anywhere - so a "the menu is tiny/
+  huge" report from another machine could not be placed.  Config's About block now ends with
+  `Host: DPI 1.00, interface 100%` (formatted live from both settings); the renderer mirrors the
+  96-DPI default and width-asserts the string.
+- The PR summary's fix-table bullet is reworded count-free ("defect rows plus documentation,
+  style and diagnostics rows") so it can no longer drift out of date the way "102 rows" did
+  when row 103 landed.
+
 ## README credit line: Menu UI made by EB
 - The credits line now reads "Menu UI made by EB" - the owner's decision, after the offer to
   re-credit it stood open since the rebrand.  The ImGui credit and the rest of the line are
