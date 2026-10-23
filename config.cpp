@@ -6,9 +6,37 @@
 
 #include <Windows.h>
 #include <string>
+#include <cstring>
 
 namespace Config
 {
+	// Puts one line of plain text on the Windows clipboard - the exact string
+	// the About block shows, so a size/behaviour report from any machine arrives
+	// with its environment already attached.
+	static bool CopyTextToClipboard(const char* text)
+	{
+		if (!OpenClipboard(NULL))
+			return false;
+		bool ok = false;
+		EmptyClipboard();
+		const size_t len = std::strlen(text) + 1;
+		HGLOBAL g = GlobalAlloc(GMEM_MOVEABLE, len);
+		if (g)
+		{
+			void* p = GlobalLock(g);
+			if (p)
+			{
+				std::memcpy(p, text, len);
+				GlobalUnlock(g);
+				ok = SetClipboardData(CF_TEXT, g) != NULL;
+			}
+			if (!ok)
+				GlobalFree(g);
+		}
+		CloseClipboard();
+		return ok;
+	}
+
 	bool Safemode = true;
 	bool ShBypass = true;
 
@@ -233,6 +261,38 @@ namespace Config
 			Settings::DpiScale, Settings::Current.ScalePercent);
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", hostLine);
 		Gui::Seperator("##about_seperator_2");
+
+		// One click puts exactly the four lines above (plus ImGui version and
+		// toggle key) on the clipboard, so a report from another machine carries
+		// its environment with it.
+		if (ImGui::Button("Copy diagnostics",
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
+		{
+#if defined(_DEBUG) && defined(_WIN64)
+			const char* cfg = "Debug x64";
+#elif defined(_DEBUG)
+			const char* cfg = "Debug Win32";
+#elif defined(_WIN64)
+			const char* cfg = "Release x64";
+#else
+			const char* cfg = "Release Win32";
+#endif
+			char diag[256];
+			snprintf(diag, sizeof(diag),
+				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | ImGui 1.92.9 | toggle: %s",
+				cfg, Settings::DpiScale, Settings::Current.ScalePercent,
+				Settings::KeyName(Settings::Current.ToggleKey));
+			if (CopyTextToClipboard(diag))
+			{
+				Activity::Push("Diagnostics copied to the clipboard.");
+				Toasts::Push(Toasts::Success, "Diagnostics copied to the clipboard.");
+			}
+			else
+			{
+				Activity::Push("Clipboard unavailable - diagnostics not copied.");
+				Toasts::Push(Toasts::Warn, "Clipboard unavailable - nothing copied.");
+			}
+		}
 		ImGui::EndChild();
 	}
 }

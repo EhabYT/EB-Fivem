@@ -29,7 +29,9 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > the Interface preferences - toggle-key capture, animations, toasts, FPS HUD, the persisted
 > 70-200 % scale slider, reset - and the two inert switches: greyed headings,
 > `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
-> answers every flip. The asserts in the renderer are what keep this pane's labels
+> answers every flip. The right pane's About block names brand, credit, build
+> configuration and host scale, and its `Copy diagnostics` button puts exactly that
+> line on the clipboard. The asserts in the renderer are what keep this pane's labels
 > inside its ~216 px column.
 
 ![EBengin menu preview - Resources tab](docs/preview_resources.png)

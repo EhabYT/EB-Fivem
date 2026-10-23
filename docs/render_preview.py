@@ -689,6 +689,7 @@ elif TAB == "config":
     T(rx0, ry, "Host: DPI 1.00, interface 100%", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
     ry = sep(rx0, rx1, ry)
+    ry = button(rx0, ry, rx1 - rx0, 26, "Copy diagnostics")
 
     # --- the pane is only a third of the column and ImGui::Text does not
     # wrap, so these asserts are what keeps a label from being clipped ---
@@ -705,7 +706,7 @@ elif TAB == "config":
               "Build: Release x64", "Build: Release Win32 (x86)",
               "Build: Debug x64 (asserts on, slower)",
               "Build: Debug Win32 (asserts on, slower)",
-              "Host: DPI 1.00, interface 100%"):
+              "Host: DPI 1.00, interface 100%", "Copy diagnostics"):
         assert TW(s) <= rx1 - rx0, "right pane clipped: " + s
     assert ly <= bot + 0.5, "left Config pane overflows: %.1f > %.1f" % (ly, bot)
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)

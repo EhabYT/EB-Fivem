@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Copy diagnostics: one click, environment attached (row 105)
+- Config's About block ends with a `Copy diagnostics` button: one line with name, build
+  configuration, host DPI and interface scale, ImGui version and toggle key goes to the
+  Windows clipboard (CF_TEXT, moveable global, proper free-on-failure), answered by a success
+  or warn toast plus an activity entry.  Reports from other machines now carry their
+  environment instead of being asked for it piece by piece.
+- BUILD.md section 9's tab-bodies row and the renderer (button mirror + label assert) follow;
+  preview_config.png re-rendered.
+
 ## About block reports the two scale factors (row 104)
 - The shell size on any machine is host contents scale (`Settings::DpiScale`, row 91) times the
   persisted interface scale, but neither number was visible anywhere - so a "the menu is tiny/
