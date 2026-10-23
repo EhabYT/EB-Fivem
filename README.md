@@ -416,6 +416,6 @@ Until then there is **no CI and no compile proof** — every check on this branc
 
 ## Credits
 
-Menu UI remade by xo1337 · ImGui by [Omar Cornut](https://github.com/ocornut/imgui) ·
+Menu UI made by EB · ImGui by [Omar Cornut](https://github.com/ocornut/imgui) ·
 Kiero by [Rebzzel](https://github.com/Rebzzel/kiero) · MinHook by Tsuda Kageyu ·
 `stb_image` by Sean Barrett · ImGuiColorTextEdit by BalazsJako.

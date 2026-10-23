@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## README credit line: Menu UI made by EB
+- The credits line now reads "Menu UI made by EB" - the owner's decision, after the offer to
+  re-credit it stood open since the rebrand.  The ImGui credit and the rest of the line are
+  untouched.
+- The in-UI credit wording stays "Remade : by EB" (splash card, sidebar footer, Config About
+  block, menu.cpp source comment) exactly as explicitly set earlier; only the README line
+  changed.  BUILD row 103 logs it and row 94's forward claim now points at it.
+
 ## Architecture views synced with splash and HUD
 - README lifecycle diagram: the `IsMenuOpen?` no-branch now runs through the HUD decision
   (`[ui] hud`) into `Menu::RenderHud`, and the render node names the splash card on first
@@ -137,8 +145,9 @@ and the verification anchor only; per-batch write-ups live here and in the commi
 ## Credit line re-credited
 - The source credit comment in menu.cpp now reads `//Remade : by EB` (owner decision); it
   previously carried the upstream line `//redENGINE Remade : by xo1337`.
-- Upstream attribution stays on record: the README credits still say "Menu UI remade by
-  xo1337", and this changelog keeps the historical mentions; BUILD row 94 logs the change.
+- Upstream attribution stayed on record in the README credits line until the owner
+  re-credited it (see the top entry); this changelog keeps the provenance mentions.
+  BUILD row 94 logs the comment change, row 103 the README line.
 - No functional or visual change: the comment is source-only, previews unchanged.
 
 ## Rebrand: redENGINE -> EBengin
