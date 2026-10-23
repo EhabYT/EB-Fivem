@@ -6,7 +6,15 @@ payloads this menu's names suggest (script execution, resource stopping, menu
 launching, kernel access, ESP, aimbot) are deliberately **not** implemented and
 say so in the UI - see README and PR #1.
 
-"row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
+"row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
+and the verification anchor only; per-batch write-ups live here and in the commits.
+
+## PR body condensed
+- On owner request the PR body's 40 numbered per-batch sections were removed; it now carries
+  a summary plus the verification anchor.  The write-ups live in this changelog, the commit
+  messages and BUILD.md - nothing was deleted from the record.
+- The anchor's reviewer line now names `EBengin UI.sln` (it still quoted the pre-rebrand
+  solution name), and the legend above no longer points "§N" at the PR body.
 
 ## Splash keyboard focus + renderer docstring
 - `RenderSplash()` now performs the shell's open-time focus handoff (`SetNextWindowFocus` while
@@ -116,7 +124,7 @@ say so in the UI - see README and PR #1.
   diagnostics that pointed at real bugs (ImColor ctor, format strings, `.size()`
   on `const char*`, ...).
 
-## Earlier on this branch (rows 1-67, PR §1-§25)
+## Earlier on this branch (rows 1-67)
 - ImGui 1.92.9 migration, the correctness audit, the diagnostics additions, the
   UI/palette upgrades (including the logo gradient recolour), Tables/shell split,
   CI parked as `ci/build.yml`, the preview renderer and `docs/preview.png`,
