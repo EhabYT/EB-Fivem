@@ -456,6 +456,13 @@ dialog appears (check `x64\<Config>\EBengin UI.dll` exists).  Two legitimate wor
    host is a per-machine choice and belongs in your local `.user` file, not in the tracked
    project files.
 
+   Confirmed on a real Windows machine (2026-10-23, Visual Studio, Release x64):
+   `1 erfolgreich, 0 Fehler` - the first real MSVC compile of this branch.  Reader's note for
+   the build log: the compile list shows 26 translation units because `font_awesome.cpp` is
+   `ExcludedFromBuild` **on purpose** - `main.cpp` includes it directly (`#include
+   "font_awesome.cpp"`), so its `static` blob is compiled inside `main.cpp`.  Do not "fix" the
+   exclusion; the LTCG "IPDB not found" lines are first-link information, not warnings.
+
 **`error LNK2019: unresolved external symbol ... d3d11`**
 `d3d11.lib` and `dxgi.lib` are in `AdditionalDependencies` for all four configs; if you
 added a config by hand, add them there too.

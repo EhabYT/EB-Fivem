@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## First real MSVC build: clean
+- Owner's Windows build (2026-10-23, Visual Studio, Release x64): "1 erfolgreich, 0 Fehler" -
+  the first real compile of this branch, after 43 commits of static-only verification.  The
+  output path `x64\Release\EBengin UI.dll` confirms the ProjectName rename end to end.
+- The log's 26 translation units are exactly the project set: `font_awesome.cpp` carries
+  `ExcludedFromBuild` on purpose because `main.cpp` includes it directly, and the LTCG
+  "Previous IPDB not found" lines are first-link information, not warnings.  Both facts are
+  now documented in BUILD.md §8 so nobody "fixes" them.
+- The F5 dialog from the previous round was resolved the documented way: build instead of
+  launch.  The PR's verification anchor records the build; Debug/Win32 feedback still welcome.
+
 ## F5 cannot launch a DLL - documented, not "fixed"
 - A real Windows build (x64 Debug) followed by F5 produced Visual Studio's "EBengin UI.dll ist
   keine gültige Win32-Anwendung / is not a valid Win32 application" dialog.  That is expected for
