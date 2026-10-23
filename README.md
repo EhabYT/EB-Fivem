@@ -49,6 +49,12 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > stubs. The names are the repository's own lists; launching them remains
 > unimplemented and says so.
 
+First open after inject shows a branded start card instead of the shell - logo,
+name and the credit line, dismissed with Continue.  Fifth render
+(`python docs/render_preview.py --splash`):
+
+![EBengin splash card](docs/preview_splash.png)
+
 ## Layout
 
 | Path | What it is |

@@ -200,6 +200,16 @@ namespace Config
 		// server, so don't imply that it does.
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "Server IP: not connected");
 		Gui::Seperator("##server_seperator_2");
+
+		// Visible brand block: name, credit and the interface this UI builds on.
+		ImGui::Spacing();
+		ImGui::Text("About");
+		ImGui::Spacing();
+		Gui::Seperator("##about_seperator_1");
+		ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Remade : by EB");
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Interface: ImGui 1.92.9 (ocornut)");
+		Gui::Seperator("##about_seperator_2");
 		ImGui::EndChild();
 	}
 }

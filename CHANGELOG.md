@@ -8,6 +8,17 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5, "§N" to the PR body.
 
+## Visible branding in the UI
+- Splash / start card: on the first open after inject, `RenderSplash()` in menu.cpp draws a
+  centred card instead of the shell - logo 110x127, the muted credit "Remade : by EB", a
+  separator, two honest hints and a Continue primary button.  Dismissing it flips one static
+  bool; no other state is touched.  New preview `docs/preview_splash.png` (`--splash`).
+- Sidebar footer: muted fourth line "Remade : by EB", same wording as the source comment.
+- Config right pane: About block - EBengin in accent, credit and ImGui version muted, framed
+  by separators.
+- The renderer mirrors all three additions; its width asserts caught one over-long hint line
+  before shipping, shortened identically in code and renderer.
+
 ## Credit line re-credited
 - The source credit comment in menu.cpp now reads `//Remade : by EB` (owner decision); it
   previously carried the upstream line `//redENGINE Remade : by xo1337`.

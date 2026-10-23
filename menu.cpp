@@ -25,6 +25,8 @@ namespace Menu
 	// Consumed once by RenderSidebar() to hand keyboard-nav focus to the
 	// sidebar entry of the open tab.
 	static bool g_justOpened = false;
+	// The branded start card shows on the first open after inject, once.
+	static bool g_splashDone = false;
 
 	static const SidebarItem SidebarItems[] =
 	{
@@ -150,7 +152,7 @@ namespace Menu
 		snprintf(buildDate, sizeof(buildDate), "Build Date: %s", __DATE__);
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().WindowPadding.y
-			- 3.0f * ImGui::GetTextLineHeightWithSpacing());
+			- 4.0f * ImGui::GetTextLineHeightWithSpacing());
 
 		// Live frame rate / frame time from ImGui's own smoothed counter, so the
 		// overlay can answer "is it the menu or the game?" without a profiler.
@@ -162,6 +164,9 @@ namespace Menu
 
 		CenteredInSidebar("Licensed to #4278");
 		CenteredInSidebar(buildDate);
+
+		// Visible brand credit, same wording as the source comment.
+		CenteredInSidebarColored("Remade : by EB", ImColor(93, 156, 214, 153));
 
 		// The old layout ended with
 		//     SetCursorPosY(GetWindowHeight() - 10); Text("");
@@ -188,6 +193,69 @@ namespace Menu
 		if (x > vx + vw - strip) x = vx + vw - strip;
 		if (y < vy - h + strip) y = vy - h + strip;
 		if (y > vy + vh - strip) y = vy + vh - strip;
+	}
+
+	// Branded start card in front of the shell: shown on the first open after
+	// inject until the user presses Continue.  Pure presentation - logo, name,
+	// credit and two honest hints; it touches no state beyond g_splashDone.
+	static void RenderSplash(float fade)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
+
+		const ImVec2 disp = ImGui::GetIO().DisplaySize;
+		const ImVec2 card(Settings::Px(460.0f), Settings::Px(288.0f));
+		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
+		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
+			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+
+		ImGui::Begin("EBengin Splash", NULL,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoSavedSettings);
+
+		auto Centered = [](const char* text, ImU32 col)
+		{
+			const float w = ImGui::CalcTextSize(text).x;
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+				ImMax(0.0f, (ImGui::GetContentRegionAvail().x - w) * 0.5f));
+			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), "%s", text);
+		};
+
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + Settings::Px(18.0f));
+		if (LogoLoaded)
+		{
+			const float lw = Settings::Px(110.0f);
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+				ImMax(0.0f, (ImGui::GetContentRegionAvail().x - lw) * 0.5f));
+			// 110 x 127 keeps the 76:87 aspect of EBengin.png.
+			ImGui::Image((ImTextureID)(intptr_t)logo,
+				ImVec2(lw, Settings::Px(127.0f)));
+		}
+		else
+		{
+			Centered("EBengin", ImColor(93, 156, 214, 255));
+		}
+
+		Centered("Remade : by EB", ImColor(93, 156, 214, 153));
+
+		ImGui::Spacing();
+		Gui::Seperator("##splash_seperator");
+		ImGui::Spacing();
+
+		Centered("Interface-level: no game state is read or written.",
+			ImColor(255, 255, 255, 255));
+		Centered("INSERT toggles this overlay at any time.",
+			ImColor(255, 255, 255, 255));
+
+		ImGui::Spacing();
+		const float bw = Settings::Px(140.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - bw) * 0.5f));
+		if (Gui::PrimaryButton("Continue", ImVec2(bw, Settings::Px(30.0f))))
+			g_splashDone = true;
+
+		ImGui::End();
+		ImGui::PopStyleVar();
 	}
 
 	void Render()
@@ -222,6 +290,14 @@ namespace Menu
 				const float u = (float)t;
 				fade = 1.0f - (1.0f - u) * (1.0f - u) * (1.0f - u);   // ease-out cubic
 			}
+		}
+
+		// First open per session: the branded start card replaces the shell
+		// until dismissed; nothing else runs, so no state is touched.
+		if (!g_splashDone)
+		{
+			RenderSplash(fade);
+			return;
 		}
 
 		// Soft drop shadow under the rounded window, drawn one frame late (the

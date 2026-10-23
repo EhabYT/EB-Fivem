@@ -56,12 +56,15 @@ elif "--resources" in sys.argv[1:]:
     TAB = "resources"
 elif "--menus" in sys.argv[1:]:
     TAB = "menus"
+elif "--splash" in sys.argv[1:]:
+    TAB = "splash"
 else:
     TAB = "executor"
 OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
                                   "config": "preview_config.png",
                                   "resources": "preview_resources.png",
-                                  "menus": "preview_menus.png"}[TAB])
+                                  "menus": "preview_menus.png",
+                                  "splash": "preview_splash.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -142,6 +145,7 @@ C_ACCENT     = RGBA(93, 156, 214)    # Menu::Accent / SliderGrab    #5D9CD6
 C_FRAME_BG   = RGBA(31, 58, 97)      # ImGuiCol_FrameBg             #1F3A61
 C_BORDER     = RGBA(42, 74, 123)     # ImGuiCol_Border / _Separator #2A4A7B
 C_TEXT       = RGBA(255, 255, 255)   # ImGuiCol_Text (default, not overridden)
+C_MUTED_BRAND = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
 
 # TextEditor.cpp GetDarkPalette(); Background/LineNumber are theme colours.
 P = {
@@ -261,6 +265,7 @@ f_icon = ImageFont.truetype(fa_path, int(ICON_SIZE * S))
 
 img = Image.new("RGBA", (W * S, H * S), (0, 0, 0, 0))
 d = ImageDraw.Draw(img)
+SURF = img          # alpha-composite target of T(); the splash branch swaps it
 
 
 def R(x0, y0, x1, y1, fill):
@@ -279,7 +284,7 @@ def _run(s, font, fill, condense):
 
 def T(x, y, s, fill, font=f_ui, condense=CONDENSE):
     tmp, _ = _run(s, font, fill, condense)
-    img.alpha_composite(tmp, (int(round(x*S)), int(round(y*S))))
+    SURF.alpha_composite(tmp, (int(round(x*S)), int(round(y*S))))
 
 
 def TW(s, font=f_ui, condense=CONDENSE):
@@ -299,6 +304,72 @@ def wrap_text(s, w):
     lines.append(cur)
     return lines
 
+
+if TAB == "splash":
+    # ------------------------------------------------------------------
+    # menu.cpp RenderSplash(): on the first open after inject the branded
+    # start card replaces the shell.  Standalone canvas: desktop background
+    # plus one centred, rounded card - no sidebar, no title bar.
+    # ------------------------------------------------------------------
+    MC, RADc = 28, 10
+    CWc, CHc = 460.0, 288.0
+    FW, FH = W + 2 * MC, H + 2 * MC
+    canvas = Image.new("RGBA", (FW * S, FH * S), (12, 18, 28, 255))
+    OX, OY = (FW - CWc) / 2, (FH - CHc) / 2
+
+    # three-rect drop shadow, same recipe the shell chrome uses
+    sh = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle(
+        [OX * S, OY * S, (OX + CWc) * S - 1, (OY + CHc) * S - 1],
+        radius=RADc * S, fill=(0, 0, 0, 150))
+    sh = sh.filter(ImageFilter.GaussianBlur(9 * S))
+    canvas.alpha_composite(sh, (0, int(12 * S)))
+
+    # R()/T() below draw onto the canvas, not onto the (unused) shell surface
+    d = ImageDraw.Draw(canvas)
+    SURF = canvas
+    d.rounded_rectangle([OX * S, OY * S, (OX + CWc) * S - 1, (OY + CHc) * S - 1],
+                        radius=RADc * S, fill=C_WINDOW_BG)
+    d.rounded_rectangle([OX * S, OY * S, (OX + CWc) * S - 1, (OY + CHc) * S - 1],
+                        radius=RADc * S, outline=C_BORDER, width=S)
+
+    CREDIT = "Remade : by EB"
+    HINT1 = "Interface-level: no game state is read or written."
+    HINT2 = "INSERT toggles this overlay at any time."
+    BTN = "Continue"
+    for t in (CREDIT, HINT1, HINT2, BTN):
+        assert TW(t) <= CWc - 16, "splash line clipped: " + t
+
+    ly = OY + 18
+    lg = Image.open(os.path.join(REPO, "EBengin.png")).convert("RGBA")
+    lg = lg.resize((int(110 * S), int(127 * S)), Image.LANCZOS)
+    canvas.alpha_composite(lg, (int((OX + (CWc - 110) / 2) * S), int(ly * S)))
+    ly += 127 + ITEM_SPACING_Y
+    T(OX + (CWc - TW(CREDIT)) / 2, ly, CREDIT, C_MUTED_BRAND)
+    ly += FONT_SIZE + ITEM_SPACING_Y
+    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
+    R(OX + 8, ly, OX + CWc - 8, ly + 1, C_BORDER)     # Gui::Seperator
+    ly += 1 + ITEM_SPACING_Y
+    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
+    T(OX + (CWc - TW(HINT1)) / 2, ly, HINT1, C_TEXT)
+    ly += FONT_SIZE + ITEM_SPACING_Y
+    T(OX + (CWc - TW(HINT2)) / 2, ly, HINT2, C_TEXT)
+    ly += FONT_SIZE + ITEM_SPACING_Y
+    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
+    bx, BW, BH = OX + (CWc - 140) / 2, 140.0, 30.0
+    d.rounded_rectangle([bx * S, ly * S, (bx + BW) * S - 1, (ly + BH) * S - 1],
+                        radius=6 * S, fill=C_PRIMARY)
+    d.rounded_rectangle([(bx + 1) * S, (ly + 1) * S, (bx + BW - 1) * S - 1,
+                         (ly + BH / 2) * S - 1], radius=6 * S,
+                        fill=blend((255, 255, 255, 26), C_PRIMARY))
+    T(bx + (BW - TW(BTN)) / 2, ly + (BH - FONT_SIZE) / 2, BTN, C_TEXT)
+    ly += BH
+    assert ly <= OY + CHc - 8, "splash card overflows: %.1f" % ly
+
+    canvas.save(OUT, optimize=True)
+    os.unlink(fa_path)
+    print("geschrieben:", OUT, "(splash)", os.path.getsize(OUT), "Bytes", canvas.size)
+    sys.exit(0)
 
 # window + title bar (WindowTitleAlign 0,0.5; NoCollapse + p_open NULL)
 R(0, 0, W, H, C_WINDOW_BG)
@@ -339,10 +410,11 @@ for i, (glyph, label) in enumerate(SIDEBAR):
     by += 1
 
 # footer: bottom-anchored, each line centred in the sidebar column
-FOOTER_TOP = H - WIN_PAD - 3 * LINE_ADV
+FOOTER_TOP = H - WIN_PAD - 4 * LINE_ADV
 FOOTER = [("FPS 144  |  6.9 ms", C_ACCENT),
           ("Licensed to #4278", C_TEXT),
-          ("Build Date: Oct 22 2026", C_TEXT)]
+          ("Build Date: Oct 22 2026", C_TEXT),
+          ("Remade : by EB", C_MUTED_BRAND)]
 for k, (line, col) in enumerate(FOOTER):
     assert TW(line) <= SIDEBAR_W, "Footer ueberlaeuft die Sidebar: %s" % line
     T(SX0 + (SIDEBAR_W - TW(line)) / 2, FOOTER_TOP + k * LINE_ADV, line, col)
@@ -548,6 +620,19 @@ elif TAB == "config":
     ry = heading(rx0, ry, "Server IP: not connected", C_MUTED)
     ry = sep(rx0, rx1, ry)
 
+    # --- About block (config.cpp): visible brand name + credit ------------
+    ry += ITEM_SPACING_Y                              # ImGui::Spacing()
+    ry = heading(rx0, ry, "About", C_TEXT)
+    ry += ITEM_SPACING_Y                              # ImGui::Spacing()
+    ry = sep(rx0, rx1, ry)
+    T(rx0, ry, "EBengin", C_ACCENT)
+    ry += TEXT_LH + ITEM_SPACING_Y
+    T(rx0, ry, "Remade : by EB", C_MUTED)
+    ry += TEXT_LH + ITEM_SPACING_Y
+    T(rx0, ry, "Interface: ImGui 1.92.9 (ocornut)", C_MUTED)
+    ry += TEXT_LH + ITEM_SPACING_Y
+    ry = sep(rx0, rx1, ry)
+
     # --- the pane is only a third of the column and ImGui::Text does not
     # wrap, so these asserts are what keeps a label from being clipped ---
     for s in ("Safe Mode", "ScriptHook Bypass", "Interface"):
@@ -558,7 +643,8 @@ elif TAB == "config":
         assert TW(lab) + 2 * FRAME_PAD_X <= pane_w, "button label clipped: " + lab
     for lab in ("Reset interface settings", "Interface scale 100%"):
         assert TW(lab) <= pane_w, "label clipped: " + lab
-    for s in ("Server related stuff", "Server IP: not connected"):
+    for s in ("Server related stuff", "Server IP: not connected", "About",
+              "EBengin", "Remade : by EB", "Interface: ImGui 1.92.9 (ocornut)"):
         assert TW(s) <= rx1 - rx0, "right pane clipped: " + s
     assert ly <= bot + 0.5, "left Config pane overflows: %.1f > %.1f" % (ly, bot)
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)
