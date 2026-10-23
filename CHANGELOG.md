@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Filters companion and lifecycle view catch up
+- The row-122 audit covered the vcxproj but not `ImGui DirectX 11 Kiero Hook.vcxproj.filters`:
+  `clipboard.h` now also has its filter entry (`Source Files\menu`, same folder as `assets.h`),
+  so Solution Explorer shows it where the other shared helpers live.  The combined audit of both
+  project files finds every root file placed and nothing stale.
+- The README lifecycle mermaid's `Menu::Render` node names the first-start notice alongside the
+  splash card - the view is kept in sync by hand, and rows 113/117 changed exactly that path.
+
 ## clipboard.h joins the project file (row 122)
 - A static audit of `ImGui DirectX 11 Kiero Hook.vcxproj` against the root file list found one
   gap: `clipboard.h` was the only root header missing from the `ClInclude` list (the build never

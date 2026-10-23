@@ -96,6 +96,9 @@
     <ClInclude Include="assets.h">
       <Filter>Source Files\menu</Filter>
     </ClInclude>
+    <ClInclude Include="clipboard.h">
+      <Filter>Source Files\menu</Filter>
+    </ClInclude>
     <ClCompile Include="imgui\imgui.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
