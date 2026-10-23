@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Style refinement: depth and palette cohesion (row 101)
+- Nav rail: the sidebar table cell is painted one notch darker than the canvas via
+  `TableSetBgColor(ImGuiTableBgTarget_CellBg)` - WindowBg darkened 18%, z-safe because cell
+  backgrounds render under their content.  The panel buttons now read as a rail.
+- Selected nav row: soft accent wash fading left to right (alpha 22 -> 0) over the pressed
+  colour, under the existing 3px marker - the row reads lit from the side without tinting
+  its label.
+- Palette cohesion: `TextDisabled` is the muted accent (64,109,154) instead of stock grey,
+  `PopupBg` sits on canvas navy, scrollbar grabs run raised -> hover -> pressed like every
+  other interactive surface, and the scale slider's 12px grab is a pill (`GrabRounding` 6;
+  the resources scrollbar mirror also moved to the style's `ScrollbarRounding` 8).
+- No metric changed, so every width/height assert still holds; four previews re-rendered,
+  the splash card (no sidebar) keeps its hash.
+
 ## Build marker gains bitness (row 100)
 - The About marker now distinguishes all four configurations via `_DEBUG` / `_WIN64`:
   Debug x64, Debug Win32, Release x64, Release Win32 (x86).  Bitness matters: a Win32 DLL

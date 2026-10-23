@@ -149,6 +149,8 @@ C_FRAME_BG   = RGBA(31, 58, 97)      # ImGuiCol_FrameBg             #1F3A61
 C_BORDER     = RGBA(42, 74, 123)     # ImGuiCol_Border / _Separator #2A4A7B
 C_TEXT       = RGBA(255, 255, 255)   # ImGuiCol_Text (default, not overridden)
 C_MUTED_BRAND = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
+C_RAIL     = RGBA(16, 31, 52)      # sidebar CellBg: WindowBg darkened 18%
+C_SCROLL   = RGBA(42, 74, 123)     # ImGuiCol_ScrollbarGrab (raised navy)
 
 # TextEditor.cpp GetDarkPalette(); Background/LineNumber are theme colours.
 P = {
@@ -377,6 +379,7 @@ if TAB == "splash":
 
 # window + title bar (WindowTitleAlign 0,0.5; NoCollapse + p_open NULL)
 R(0, 0, W, H, C_WINDOW_BG)
+R(SX0, CY0, SX1 + 1, CY1, C_RAIL)          # nav rail: sidebar cell, TableSetBgColor
 R(0, 0, W, TITLE_H, C_TITLE_BG)
 T(WIN_PAD, (TITLE_H - FONT_SIZE) / 2, "EBengin", C_TEXT)
 
@@ -403,6 +406,13 @@ R(SX0, sep_y, SX1, sep_y + 1, C_BORDER)
 by = sep_y + 1
 for i, (glyph, label) in enumerate(SIDEBAR):
     R(SX0, by, SX1, by + SIDEBAR_BTN, C_BUTTON_ACT if i == ACTIVE else C_BUTTON)
+    if i == ACTIVE:
+        # accent wash left -> right over the pressed colour (menu.cpp, alpha 22->0)
+        for _x in range(int(SIDEBAR_W)):
+            a = 22 * (1 - _x / (SIDEBAR_W - 1)) / 255.0
+            R(SX0 + _x, by, SX0 + _x + 1, by + SIDEBAR_BTN,
+              tuple(int(round(C_BUTTON_ACT[k] + (C_ACCENT[k] - C_BUTTON_ACT[k]) * a))
+                    for k in range(3)) + (255,))
     if i == ACTIVE:
         R(SX0, by, SX0 + 3, by + SIDEBAR_BTN, C_ACCENT)      # selected-tab marker
     ty = by + (SIDEBAR_BTN - FONT_SIZE) / 2
@@ -526,7 +536,7 @@ elif TAB == "config":
     # actually has.  The Executor branch keeps its published calibration.
     # ------------------------------------------------------------------
     TEXT_LH = FONT_SIZE
-    C_DIS = RGBA(128, 128, 128)                     # ImGuiCol_TextDisabled (stock grey)
+    C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
     C_MUTED = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
     HINT = "Keyboard: Tab/arrows move, Enter/Space activates."
 
@@ -579,7 +589,7 @@ elif TAB == "config":
         d.rectangle([x*S, sy*S, (x+w)*S-1, (sy+h)*S-1], outline=C_BORDER, width=S)
         gx = x + grab / 2 + t * (w - grab)
         d.rounded_rectangle([(gx-grab/2)*S, sy*S, (gx+grab/2)*S-1, (sy+h)*S-1],
-                            radius=4*S, fill=C_ACCENT)
+                            radius=6*S, fill=C_ACCENT)   # GrabRounding 6: pill grab
         T(x + (w - TW(label)) / 2, sy + (h - FONT_SIZE) / 2, label, C_TEXT)
         return sy + h + ITEM_SPACING_Y
 
@@ -669,7 +679,7 @@ elif TAB == "resources":
     # names from exec.cpp, the dumper line format from resources.cpp, the
     # toast literal from the copy-dump-path branch.
     # ------------------------------------------------------------------
-    C_DIS = RGBA(128, 128, 128)                     # ImGuiCol_TextDisabled (stock grey)
+    C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Resources", C_TEXT)
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
@@ -737,7 +747,7 @@ elif TAB == "resources":
     vis, content = lh - 16, 37 * row_h + 204
     th = max(20.0, vis * vis / content)
     gx0, gx1 = CX1 - 1 - 14 + 3, CX1 - 1 - 3
-    d.rounded_rectangle([gx0*S, (y+8)*S, gx1*S-1, (y+8+th)*S-1], radius=4*S, fill=RGBA(79, 79, 79))
+    d.rounded_rectangle([gx0*S, (y+8)*S, gx1*S-1, (y+8+th)*S-1], radius=8*S, fill=C_SCROLL)
     y += lh
 
     # SaveResources(): separator, 33px primary, Spacing, 26px copy button = 76px

@@ -30,7 +30,9 @@ inline void ApplyStyle()
 	style.PopupRounding			= 8;
 	style.TabRounding			= 6;
 	style.ScrollbarRounding		= 8;
-	style.GrabRounding			= 4;
+	// Pill-shaped grab: the interface-scale slider draws a 12px grab, so a
+	// radius of 6 rounds it fully instead of leaving it a bevelled block.
+	style.GrabRounding			= 6;
 	style.FramePadding			= ImVec2(8, 6);
 
 	// The menu shell is a 2-column ImGui table (see menu.h).  Table cells are
@@ -78,6 +80,18 @@ inline void ApplyStyle()
 
 	style.Colors[ImGuiCol_SliderGrab]			= ImColor(93, 156, 214, 255);
 	style.Colors[ImGuiCol_SliderGrabActive]		= ImColor(55, 120, 181, 255);
+
+	// Cohesion pass: everything ImGui would otherwise paint in stock grey or
+	// near-black is pulled into the two ramps.  TextDisabled is the muted accent
+	// (93,156,214 at 60% over the canvas), the scrollbar grab runs raised ->
+	// hover -> pressed like every other interactive surface, and popups sit on
+	// the canvas navy instead of the default black.
+	style.Colors[ImGuiCol_TextDisabled]		= ImColor(64, 109, 154, 255);
+	style.Colors[ImGuiCol_TextSelectedBg]		= ImColor(93, 156, 214, 90);
+	style.Colors[ImGuiCol_PopupBg]			= ImColor(20, 38, 63, 245);
+	style.Colors[ImGuiCol_ScrollbarGrab]		= ImColor(42, 74, 123, 255);
+	style.Colors[ImGuiCol_ScrollbarGrabHovered]	= ImColor(55, 120, 181, 255);
+	style.Colors[ImGuiCol_ScrollbarGrabActive]	= ImColor(29, 81, 136, 255);
 
 	style.Colors[ImGuiCol_Border]				= ImColor(42, 74, 123);
 	style.Colors[ImGuiCol_Separator]			= ImColor(42, 74, 123);

@@ -56,6 +56,11 @@ namespace Menu
 
 	static void RenderSidebar()
 	{
+		// Nav rail: the sidebar cell sits one notch darker than the canvas (WindowBg
+		// darkened 18%), so the panel buttons read as a rail instead of floating
+		// blocks.  CellBg is painted under the cell content, so no widget is covered.
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, ImColor(16, 31, 52, 255));
+
 		// Animated selected-tab marker: current bar rect (kept across frames)
 		// and this frame's target, i.e. the selected entry's button rect.
 		static float indX = 0.0f, indY = 0.0f, indH = 0.0f;
@@ -117,6 +122,13 @@ namespace Menu
 				tgtX = min.x;
 				tgtY = min.y;
 				tgtH = SidebarButtonHeight();
+				// Soft accent wash fading left -> right over the pressed colour:
+				// ~9% alpha at the marker edge, gone by the label end, so the row
+				// reads lit from the side without tinting the label.
+				ImGui::GetWindowDrawList()->AddRectFilledMultiColor(min,
+					ImGui::GetItemRectMax(),
+					ImColor(93, 156, 214, 22), ImColor(93, 156, 214, 0),
+					ImColor(93, 156, 214, 22), ImColor(93, 156, 214, 0));
 				ImGui::PopStyleColor();
 			}
 		}
