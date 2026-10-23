@@ -266,11 +266,12 @@ namespace Config
 #endif
 			char diag[640];
 			snprintf(diag, sizeof(diag),
-				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | settings: %s",
+				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s",
 				cfg, Settings::DpiScale, Settings::Current.ScalePercent,
 				(int)(900.0f * Settings::ScaleFactor()), (int)(540.0f * Settings::ScaleFactor()),
 				ImGui::GetVersion(), Settings::KeyName(Settings::Current.ToggleKey),
-				Settings::IniPath().c_str());
+				Settings::Current.Hud ? "on" : "off", Settings::IniPath().c_str(),
+				Settings::SaveFailed() ? " [NOT WRITABLE]" : "");
 			if (CopyTextToClipboard(diag))
 			{
 				Activity::Push("Diagnostics copied to the clipboard.");

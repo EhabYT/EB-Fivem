@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Diagnostics line carries HUD state and write state (row 125)
+- A report that says "the FPS plate is missing" or "my settings reset every start" used to need
+  a follow-up question: the clipboard line carried the environment but not whether the HUD was
+  switched on, nor whether the settings file is writable at all.  It now appends `| hud: on/off`
+  and, when a write failed this session, ` [NOT WRITABLE]` right after the settings path - the
+  same two facts the About block shows visually, now in the copyable line.
+
 ## Docs & render cell lists all seven preview files
 - BUILD section 9's Docs & render row enumerated six preview PNGs in its file column while the
   branch renders seven since row 121; `docs/preview_default.png` now sits in the list next to
