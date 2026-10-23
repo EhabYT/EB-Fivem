@@ -87,7 +87,8 @@ namespace Config
 		const std::string label = capturing
 			? std::string("press any key... (ESC)")
 			: std::string("Toggle key:  ") + Settings::KeyName(Settings::Current.ToggleKey);
-		if (ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 30)))
+		if (ImGui::Button(label.c_str(),
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(30.0f))))
 			capturing = !capturing;
 		if (capturing && ImGui::IsItemHovered())
 			ImGui::SetTooltip("Press the key you want to bind.\nESC cancels the capture.");
@@ -166,7 +167,8 @@ namespace Config
 		ImGui::PopStyleColor();
 
 		ImGui::Spacing();
-		if (Gui::PrimaryButton("Reset interface settings", ImVec2(ImGui::GetContentRegionAvail().x, 30)))
+		if (Gui::PrimaryButton("Reset interface settings",
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(30.0f))))
 		{
 			// One click back to the compiled defaults - before this, a bad key
 			// bind or a window dragged off-screen meant hand-editing or

@@ -55,7 +55,7 @@ namespace Executor
 		// inside the editor, but with keyboard-nav focus a button is the only
 		// path, and icon buttons make the actions discoverable in the first
 		// place.  The tooltips name the shortcut each button mirrors.
-		const float tb = 26.0f;
+		const float tb = Settings::Px(26.0f);
 		if (ImGui::Button(ICON_FA_UNDO "##ed_undo", ImVec2(tb, tb)))
 			editor.Undo();
 		if (ImGui::IsItemHovered())
@@ -99,7 +99,8 @@ namespace Executor
 		// overflowed past the right edge and under the button row.
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
 		const float statusH = ImGui::GetTextLineHeightWithSpacing();
-		editor.Render("##Null", ImVec2(avail.x - 16.0f, avail.y - 52.0f - statusH - tb - 4.0f), true);
+		editor.Render("##Null", ImVec2(avail.x - 16.0f,
+			avail.y - Settings::Px(52.0f) - statusH - tb - Settings::Px(4.0f)), true);
 
 		// Status line: the editor widget shows neither cursor position nor
 		// document size, so a 400-line paste looked identical to an empty buffer.
@@ -114,7 +115,8 @@ namespace Executor
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", statusLine.c_str());
 		ImGui::Spacing();
 
-		if (Gui::PrimaryButton(ICON_FA_CODE " Execute", ImVec2(116, 30)))
+		if (Gui::PrimaryButton(ICON_FA_CODE " Execute",
+			ImVec2(Settings::Px(116.0f), Settings::Px(30.0f))))
 		{
 			if (resources.empty())
 			{
@@ -142,7 +144,8 @@ namespace Executor
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_FILE " Load from File", ImVec2(180, 30)))
+		if (ImGui::Button(ICON_FA_FILE " Load from File",
+			ImVec2(Settings::Px(180.0f), Settings::Px(30.0f))))
 		{
 			// Was an empty `// load file code` stub.  Wire up a real Win32 file
 			// dialog: picking a .lua/.txt file loads it into the editor.

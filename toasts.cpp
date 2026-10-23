@@ -1,4 +1,5 @@
 #include "toasts.h"
+#include "settings.h"
 
 #include "imgui/imgui.h"
 
@@ -54,11 +55,13 @@ namespace Toasts
 		const ImVec2 ws = ImGui::GetWindowSize();
 		const double now = ImGui::GetTime();
 
-		const float pad     = 10.0f;
-		const float maxW    = 320.0f;
-		const float barW    = 3.0f;
-		const float inner   = 8.0f;
-		const float gap     = 6.0f;
+		// Card metrics scale with the interface: at 200% a fixed 320px card
+		// around 40px text would wrap every toast into a tower.
+		const float pad     = Settings::Px(10.0f);
+		const float maxW    = Settings::Px(320.0f);
+		const float barW    = Settings::Px(3.0f);
+		const float inner   = Settings::Px(8.0f);
+		const float gap     = Settings::Px(6.0f);
 
 		// Click a card to dismiss it - but never steal a click that belongs to
 		// a widget sitting under the stack.
@@ -92,7 +95,7 @@ namespace Toasts
 			cursorY -= h;
 
 			// Slide in from the right while fading.
-			const float slide = (1.0f - a) * 14.0f;
+			const float slide = (1.0f - a) * Settings::Px(14.0f);
 			const ImVec2 mn(wp.x + ws.x - pad - w + slide, cursorY);
 			const ImVec2 mx(mn.x + w, mn.y + h);
 
@@ -103,10 +106,10 @@ namespace Toasts
 				continue;
 			}
 
-			dl->AddRectFilled(mn, mx, IM_COL32(31, 58, 97, (int)(242.0f * a)), 6.0f);
-			dl->AddRect(mn, mx, IM_COL32(93, 156, 214, (int)(110.0f * a)), 6.0f);
+			dl->AddRectFilled(mn, mx, IM_COL32(31, 58, 97, (int)(242.0f * a)), Settings::Px(6.0f));
+			dl->AddRect(mn, mx, IM_COL32(93, 156, 214, (int)(110.0f * a)), Settings::Px(6.0f));
 			dl->AddRectFilled(ImVec2(mn.x, mn.y), ImVec2(mn.x + barW, mx.y),
-				KindColor(e.kind, a), 6.0f, ImDrawFlags_RoundCornersLeft);
+				KindColor(e.kind, a), Settings::Px(6.0f), ImDrawFlags_RoundCornersLeft);
 			// ImFont::FontSize was removed in 1.92 (renamed to LegacySize, which is the
 			// size passed to AddFont()).  NULL + 0.0f makes AddText() take the font and
 			// size already bound to this draw list, i.e. exactly what the rest of the

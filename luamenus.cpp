@@ -51,7 +51,8 @@ namespace Menus
 
 		// EndListBox() may only be called when BeginListBox() returned true.
 		// (ListBoxHeader/ListBoxFooter were removed in ImGui 1.89.)
-		if (ImGui::BeginListBox(listBoxId, ImVec2(ImGui::GetContentRegionAvail().x, 300)))
+		if (ImGui::BeginListBox(listBoxId,
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(300.0f))))
 		{
 			for (int i = 0; i < (int)items.size(); ++i)
 			{
@@ -67,7 +68,8 @@ namespace Menus
 				selected = 0;
 
 			const std::string label = std::string("Run ") + items[selected];
-			if (Gui::PrimaryButton(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 33)))
+			if (Gui::PrimaryButton(label.c_str(),
+				ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(33.0f))))
 			{
 				// Empty body before: clicking "Run Lux" did nothing at all, with no
 				// indication that it was a stub.

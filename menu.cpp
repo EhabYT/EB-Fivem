@@ -64,14 +64,15 @@ namespace Menu
 		if (LogoLoaded)
 		{
 			// ImTextureID became ImU64/ImTextureRef in 1.92: cast the SRV explicitly.
-			ImGui::Image((ImTextureID)(intptr_t)logo, ImVec2(76, 87));
+			ImGui::Image((ImTextureID)(intptr_t)logo,
+				ImVec2(Settings::Px(76.0f), Settings::Px(87.0f)));
 		}
 		else
 		{
 			// rE.png was not found next to the DLL: keep the sidebar the same height.
 			ImGui::SetCursorPosX(58);
 			ImGui::TextColored(ImColor(93, 156, 214, 255), "redENGINE");
-			ImGui::Dummy(ImVec2(76, 68));
+			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
 		}
 		ImGui::NewLine();
 

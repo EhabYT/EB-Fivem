@@ -140,7 +140,7 @@ namespace Resources
 
 	void SaveResources()
 	{
-		if (Gui::PrimaryButton("Save All Resources", ImVec2(ImGui::GetContentRegionAvail().x, 33)))
+		if (Gui::PrimaryButton("Save All Resources", ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(33.0f))))
 		{
 			const std::string dir = GetDumpDirectory();
 			MakeDirectoryTree(dir);
@@ -197,7 +197,7 @@ namespace Resources
 		// *get* that path other than transcribing it from the box.
 		ImGui::Spacing();
 		if (ImGui::Button(ICON_FA_CLIPBOARD " Copy dump path",
-			ImVec2(ImGui::GetContentRegionAvail().x, 26)))
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
 		{
 			const std::string dumpDir = GetDumpDirectory();
 			if (!CopyToClipBoard(window, dumpDir))
@@ -231,13 +231,13 @@ namespace Resources
 		// and the third button was clipped by the column edge.  Divide the cell.
 		const float buttonWidth =
 			(ImGui::GetContentRegionAvail().x - 2.0f * ImGui::GetStyle().ItemSpacing.x) / 3.0f;
-		if (ImGui::Button(ICON_FA_FOLDER_OPEN " File Browser", ImVec2(buttonWidth, 33)))
+		if (ImGui::Button(ICON_FA_FOLDER_OPEN " File Browser", ImVec2(buttonWidth, Settings::Px(33.0f))))
 		{
 			Settings::Current.ResourceTab = 1;
 			Settings::Save();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_SEARCH_PLUS " Triggers", ImVec2(buttonWidth, 33)))
+		if (ImGui::Button(ICON_FA_SEARCH_PLUS " Triggers", ImVec2(buttonWidth, Settings::Px(33.0f))))
 		{
 			Settings::Current.ResourceTab = 2;
 			Settings::Save();
@@ -245,7 +245,7 @@ namespace Resources
 		ImGui::SameLine();
 		// Was GetContentRegionAvail().x, i.e. "whatever is left" - a different
 		// width from its two neighbours for no reason.
-		if (ImGui::Button(ICON_FA_TAGS " Stopper", ImVec2(buttonWidth, 33)))
+		if (ImGui::Button(ICON_FA_TAGS " Stopper", ImVec2(buttonWidth, Settings::Px(33.0f))))
 		{
 			Settings::Current.ResourceTab = 3;
 			Settings::Save();
@@ -260,13 +260,13 @@ namespace Resources
 			selectedResource = 0;
 
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
-		const ImVec2 listSize(avail.x, avail.y - 48.0f);
+		const ImVec2 listSize(avail.x, avail.y - Settings::Px(48.0f));
 
 		if (Settings::Current.ResourceTab == 1)
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::InputTextWithHint("##resfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
-			const ImVec2 listSize1(avail.x, ImGui::GetContentRegionAvail().y - 48.0f);
+			const ImVec2 listSize1(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##resourcebox", listSize1))
@@ -297,7 +297,7 @@ namespace Resources
 								dumper.SetText(std::string("--successfully dumped ") + resources[i] + ".");
 								lastDumped = i;
 							}
-							dumper.Render("##dumper", ImVec2(ImGui::GetContentRegionAvail().x, 200));
+							dumper.Render("##dumper", ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(200.0f)));
 						}
 					}
 				}
@@ -317,7 +317,7 @@ namespace Resources
 					ImGui::PushID(i);
 					ImGui::Text("%s", Triggers[i]);   // was ImGui::Text(Triggers[i])
 					ImGui::SameLine();
-					if (ImGui::Button("Copy", ImVec2(55, 30)))
+					if (ImGui::Button("Copy", ImVec2(Settings::Px(55.0f), Settings::Px(30.0f))))
 					{
 						// All buttons in this list shared one ImGui ID ("Copy"), so
 						// hover/click state leaked between rows.  PushID fixes that.
@@ -356,7 +356,7 @@ namespace Resources
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
-			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - 48.0f);
+			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(31, 58, 97, 255));
 			if (ImGui::BeginListBox("##resourcestopperbox", listSize3))
@@ -382,7 +382,7 @@ namespace Resources
 			}
 
 			const std::string stopLabel = std::string("Stop ") + resources[selectedResource];
-			if (ImGui::Button(stopLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 33)))
+			if (ImGui::Button(stopLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(33.0f))))
 			{
 				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 				{

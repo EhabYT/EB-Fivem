@@ -30,6 +30,13 @@ namespace Settings
 	// the shell metrics in menu.h multiply their 100% base by it every frame.
 	inline float ScaleFactor() { return (float)Current.ScalePercent / 100.0f; }
 
+	// Explicit widget sizes (ImVec2(116, 30) and friends) do NOT follow
+	// style.FontScaleMain on their own - only font-derived metrics such as
+	// GetFrameHeight() do.  Every hardcoded pixel size in the tabs goes through
+	// here so the layout stays proportional across the 70..200 % range; at the
+	// compiled default (100 %) this is the identity and nothing moves.
+	inline float Px(float v) { return v * ScaleFactor(); }
+
 	// Writes ScalePercent into ImGui's global font scale factor and the window's
 	// minimum size; the shell metrics in menu.h follow through ScaleFactor().
 	// Clamps to 70..200 itself.  Call after Load() and whenever the value changes.

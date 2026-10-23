@@ -115,7 +115,7 @@ namespace Gui
 		ImGui::PushID(label);
 		const ImGuiStyle& style = ImGui::GetStyle();
 		const float rowH = ImGui::GetFrameHeight();
-		const float trackW = 40.0f, trackH = 20.0f;
+		const float trackW = Settings::Px(40.0f), trackH = Settings::Px(20.0f);
 
 		// The whole row (track + label) is the hit area, like a stock checkbox;
 		// the first version only accepted clicks on the 40px track.
@@ -146,7 +146,7 @@ namespace Gui
 		const ImVec2 trackMin(mn.x, mn.y + (rowH - trackH) * 0.5f);
 		dl->AddRectFilled(trackMin, ImVec2(trackMin.x + trackW, trackMin.y + trackH),
 			MixColor(IM_COL32(31, 58, 97, 255), IM_COL32(55, 120, 181, 255), t), trackH * 0.5f);
-		const float knobR = trackH * 0.5f - 3.0f;
+		const float knobR = trackH * 0.5f - Settings::Px(3.0f);
 		dl->AddCircleFilled(ImVec2(trackMin.x + trackH * 0.5f + (trackW - trackH) * t,
 			trackMin.y + trackH * 0.5f), knobR, IM_COL32(255, 255, 255, 255));
 		dl->AddText(ImVec2(mn.x + trackW + style.ItemSpacing.x, mn.y + (rowH - labelSize.y) * 0.5f),

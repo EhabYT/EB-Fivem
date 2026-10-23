@@ -352,7 +352,10 @@ Until then there is **no CI and no compile proof** — every check on this branc
   animation/toast switches and the interface scale in `settings.ini`.
 * **Interface scale:** Config → Interface carries a 70–200% slider, persisted as `[ui] scale` and
   applied through ImGui 1.92's `style.FontScaleMain`, so fonts, frames, sidebar and window size
-  grow together instead of text overflowing fixed widgets. It applies when the slider is released
+  grow together instead of text overflowing fixed widgets. Explicit widget sizes do not follow the
+  font on their own, so every hardcoded pixel size in the tabs (button heights, the switch track,
+  list boxes, toast cards, the logo) goes through `Settings::Px()` — the identity at 100 %,
+  twice the compiled pixels at 200 %. It applies when the slider is released
   — 1.92 bakes a font for every distinct size it sees, so a live drag would bake ~130 of them.
   The shell is re-clamped on screen whenever the scale changes, so growing it to 200% cannot push
   the title bar off-screen and leave nothing to grab.

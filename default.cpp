@@ -19,7 +19,7 @@ namespace Default
 		ImGui::Spacing();
 		Gui::Seperator("##default_seperator_3");
 		ImGui::Text("Diagnostics");
-		Perf::DrawGraph(ImVec2(ImGui::GetContentRegionAvail().x, 60.0f));
+		Perf::DrawGraph(ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(60.0f)));
 		char diag[128];
 		snprintf(diag, sizeof(diag), "Menu open %s  |  %u actions  |  %.0f FPS now",
 			Perf::UptimeString(), Activity::TotalCount(), ImGui::GetIO().Framerate);
@@ -38,8 +38,9 @@ namespace Default
 			// Activity::Clear() existed since the log was introduced but
 			// nothing called it - the log could only grow until it capped.
 			ImGui::SameLine();
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - 60.0f);
-			if (ImGui::Button("Clear##activity", ImVec2(60.0f, 20.0f)))
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x
+			- Settings::Px(60.0f));
+			if (ImGui::Button("Clear##activity", ImVec2(Settings::Px(60.0f), Settings::Px(20.0f))))
 				Activity::Clear();
 		}
 		if (entries.empty())
