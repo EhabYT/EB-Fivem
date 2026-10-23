@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## api_sweep.py: an executable compile-risk check without MSVC
+- `docs/api_sweep.py` greps every root .cpp/.h for ImGui API names the vendored 1.92.9 no
+  longer provides - removed outright or left only as commented-out obsolete redirects - and
+  exits nonzero on any hit; comment text is stripped first, so explanatory comments do not
+  count.  The first run is clean.
+- The token list is verified against the vendored imgui.h rather than memory: CalcListClipping,
+  GetOverlayDrawList, ImDrawCornerFlags and the ListBoxHeader/Footer pair are commented out,
+  SetNextFrameWantTextInput never existed - while PushTabStop/PopTabStop survive as live inline
+  wrappers and are therefore deliberately not listed.
+
 ## Filters companion and lifecycle view catch up
 - The row-122 audit covered the vcxproj but not `ImGui DirectX 11 Kiero Hook.vcxproj.filters`:
   `clipboard.h` now also has its filter entry (`Source Files\menu`, same folder as `assets.h`),
