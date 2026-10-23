@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## About block names the build configuration
+- Config's About block ends with an `#ifdef _DEBUG` line - `Build: Debug (asserts on, slower)`
+  or `Build: Release` - because a Debug DLL behaves visibly differently in a host and nothing
+  in the UI said which one was loaded.  The renderer mirrors the Release wording (previews
+  depict Release) and width-asserts both variants; BUILD row 99 logs it.
+- Recon: `.gitignore` already covers every build artefact the real Windows build produces
+  (`.vs/`, `Release/`, `Debug/`, `x64/`, `*.obj/.pdb/.ilk/.log`, and the LTCG `.ipdb/.iobj`
+  inside `x64/`), and all four configs carry `d3d11.lib;dxgi.lib` - no change needed.
+
 ## First real MSVC build: clean
 - Owner's Windows build (2026-10-23, Visual Studio, Release x64): "1 erfolgreich, 0 Fehler" -
   the first real compile of this branch, after 43 commits of static-only verification.  The

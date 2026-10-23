@@ -635,6 +635,9 @@ elif TAB == "config":
     ry += TEXT_LH + ITEM_SPACING_Y
     T(rx0, ry, "Interface: ImGui 1.92.9 (ocornut)", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
+    # code prints this via #ifdef _DEBUG; previews depict a Release build
+    T(rx0, ry, "Build: Release", C_MUTED)
+    ry += TEXT_LH + ITEM_SPACING_Y
     ry = sep(rx0, rx1, ry)
 
     # --- the pane is only a third of the column and ImGui::Text does not
@@ -648,7 +651,8 @@ elif TAB == "config":
     for lab in ("Reset interface settings", "Interface scale 100%"):
         assert TW(lab) <= pane_w, "label clipped: " + lab
     for s in ("Server related stuff", "Server IP: not connected", "About",
-              "EBengin", "Remade : by EB", "Interface: ImGui 1.92.9 (ocornut)"):
+              "EBengin", "Remade : by EB", "Interface: ImGui 1.92.9 (ocornut)",
+              "Build: Release", "Build: Debug (asserts on, slower)"):
         assert TW(s) <= rx1 - rx0, "right pane clipped: " + s
     assert ly <= bot + 0.5, "left Config pane overflows: %.1f > %.1f" % (ly, bot)
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)
