@@ -452,8 +452,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   last loaded or saved file, and a `modified` mark while unsaved edits exist), the Resources
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
   card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
-* **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear and a save-to-file dialog
-  sit above the executor (tooltips
+* **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear, a save-to-file dialog
+  and revert-to-last-file sit above the executor (tooltips
   name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
   undo, redo or copy, and say so in the tooltip. Load and Clear confirm before discarding
   a non-empty buffer (SetText wipes undo). The status line reports the selection size, the

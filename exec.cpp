@@ -38,6 +38,41 @@ namespace Executor
 		return i == std::string::npos ? path : path.substr(i + 1);
 	}
 
+	// Shared read path for Load-from-file and Revert: the size cap, the
+	// empty check and the UTF-8 BOM strip live in one place so the two
+	// cannot drift apart the way the old menu-list copies did.
+	// Returns 0 on success, 1 open failure, 2 empty, 3 oversized; on 0,
+	// out holds the file text after the BOM strip.
+	static int ReadFileText(const char* file, std::string& out)
+	{
+		FILE* fp = NULL;
+		if (fopen_s(&fp, file, "rb") != 0 || fp == NULL)
+			return 1;
+		fseek(fp, 0, SEEK_END);
+		const long size = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+		if (size <= 0)
+		{
+			fclose(fp);
+			return 2;
+		}
+		if (size >= 4 * 1024 * 1024)
+		{
+			fclose(fp);
+			return 3;
+		}
+		out.assign((size_t)size, '\0');
+		const size_t read = fread(&out[0], 1, (size_t)size, fp);
+		fclose(fp);
+		out.resize(read);
+		if (read >= 3 && (unsigned char)out[0] == 0xEF
+			&& (unsigned char)out[1] == 0xBB && (unsigned char)out[2] == 0xBF)
+		{
+			out.erase(0, 3);
+		}
+		return 0;
+	}
+
 	void Init()
 	{
 		editor.SetReadOnly(false);
@@ -193,6 +228,52 @@ namespace Executor
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Save the buffer to a file");
 		ImGui::SameLine();
+		// Revert reloads the file behind the buffer - the counterpart to
+		// the dirty mark: once it shows, one click takes the edits back.
+		// Grey without a file reference; with one, it compares first, so an
+		// unchanged buffer gets a plain info toast, not a scary question.
+		ImGui::BeginDisabled(g_lastFile.empty());
+		if (ImGui::Button(ICON_FA_HISTORY "##ed_revert", ImVec2(tb, tb)))
+		{
+			std::string fileText;
+			const int rc = ReadFileText(g_lastFile.c_str(), fileText);
+			if (rc != 0)
+			{
+				MessageBoxA(NULL, (std::string("Revert could not read:\n")
+					+ g_lastFile).c_str(), "EBengin", MB_OK | MB_ICONERROR);
+				Activity::Push(std::string("Revert failed: ") + g_lastFile);
+				Toasts::Push(Toasts::Warn, "Revert failed - file unreadable.");
+			}
+			else if (fileText == editor.GetText())
+			{
+				dirty = false;
+				Toasts::Push(Toasts::Info, "Buffer already matches the file.");
+			}
+			else
+			{
+				const bool go = !dirty
+					|| MessageBoxA(NULL, (std::string("Discard the current edits and revert to\n")
+						+ g_lastFile + "?").c_str(),
+						"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
+				if (go)
+				{
+					editor.SetText(fileText);
+					dirty = false;
+					suppress = 1;
+					Activity::Push("Reverted to " + g_lastFile + ".");
+					Toasts::Push(Toasts::Success,
+						"Reverted to " + BaseName(g_lastFile) + ".");
+				}
+				else
+					Activity::Push("Revert cancelled - buffer kept.");
+			}
+		}
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip(g_lastFile.empty()
+				? "Nothing to revert to - no file behind the buffer"
+				: ("Revert to " + BaseName(g_lastFile)).c_str());
+		ImGui::SameLine();
 		if (Gui::Toggle("Whitespace##ed_ws", &Settings::Current.ShowWhitespace))
 		{
 			ApplyPrefs();
@@ -288,71 +369,54 @@ namespace Executor
 				// Every failure path used to be silent: pick an unreadable, empty
 				// or oversized file and the button simply did nothing, which is
 				// indistinguishable from the old dead stub.  Say what happened.
-				FILE* fp = NULL;
-				if (fopen_s(&fp, file, "rb") != 0 || fp == NULL)
+				std::string text;
+				const int rc = ReadFileText(file, text);
+				if (rc == 1)
 				{
 					MessageBoxA(NULL, (std::string("Could not open:\n") + file).c_str(),
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load failed: ") + file);
 				}
+				else if (rc == 2)
+				{
+					MessageBoxA(NULL, "The selected file is empty.",
+						"EBengin", MB_OK | MB_ICONERROR);
+					Activity::Push(std::string("Load failed (empty): ") + file);
+				}
+				else if (rc == 3)
+				{
+					MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
+						"EBengin", MB_OK | MB_ICONERROR);
+					Activity::Push(std::string("Load refused (>4 MB): ") + file);
+				}
 				else
 				{
-					fseek(fp, 0, SEEK_END);
-					const long size = ftell(fp);
-					fseek(fp, 0, SEEK_SET);
-					if (size <= 0)
+					// Same lossiness as Clear: SetText wipes undo, so replacing
+					// a non-empty buffer throws away whatever was not saved.
+					const std::string curBuf = editor.GetText();
+					const bool replace = curBuf.empty()
+						|| MessageBoxA(NULL, (std::string("Replace the current buffer (")
+							+ std::to_string(curBuf.size()) + " bytes) with\n"
+							+ file + "?\nUnsaved changes cannot be undone.").c_str(),
+							"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
+					if (replace)
 					{
-						MessageBoxA(NULL, "The selected file is empty.",
-							"EBengin", MB_OK | MB_ICONERROR);
-						Activity::Push(std::string("Load failed (empty): ") + file);
-					}
-					else if (size >= 4 * 1024 * 1024)
-					{
-						MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
-							"EBengin", MB_OK | MB_ICONERROR);
-						Activity::Push(std::string("Load refused (>4 MB): ") + file);
+						editor.SetText(text);
+						g_lastFile = file;
+						dirty = false;
+						suppress = 1;
+						// Reported size is what the editor holds, i.e. after the BOM
+						// strip, not what the file occupied on disk.
+						Activity::Push("Loaded " + std::string(file) + " ("
+							+ std::to_string(text.size()) + " bytes) into the editor.");
+						Toasts::Push(Toasts::Success, "Loaded " + std::string(file)
+							+ " (" + std::to_string(text.size()) + " bytes).");
 					}
 					else
 					{
-						std::string text((size_t)size, '\0');
-						const size_t read = fread(&text[0], 1, (size_t)size, fp);
-						text.resize(read);
-						// A UTF-8 byte-order mark would land in the editor as a junk
-						// glyph in front of the first line.  The editor holds UTF-8
-						// text; the marker itself carries no information.
-						if (read >= 3 && (unsigned char)text[0] == 0xEF
-							&& (unsigned char)text[1] == 0xBB && (unsigned char)text[2] == 0xBF)
-						{
-							text.erase(0, 3);
-						}
-						// Same lossiness as Clear: SetText wipes undo, so replacing
-						// a non-empty buffer throws away whatever was not saved.
-						const std::string curBuf = editor.GetText();
-						const bool replace = curBuf.empty()
-							|| MessageBoxA(NULL, (std::string("Replace the current buffer (")
-								+ std::to_string(curBuf.size()) + " bytes) with\n"
-								+ file + "?\nUnsaved changes cannot be undone.").c_str(),
-								"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
-						if (replace)
-						{
-							editor.SetText(text);
-							g_lastFile = file;
-							dirty = false;
-							suppress = 1;
-							// Reported size is what the editor holds, i.e. after the BOM
-							// strip, not what the file occupied on disk.
-							Activity::Push("Loaded " + std::string(file) + " ("
-								+ std::to_string(text.size()) + " bytes) into the editor.");
-							Toasts::Push(Toasts::Success, "Loaded " + std::string(file)
-								+ " (" + std::to_string(text.size()) + " bytes).");
-						}
-						else
-						{
-							Activity::Push(std::string("Load cancelled - buffer kept: ") + file);
-							Toasts::Push(Toasts::Info, "Load cancelled - buffer kept.");
-						}
+						Activity::Push(std::string("Load cancelled - buffer kept: ") + file);
+						Toasts::Push(Toasts::Info, "Load cancelled - buffer kept.");
 					}
-					fclose(fp);
 				}
 			}
 		}

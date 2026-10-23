@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Revert: the way back from the dirty mark (row 126)
+- The dirty mark (row 119) said "unsaved edits" but offered no way back except undo keystrokes
+  or a hand reload through the Load dialog.  A revert icon now ends the editor toolbar: it
+  reloads the file behind the buffer, grey while no file reference exists, answering with a
+  plain info toast when the buffer already matches the file and asking only when the dirty
+  mark shows - so the question appears exactly when there is something to lose.
+- The read path (4 MB cap, empty check, UTF-8 BOM strip) moved out of the Load handler into a
+  `ReadFileText()` helper shared by Load and Revert, so the two cannot drift apart the way the
+  old duplicated menu-list copies did.
+
 ## Diagnostics line carries HUD state and write state (row 125)
 - A report that says "the FPS plate is missing" or "my settings reset every start" used to need
   a follow-up question: the clipboard line carried the environment but not whether the HUD was
