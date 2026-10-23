@@ -192,6 +192,34 @@ namespace Resources
 				Activity::Push("Dump FAILED for " + dir);
 			}
 		}
+
+		// The dump message box names the folder, but there was no way to actually
+		// *get* that path other than transcribing it from the box.
+		ImGui::Spacing();
+		if (ImGui::Button(ICON_FA_CLIPBOARD " Copy dump path",
+			ImVec2(ImGui::GetContentRegionAvail().x, 26)))
+		{
+			const std::string dumpDir = GetDumpDirectory();
+			if (!CopyToClipBoard(window, dumpDir))
+			{
+				MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
+					"rE", MB_OK | MB_ICONERROR);
+				Activity::Push("Copy failed: clipboard busy");
+			}
+			else
+			{
+				// GetFileAttributesA returns INVALID_FILE_ATTRIBUTES for a missing
+				// path, and that value has every bit set - so the directory bit is
+				// only meaningful once the validity check has passed.
+				const DWORD attrs = GetFileAttributesA(dumpDir.c_str());
+				const bool exists = attrs != INVALID_FILE_ATTRIBUTES
+					&& (attrs & FILE_ATTRIBUTE_DIRECTORY) != 0;
+				Activity::Push("Copied the dump path to the clipboard.");
+				Toasts::Push(Toasts::Info, exists
+					? "Dump path copied to the clipboard."
+					: "Dump path copied - the folder is created by the first dump.");
+			}
+		}
 	}
 
 	void Render()

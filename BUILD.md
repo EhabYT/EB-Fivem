@@ -89,7 +89,9 @@ So a working deployment is just:
 ```
 
 The menu is toggled with the bound key — **INSERT** by default, rebindable in Config →
-Interface and persisted in `settings.ini`.
+Interface and persisted in `settings.ini`, together with the window position, the last open tab,
+the animation/toast switches, the editor whitespace dots, the open Resources sub-tab and the
+interface scale (`[ui] scale`, 70–200%).
 
 ---
 
@@ -198,6 +200,11 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 73 | `Activity::Push(… + std::to_string(Triggers[i].size()) …)` — `Triggers` is a `std::vector<const char*>`, so the element is a pointer and has no `.size()` (C2228 "left of '.size' must have class/struct/union") | `strlen(Triggers[i])`, which is what the log line always meant |
 | 74 | `GetPrimerosePalette()` passed `ImColor(0.30,0.30,0.30, 120)`: three bare double literals next to an int alpha made MSVC bind the `ImColor(int,int,int,int)` overload (3× C4244 "conversion from 'double' to 'int'"), so `0.30` truncated to `0` and the selection highlight came out pure black | `ImColor(77,77,77,120)` — 77 = round(0.30 × 255), alpha unchanged |
 | 75 | `AddFontFromFileTTF(path, 20)` passed an `int` to the `float size_pixels` parameter | `20.0f` |
+| 76 | The interface scale was whatever the compiled font size happened to give you — no way to make the shell readable on a high-DPI screen or smaller on a cramped one | Config → Interface "Interface scale" slider, 70–200%, persisted as `[ui] scale` and applied through ImGui 1.92's `style.FontScaleMain`, which multiplies the *bound font's own* size (`style.FontSizeBase` is initialised from `font->LegacySize` on the first frame, `imgui.cpp:9104`; the factor is applied at `:9214`). `style.WindowMinSize` and the sidebar/inset metrics in `menu.h` follow the same factor, so the shell grows instead of clipping its labels. Applied on slider **release**, because 1.92 bakes a font for every distinct size it sees |
+| 77 | "Reset interface settings" only wrote the prefs struct — but two prefs also live somewhere else at runtime: the scale inside ImGui's style and the whitespace flag inside the TextEditor widget. The shell kept its old size and the dots stayed on screen until the toolbar switch was clicked again | The reset now calls `Settings::ApplyScale()` and the new `Executor::ApplyPrefs()`; `Executor::Init()` and the toolbar switch use that same function, so widget and ini cannot drift apart |
+| 78 | Switching toast notifications off left the stack in memory: `Menu::Render()` skips `Toasts::Render()` while the pref is false, so a card younger than ~4s reappeared mid-fade when toasts were switched back on | New `Toasts::Clear()`, called when the toggle turns off |
+| 79 | The dump folder was only ever *named* in a message box — there was no way to get the path except transcribing it | "Copy dump path" button under "Save All Resources" (which the file browser and the stopper both call), with an honest toast about whether the folder exists yet. `GetFileAttributesA` is validity-checked **before** the directory bit is tested, because `INVALID_FILE_ATTRIBUTES` has every bit set |
+| 80 | `Perf::DrawGraph()` divided by the bar width without checking it: on a zero-width canvas that is a division by zero, and the `(int)` cast of the resulting infinity is undefined — the index check after it would not reliably catch that | `bw > 0.0f` guard ahead of the hover readout |
 
 ---
 

@@ -48,7 +48,10 @@ namespace Perf
 				ImVec2(mn.x + (i + 1) * bw, mn.y + size.y - 1.0f), col);
 		}
 		// Hover readout: the bars show the shape, the tooltip the numbers.
-		if (ImGui::IsMouseHoveringRect(mn, mx) && g_count > 0)
+		// bw > 0 first: on a zero-width canvas the division below is by zero and
+		// the (int) cast of the resulting infinity is undefined, which the index
+		// check after it would not reliably catch.
+		if (bw > 0.0f && ImGui::IsMouseHoveringRect(mn, mx) && g_count > 0)
 		{
 			const int i = (int)((ImGui::GetMousePos().x - mn.x) / bw);
 			if (i >= 0 && i < g_count)

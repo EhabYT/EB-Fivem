@@ -1,6 +1,8 @@
 #include "settings.h"
 #include "assets.h"
 
+#include "imgui/imgui.h"
+
 #include <Windows.h>
 #include <cstdio>
 
@@ -24,6 +26,7 @@ namespace Settings
 		Current.Toasts     = GetPrivateProfileIntA("ui", "toasts", 1, path.c_str()) != 0;
 		Current.ShowWhitespace = GetPrivateProfileIntA("ui", "whitespace", 0, path.c_str()) != 0;
 		Current.ResourceTab    = GetPrivateProfileIntA("menu", "resourcetab", 0, path.c_str());
+		Current.ScalePercent   = GetPrivateProfileIntA("ui", "scale", 100, path.c_str());
 
 		// A hand-edited or truncated ini must not produce a tab or key the menu
 		// cannot use; clamp both back to their defaults.
@@ -33,6 +36,10 @@ namespace Settings
 			Current.ToggleKey = 0x2D;
 		if (Current.ResourceTab < 0 || Current.ResourceTab > 3)
 			Current.ResourceTab = 0;
+		// Below 70% the shell is unreadable, above 200% it no longer fits a 1080p
+		// screen; a hand-edited ini falls back to the compiled default.
+		if (Current.ScalePercent < 70 || Current.ScalePercent > 200)
+			Current.ScalePercent = 100;
 	}
 
 	static void WriteInt(const char* section, const char* key, int value)
@@ -52,6 +59,30 @@ namespace Settings
 		WriteInt("ui", "toasts", Current.Toasts ? 1 : 0);
 		WriteInt("ui", "whitespace", Current.ShowWhitespace ? 1 : 0);
 		WriteInt("menu", "resourcetab", Current.ResourceTab);
+		WriteInt("ui", "scale", Current.ScalePercent);
+	}
+
+	void ApplyScale()
+	{
+		if (Current.ScalePercent < 70)
+			Current.ScalePercent = 70;
+		if (Current.ScalePercent > 200)
+			Current.ScalePercent = 200;
+
+		// ImGui 1.92 has a first-class global scale factor: FontScaleMain
+		// multiplies style.FontSizeBase, and everything derived from the font size
+		// (frame height, item spacing, text, the editor) follows it.  Fonts are
+		// re-baked on demand at the new size, so this is one assignment rather than
+		// a restyle pass.
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.FontScaleMain = (float)Current.ScalePercent / 100.0f;
+
+		// menu.cpp sizes the window from style.WindowMinSize, so that has to follow
+		// the scale too - a 200% font inside a fixed 900x540 shell would clip.
+		// Recomputed from the compiled base, so repeated calls are idempotent.
+		// ApplyStyle() resets it to the 100% base, hence the call order in
+		// InitImGui(): ApplyStyle() -> Load() -> ApplyScale().
+		style.WindowMinSize = ImVec2(900.0f * style.FontScaleMain, 540.0f * style.FontScaleMain);
 	}
 
 	void SaveWindowPos(float x, float y)

@@ -33,13 +33,18 @@ namespace Executor
 		editor.SetReadOnly(false);
 		// Was hardcoded false; the visibility of whitespace dots is a preference
 		// and is persisted with the rest of the interface settings.
-		editor.SetShowWhitespaces(Settings::Current.ShowWhitespace);
+		ApplyPrefs();
 		editor.SetPalette(TextEditor::GetDarkPalette());
 
 		// This is a Lua editor; the widget defaults to C++.  Setting it here (once)
 		// rather than in Render() also stops the document being re-tokenised every
 		// frame, which was the single biggest per-frame cost in the menu.
 		editor.SetLanguageDefinition(TextEditor::LanguageDefinition::Lua());
+	}
+
+	void ApplyPrefs()
+	{
+		editor.SetShowWhitespaces(Settings::Current.ShowWhitespace);
 	}
 
 	void Render()
@@ -78,7 +83,7 @@ namespace Executor
 		ImGui::SameLine();
 		if (Gui::Toggle("Whitespace##ed_ws", &Settings::Current.ShowWhitespace))
 		{
-			editor.SetShowWhitespaces(Settings::Current.ShowWhitespace);
+			ApplyPrefs();
 			Settings::Save();
 		}
 		ImGui::Spacing();

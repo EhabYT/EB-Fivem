@@ -40,7 +40,7 @@ namespace Menu
 	static void CenteredInSidebarColored(const char* text, ImU32 col)
 	{
 		const float w = ImGui::CalcTextSize(text).x;
-		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth - w) * 0.5f));
+		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth() - w) * 0.5f));
 		ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), "%s", text);
 	}
 
@@ -48,7 +48,7 @@ namespace Menu
 	static void CenteredInSidebar(const char* text)
 	{
 		const float w = ImGui::CalcTextSize(text).x;
-		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth - w) * 0.5f));
+		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth() - w) * 0.5f));
 		ImGui::Text("%s", text);
 	}
 
@@ -79,7 +79,7 @@ namespace Menu
 		{
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
 			ImGui::SetCursorPosX(0);
-			Gui::Seperator(std::string("##main_seperator_") + std::to_string(i + 1), SidebarWidth, 1.0f);
+			Gui::Seperator(std::string("##main_seperator_") + std::to_string(i + 1), SidebarWidth(), 1.0f);
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
 			ImGui::SetCursorPosX(0);
 
@@ -99,7 +99,7 @@ namespace Menu
 			if (g_justOpened && (active || (Tab == TabDefault && i == 0)))
 				ImGui::SetKeyboardFocusHere();
 
-			if (ImGui::Button(SidebarItems[i].label, ImVec2(SidebarWidth, SidebarButtonHeight)))
+			if (ImGui::Button(SidebarItems[i].label, ImVec2(SidebarWidth(), SidebarButtonHeight())))
 			{
 				Tab = SidebarItems[i].tab;
 				Settings::Current.Tab = Tab;
@@ -113,7 +113,7 @@ namespace Menu
 				const ImVec2 min = ImGui::GetItemRectMin();
 				tgtX = min.x;
 				tgtY = min.y;
-				tgtH = SidebarButtonHeight;
+				tgtH = SidebarButtonHeight();
 				ImGui::PopStyleColor();
 			}
 		}
@@ -139,7 +139,7 @@ namespace Menu
 
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
 		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_5", SidebarWidth, 1.0f);
+		Gui::Seperator("##main_seperator_5", SidebarWidth(), 1.0f);
 
 		// The footer was pinned to SetCursorPosY(380) and (399): 19px apart, less
 		// than one 20px text line, so the two strings drew on top of each other,
@@ -288,7 +288,7 @@ namespace Menu
 		if (ImGui::BeginTable("##maincolumn", 2,
 			ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoPadOuterX))
 		{
-			ImGui::TableSetupColumn("##sidebar", ImGuiTableColumnFlags_WidthFixed, SidebarWidth);
+			ImGui::TableSetupColumn("##sidebar", ImGuiTableColumnFlags_WidthFixed, SidebarWidth());
 			ImGui::TableSetupColumn("##content", ImGuiTableColumnFlags_WidthStretch);
 
 			ImGui::TableNextRow();
@@ -297,8 +297,8 @@ namespace Menu
 			RenderSidebar();
 
 			ImGui::TableNextColumn();
-			// See Menu::ContentPadding: keeps the tab bodies off the divider.
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ContentPadding);
+			// See Menu::ContentPadding(): keeps the tab bodies off the divider.
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ContentPadding());
 			Tabs::Render();
 
 			ImGui::EndTable();

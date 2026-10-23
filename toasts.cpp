@@ -39,6 +39,11 @@ namespace Toasts
 			g_entries.erase(g_entries.begin());
 	}
 
+	void Clear()
+	{
+		g_entries.clear();
+	}
+
 	void Render()
 	{
 		if (g_entries.empty())

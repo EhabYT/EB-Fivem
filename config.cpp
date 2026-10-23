@@ -2,6 +2,7 @@
 #include "activity.h"
 #include "settings.h"
 #include "toasts.h"
+#include "exec.h"      // Executor::ApplyPrefs() for the settings reset
 
 #include <Windows.h>
 #include <string>
@@ -89,7 +90,39 @@ namespace Config
 		if (Gui::Toggle("Animations##ui_anim", &Settings::Current.Animations))
 			Settings::Save();
 		if (Gui::Toggle("Toast notifications##ui_toasts", &Settings::Current.Toasts))
+		{
+			// Switching the stack off must also empty it: Menu::Render() skips
+			// Toasts::Render() while the pref is false, so a card younger than ~4s
+			// would otherwise reappear mid-fade when toasts are switched back on.
+			if (!Settings::Current.Toasts)
+				Toasts::Clear();
 			Settings::Save();
+		}
+
+		// Interface scale, 70..200%.  Applied through ImGui 1.92's global font
+		// scale factor (style.FontScaleMain), so the whole shell - fonts, frames,
+		// sidebar, window size - grows together instead of text overflowing fixed
+		// widgets.  Persisted as [ui] scale.
+		//
+		// Applied on release rather than while dragging: 1.92 bakes the font for
+		// every distinct size it sees, so a live drag from 70 to 200 would bake
+		// ~130 sizes into the atlas for nothing.
+		ImGui::Spacing();
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+		ImGui::SliderInt("##ui_scale", &Settings::Current.ScalePercent, 70, 200,
+			"Interface scale %d%%");
+		const bool scaleDone = ImGui::IsItemDeactivatedAfterEdit();
+		ImGui::PopItemWidth();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Font and layout scale - applies when you release the slider");
+		if (scaleDone)
+		{
+			Settings::ApplyScale();
+			Settings::Save();
+			const std::string pct = std::to_string(Settings::Current.ScalePercent) + "%";
+			Activity::Push("Interface scale set to " + pct);
+			Toasts::Push(Toasts::Info, "Interface scale set to " + pct + ".");
+		}
 
 		ImGui::Spacing();
 		ImGui::TextColored(ImColor(93, 156, 214, 153),
@@ -102,9 +135,16 @@ namespace Config
 			// bind or a window dragged off-screen meant hand-editing or
 			// deleting settings.ini.  Window position and tab apply on the next
 			// start (the position is restored with ImGuiCond_Once); the key,
-			// the switches and the whitespace dot take effect immediately.
+			// the switches, the scale and the whitespace dot take effect at once.
 			Settings::Current = Settings::Prefs();
 			Settings::Save();
+			// Two of the prefs also live somewhere else at runtime - the scale in
+			// ImGui's style and the whitespace flag inside the TextEditor widget -
+			// so writing the struct alone is not enough.  Push both out again,
+			// otherwise the shell keeps its old size and the dots stay on screen
+			// until the toolbar switch is clicked.
+			Settings::ApplyScale();
+			Executor::ApplyPrefs();
 			Activity::Push("Interface settings reset to defaults.");
 			Toasts::Push(Toasts::Info, "Interface settings reset; window position applies on next start.");
 		}

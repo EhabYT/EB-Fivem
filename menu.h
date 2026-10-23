@@ -1,6 +1,7 @@
 #pragma once
 
 #include "imgui/imgui.h"
+#include "settings.h"   // ScaleFactor() for the layout metrics below
 
 #include <d3d11.h>
 
@@ -30,14 +31,24 @@ namespace Menu
 
 	// Layout of the shell, shared with nothing else - the sidebar buttons are the
 	// only consumer of SidebarWidth.
-	static const float SidebarWidth        = 225.0f;
-	static const float SidebarButtonHeight = 46.0f;
+	//
+	// All three are the metrics at 100% interface scale.  The inline accessors
+	// multiply by the persisted scale (settings.ini [ui] scale) so the sidebar and
+	// the tab inset grow with the font instead of clipping their labels; they have
+	// to be functions rather than constants because Config can change the scale
+	// while the menu is open.
+	static const float SidebarWidthBase        = 225.0f;
+	static const float SidebarButtonHeightBase = 46.0f;
+	static const float ContentPaddingBase      = 8.0f;
+
+	inline float SidebarWidth()        { return SidebarWidthBase        * Settings::ScaleFactor(); }
+	inline float SidebarButtonHeight() { return SidebarButtonHeightBase * Settings::ScaleFactor(); }
 
 	// Left inset of the tab column.  The shell table uses NoPadOuterX and a
 	// (0,0) CellPadding so the sidebar keeps exactly SidebarWidth of usable
 	// width; the same flags leave the content column starting flush against the
 	// column divider, which this pushes the tab bodies away from.
-	static const float ContentPadding      = 8.0f;
+	inline float ContentPadding()      { return ContentPaddingBase      * Settings::ScaleFactor(); }
 
 	// The brand accent, #5D9CD6 - the top of the light ramp in menu_style.h.
 	// The sidebar's selected-tab marker, the editor line numbers (TextEditor

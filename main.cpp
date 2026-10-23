@@ -234,6 +234,9 @@ void InitImGui()
 	// the DLL so a re-inject restores the previous session instead of resetting
 	// the window to the top-left and the tab to the landing page.
 	Settings::Load();
+	// Font/window scale: must follow Load() (it reads the persisted value) and
+	// ApplyStyle() above (which resets WindowMinSize to the 100% base).
+	Settings::ApplyScale();
 	Menu::Tab = Settings::Current.Tab;
 
 	// One-time widget setup for the tabs that own a TextEditor.

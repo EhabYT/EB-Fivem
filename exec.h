@@ -22,5 +22,10 @@ namespace Executor
 	// document on every single frame.
 	void Init();
 
+	// Pushes the persisted interface prefs into the widget.  The TextEditor keeps
+	// its own copy of the whitespace flag, so writing settings.ini alone (Config
+	// -> "Reset interface settings") would leave the editor out of sync with it.
+	void ApplyPrefs();
+
 	void Render();
 }

@@ -14,6 +14,9 @@ inline void ApplyStyle()
 
 	ImGuiStyle& style = ImGui::GetStyle();
 
+	// Base shell size at 100% interface scale.  Settings::ApplyScale() rescales
+	// WindowMinSize from the same base, and InitImGui() runs it *after* this, so
+	// the persisted [ui] scale is not overwritten here.
 	style.WindowMinSize = ImVec2(900, 540); // This sets the minimum window size
 
 	style.FrameBorderSize		= 0;

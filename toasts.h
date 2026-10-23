@@ -25,6 +25,11 @@ namespace Toasts
 	// Queues one card (newest last, stack capped at four).
 	void Push(Kind kind, const std::string& text);
 
+	// Drops the whole stack.  Called when the toast preference is switched off:
+	// Menu::Render() skips Render() while it is false, so a card younger than
+	// ~4s would otherwise reappear mid-fade when toasts are switched back on.
+	void Clear();
+
 	// Draws the live stack.  Call from inside the menu window (menu.cpp);
 	// cards fade in, live ~4s and fade out again.
 	void Render();

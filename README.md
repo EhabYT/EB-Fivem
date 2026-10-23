@@ -334,8 +334,15 @@ Until then there is **no CI and no compile proof** — every check on this branc
   name the shortcuts), the status line reports the selection size, and toast cards dismiss on
   click without ever stealing a click from a widget under the stack.
 * **Small persistences:** the editor whitespace dots, the open Resources sub-tab and a one-click
-  "Reset interface settings" button join window position, last tab, toggle key and the
-  animation/toast switches in `settings.ini`.
+  "Reset interface settings" button join window position, last tab, toggle key, the
+  animation/toast switches and the interface scale in `settings.ini`.
+* **Interface scale:** Config → Interface carries a 70–200% slider, persisted as `[ui] scale` and
+  applied through ImGui 1.92's `style.FontScaleMain`, so fonts, frames, sidebar and window size
+  grow together instead of text overflowing fixed widgets. It applies when the slider is released
+  — 1.92 bakes a font for every distinct size it sees, so a live drag would bake ~130 of them.
+* **Two honest details:** the Resources tab can copy the dump folder path to the clipboard (before,
+  that path only ever appeared inside a message box), and switching toast notifications off now
+  empties the stack instead of letting a half-faded card reappear when they are switched back on.
 
 ## Credits
 
