@@ -340,17 +340,24 @@ if TAB == "hud":
     SURF = canvas
 
     HUD = "FPS 144  |  6.9 ms"
+    CREDIT = "MADE BY EB"          # menu.cpp: second plate line, muted brand
     assert TW(HUD) <= FW - 40, "hud line clipped"
-    ts_w, ts_h = TW(HUD), FONT_SIZE
+    assert TW(CREDIT) <= FW - 40, "hud credit clipped"
+    ts_w = max(TW(HUD), TW(CREDIT))
+    adv = FONT_SIZE + ITEM_SPACING_Y      # GetTextLineHeightWithSpacing()
+    plate_h = adv + FONT_SIZE             # two lines
     pad, pos = 6.0, (10.0, 10.0)
     plate = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
     ImageDraw.Draw(plate).rounded_rectangle(
         [(pos[0] - pad) * S, (pos[1] - pad) * S,
-         (pos[0] + ts_w + pad) * S - 1, (pos[1] + ts_h + pad) * S - 1],
+         (pos[0] + ts_w + pad) * S - 1, (pos[1] + plate_h + pad) * S - 1],
         radius=6 * S, fill=(12, 18, 28, 160))
     canvas.alpha_composite(plate)
     d = ImageDraw.Draw(canvas)
     T(pos[0], pos[1], HUD, C_ACCENT)
+    # credit ink: brand accent at alpha 153 over the plate-over-scene base
+    T(pos[0], pos[1] + adv, CREDIT,
+      blend((93, 156, 214, 153), blend((12, 18, 28, 160), SCENE)))
 
     canvas.save(OUT, optimize=True)
     os.unlink(fa_path)

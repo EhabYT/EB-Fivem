@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The HUD carries the credit: MADE BY EB (row 124)
+- The FPS HUD plate was the one surface that stays visible while the overlay is closed - and
+  the one place the owner credit did not appear (splash card, sidebar footer and Config About
+  all carry it).  `Menu::RenderHud()` now draws `MADE BY EB` as a second plate line in the
+  footer's muted brand alpha; the plate sizes to the wider of the two lines and both line
+  heights.
+- The `--hud` render mirrors the two-line plate including the ink-over-plate blend (accent at
+  alpha 153 over the 63%-alpha plate over the scene stand-in); preview_hud.png re-rendered.
+
 ## Tooling regression: seven renders byte-identical, graph generator idempotent
 - Full re-run of the docs tooling after the sandbox reset: all seven preview renders reproduce
   their committed bytes exactly (executor 789c95b8, config dc2c17a0, resources c4011405, menus

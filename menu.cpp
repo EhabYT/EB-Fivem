@@ -295,15 +295,26 @@ namespace Menu
 		snprintf(line, sizeof(line), "FPS %.0f  |  %.1f ms",
 			fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
 
+		// The HUD is the one surface that stays visible while the overlay
+		// is closed, so it is the one place the owner credit survives a
+		// closed menu: second plate line, muted brand alpha like the
+		// footer's credit line.
+		const char* credit = "MADE BY EB";
+
 		const ImVec2 ts = ImGui::CalcTextSize(line);
+		const ImVec2 cs = ImGui::CalcTextSize(credit);
+		const float w = ts.x > cs.x ? ts.x : cs.x;
+		const float adv = ImGui::GetTextLineHeightWithSpacing();
 		const float pad = Settings::Px(6.0f);
 		const ImVec2 pos(Settings::Px(10.0f), Settings::Px(10.0f));
 		ImDrawList* bg = ImGui::GetBackgroundDrawList();
 		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
-			ImVec2(pos.x + ts.x + pad, pos.y + ts.y + pad),
+			ImVec2(pos.x + w + pad, pos.y + adv + cs.y + pad),
 			IM_COL32(12, 18, 28, 160), Settings::Px(6.0f));
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(), pos,
 			ImColor(93, 156, 214, 255), line);
+		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
+			ImVec2(pos.x, pos.y + adv), ImColor(93, 156, 214, 153), credit);
 	}
 
 	void Render()

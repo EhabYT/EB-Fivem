@@ -63,7 +63,7 @@ name and the credit line, dismissed with Continue.  Fifth render
 ![EBengin splash card](docs/preview_splash.png)
 
 While the overlay is closed, the frame-rate line lives on as a small HUD plate over
-the scene (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`).  Sixth render
+the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`).  Sixth render
 (`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
 
 ![EBengin FPS HUD](docs/preview_hud.png)
