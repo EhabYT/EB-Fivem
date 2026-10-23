@@ -534,6 +534,8 @@ if TAB == "executor":
             R(cx + 1, ly + 6, cx + 2, ly + LINE_ADV - 6, P["cursor"])
 
     # status line (exec.cpp): cursor + document size, muted accent
+    # code appends "| file: <name>" once a load or save happened; the
+    # preview depicts a buffer with no file behind it
     T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
 
     # button row: Execute 116x30, Load from File 180x30, combo fills the rest
@@ -694,6 +696,7 @@ elif TAB == "config":
     ry += TEXT_LH + ITEM_SPACING_Y
     ry = sep(rx0, rx1, ry)
     ry = button(rx0, ry, rx1 - rx0, 26, "Copy diagnostics")
+    ry = button(rx0, ry, rx1 - rx0, 26, "Open settings folder")
 
     # --- the pane is only a third of the column and ImGui::Text does not
     # wrap, so these asserts are what keeps a label from being clipped ---
@@ -710,7 +713,8 @@ elif TAB == "config":
               "Build: Release x64", "Build: Release Win32 (x86)",
               "Build: Debug x64 (asserts on, slower)",
               "Build: Debug Win32 (asserts on, slower)",
-              "Host: DPI 1.00, interface 100%", "Copy diagnostics"):
+              "Host: DPI 1.00, interface 100%", "Copy diagnostics",
+              "Open settings folder"):
         assert TW(s) <= rx1 - rx0, "right pane clipped: " + s
     assert ly <= bot + 0.5, "left Config pane overflows: %.1f > %.1f" % (ly, bot)
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)

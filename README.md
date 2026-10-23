@@ -31,7 +31,8 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
 > answers every flip. The right pane's About block names brand, credit, build
 > configuration and host scale, flags a non-writable settings file in red, and its
-> `Copy diagnostics` button puts exactly that line on the clipboard. The landing
+> `Copy diagnostics` button puts exactly that line on the clipboard, and a second button
+> opens the settings folder in Explorer with the file highlighted. The landing
 > tab's session log - the timestamped trace of failures and refusals - is copyable
 > the same way. The asserts in the renderer are what keep this pane's labels
 > inside its ~216 px column.
@@ -386,7 +387,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   short fade, the sidebar's tab marker slides to the selected entry, and primary actions
   (Execute, Save All Resources, Run) draw in the brand blue instead of the default navy.
   Config → Interface can switch animations and toasts off; both are persisted in `settings.ini`.
-* **Tab comfort:** the editor carries a status line (Ln/Col, line count, language), the Resources
+* **Tab comfort:** the editor carries a status line (Ln/Col, line count, language, and the
+  last loaded or saved file), the Resources
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
   card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear and a save-to-file dialog

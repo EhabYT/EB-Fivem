@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Paths you can see and reach (rows 110-111)
+- The editor status line appends `| file: <base name>` once a load or save succeeded
+  (`exec.cpp` file-static, base name only), so the origin of the buffer on screen survives the
+  next edit and the renderer documents the no-file default.
+- Config's About block gains `Open settings folder` under `Copy diagnostics`:
+  `ShellExecuteA(NULL, "explore", NULL, "/select,<ini path>", ...)` opens Explorer with
+  settings.ini highlighted - the Dumps folder sits next to it, so attaching files to a report
+  is two clicks.  A return code of 32 or less answers with an activity entry (code included)
+  and a warn toast instead of silence; `shell32.lib` via pragma comment.
+
 ## Failure visibility and a copyable session log (rows 108-109)
 - A failed settings.ini write used to answer once (warn toast + activity entry) and then go
   silent, although the consequence - every later change lost on restart - persists for the

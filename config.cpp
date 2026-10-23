@@ -6,8 +6,12 @@
 #include "clipboard.h"
 
 #include <Windows.h>
+#include <shellapi.h>
 #include <string>
 #include <cstring>
+#include <cstdint>
+
+#pragma comment(lib, "shell32.lib")
 
 namespace Config
 {
@@ -275,6 +279,25 @@ namespace Config
 			{
 				Activity::Push("Clipboard unavailable - diagnostics not copied.");
 				Toasts::Push(Toasts::Warn, "Clipboard unavailable - nothing copied.");
+			}
+		}
+
+		// Copy diagnostics puts the environment on the clipboard; this one
+		// opens the folder that holds settings.ini (and the Dumps folder
+		// sits next to it), so attaching files to a report is two clicks.
+		if (ImGui::Button("Open settings folder",
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
+		{
+			const std::string sel = "/select," + Settings::IniPath();
+			const intptr_t r = (intptr_t)ShellExecuteA(
+				NULL, "explore", NULL, sel.c_str(), NULL, SW_SHOWNORMAL);
+			if (r > 32)
+				Activity::Push("Opened the settings folder in Explorer.");
+			else
+			{
+				Activity::Push("Explorer could not be started (code "
+					+ std::to_string(r) + ").");
+				Toasts::Push(Toasts::Warn, "Could not open the settings folder.");
 			}
 		}
 		ImGui::EndChild();

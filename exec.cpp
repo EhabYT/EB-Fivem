@@ -28,6 +28,16 @@ namespace Executor
 {
 	TextEditor editor;
 
+	// Last file the buffer came from or went to.  After a second load the
+	// origin of the text on screen was simply gone; the status line keeps it.
+	static std::string g_lastFile;
+
+	static std::string BaseName(const std::string& path)
+	{
+		const size_t i = path.find_last_of("\\/");
+		return i == std::string::npos ? path : path.substr(i + 1);
+	}
+
 	void Init()
 	{
 		editor.SetReadOnly(false);
@@ -138,6 +148,7 @@ namespace Executor
 					}
 					else
 					{
+						g_lastFile = file;
 						Activity::Push("Saved " + std::to_string(written)
 							+ " bytes to " + file + ".");
 						Toasts::Push(Toasts::Success, "Saved "
@@ -178,6 +189,8 @@ namespace Executor
 			cur.mLine + 1, cur.mColumn + 1, editor.GetTotalLines(),
 			editor.IsReadOnly() ? "  |  read-only" : "");
 		std::string statusLine = status;
+		if (!g_lastFile.empty())
+			statusLine += "  |  file: " + BaseName(g_lastFile);
 		if (editor.HasSelection())
 			statusLine += "  |  " + std::to_string(editor.GetSelectedText().size()) + " selected";
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", statusLine.c_str());
@@ -270,6 +283,7 @@ namespace Executor
 							text.erase(0, 3);
 						}
 						editor.SetText(text);
+						g_lastFile = file;
 						// Reported size is what the editor holds, i.e. after the BOM
 						// strip, not what the file occupied on disk.
 						Activity::Push("Loaded " + std::string(file) + " ("
