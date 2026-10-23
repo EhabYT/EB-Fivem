@@ -27,7 +27,11 @@ invented:
                  bar, toast stack anchored 10px off the window's bottom-right
   TextEditor.cpp GetDarkPalette(), mLeftMargin (10), mLineSpacing (1.0)
   config.cpp       pane split (avail.x / 3), the two inert switch sections and
-                   the Interface prefs - used by the --config branch only
+                   the Interface prefs, the About block lines and both of its
+                   buttons - used by the --config branch only
+  default.cpp      landing layout: graph height Px(60), the Copy 50x20 /
+                   Clear 60x20 pair sharing a line with the heading, log
+                   newest first - used by the --default branch only
 
 Two things CANNOT be faithful and are substituted, exactly as the README caption
 says: Bahnschrift.ttf is a Windows-only font (a horizontally condensed DejaVu

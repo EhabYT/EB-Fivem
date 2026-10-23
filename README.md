@@ -21,7 +21,9 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > this render). Two things are substituted and cannot be faithful: the text face — `Bahnschrift.ttf`
 > is a Windows-only font, so a horizontally condensed DejaVu Sans stands in for its DIN proportions —
 > and ImGui's exact layout engine, which is not running here. The Lua snippet in the editor is
-> illustrative; on first launch the menu opens on the empty landing tab.
+> illustrative; on first launch the menu opens on the empty landing tab. The landing render's
+> sparkline and log entries are illustrative runtime data in the same sense - what the
+> renderer guarantees is their layout (panel height, button row, line widths), not values.
 
 ![EBengin menu preview - Config tab](docs/preview_config.png)
 

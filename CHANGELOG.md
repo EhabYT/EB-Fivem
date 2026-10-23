@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Caption and docstring say what the landing render guarantees
+- The README fidelity caption already named the Lua snippet as illustrative; the landing
+  render's sparkline and log entries are illustrative runtime data in exactly the same way, and
+  the caption now says so - what the renderer guarantees is layout (panel height, the Copy/Clear
+  row, line widths against the asserts), not values.
+- The renderer docstring's source list gains `default.cpp` (graph height, button metrics, log
+  order) and names the About block lines and buttons under `config.cpp`.
+
 ## The landing tab gets its preview render (row 121)
 - `docs/render_preview.py --default` renders the one tab body that had no picture: the landing
   tab with its Diagnostics sparkline panel, the uptime/actions/FPS line, the session activity
