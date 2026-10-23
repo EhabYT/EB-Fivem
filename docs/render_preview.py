@@ -35,12 +35,16 @@ Sans stands in for its DIN advance widths), and ImGui's layout engine is not
 running, so positions follow the constants above. This is a render, not a
 screenshot.
 
-Usage:  python docs/render_preview.py            -> docs/preview.png         (Executor tab)
-        python docs/render_preview.py --config   -> docs/preview_config.png  (Config tab)
+Usage:  python docs/render_preview.py             -> docs/preview.png          (Executor tab)
+        python docs/render_preview.py --config    -> docs/preview_config.png   (Config tab)
         python docs/render_preview.py --resources -> docs/preview_resources.png
-        python docs/render_preview.py --menus    -> docs/preview_menus.png
+        python docs/render_preview.py --menus     -> docs/preview_menus.png
+        python docs/render_preview.py --default   -> docs/preview_default.png  (landing tab)
+        python docs/render_preview.py --splash    -> docs/preview_splash.png
+        python docs/render_preview.py --hud       -> docs/preview_hud.png
         (requires Pillow)
 """
+import math
 import os
 import re
 import struct
@@ -64,6 +68,8 @@ elif "--splash" in sys.argv[1:]:
     TAB = "splash"
 elif "--hud" in sys.argv[1:]:
     TAB = "hud"
+elif "--default" in sys.argv[1:]:
+    TAB = "default"
 else:
     TAB = "executor"
 OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
@@ -71,7 +77,8 @@ OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
                                   "resources": "preview_resources.png",
                                   "menus": "preview_menus.png",
                                   "splash": "preview_splash.png",
-                                  "hud": "preview_hud.png"}[TAB])
+                                  "hud": "preview_hud.png",
+                                  "default": "preview_default.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -435,7 +442,8 @@ img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
 
 SIDEBAR = [("\uf121", " Executor"), ("\uf019", " Resources"),
            ("\uf02d", " Menus"),    ("\uf085", " Config")]
-ACTIVE = {"executor": 0, "resources": 1, "menus": 2, "config": 3}[TAB]
+ACTIVE = {"executor": 0, "resources": 1, "menus": 2, "config": 3,
+          "default": -1}[TAB]   # the landing tab has no sidebar row
 
 sep_y = 170
 R(SX0, sep_y, SX1, sep_y + 1, C_BORDER)
@@ -897,12 +905,78 @@ def draw_toast(text, bar):
         T(x0 + bar_w + inner, y0 + inner + k * FONT_SIZE, tl, C_TEXT)
 
 
+# standalone if, not an elif: the tab chain above is already closed by the
+# top-level draw_toast() def, and TAB can only hold one value anyway.
+if TAB == "default":
+    # Landing tab (default.cpp): title, hint line, Diagnostics block (sparkline
+    # panel plus the uptime/actions/FPS line), then Session activity with the
+    # Copy/Clear pair and three log entries, newest first.
+    C_MUT = blend((93, 156, 214, 153), C_WINDOW_BG)
+    TEXT_LH = FONT_SIZE          # ImGui::GetTextLineHeight(), as in config
+
+    def dsep(x0, x1, sy):
+        R(x0, sy, x1, sy + 1, C_BORDER)
+        return sy + 1 + ITEM_SPACING_Y
+
+    T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Default", C_TEXT)
+    y = CY0 + LINE_ADV
+    R(CX0, y, CX1, y + 1, C_BORDER)
+    y += 1 + ITEM_SPACING_Y
+    hint = "No section has been selected. Click a button on the left navbar."
+    T(CX0, y, hint, C_TEXT)
+    y += TEXT_LH + ITEM_SPACING_Y
+    y = dsep(CX0, CX1, y)
+    T(CX0, y, "Diagnostics", C_TEXT)
+    y += TEXT_LH + ITEM_SPACING_Y
+    # Perf::DrawGraph: 60 px of frame-time history on a dark panel
+    gh = 60
+    R(CX0, y, CX1, y + gh, (16, 31, 52))
+    R(CX0, y, CX1, y + 1, C_BORDER)
+    R(CX0, y + gh - 1, CX1, y + gh, C_BORDER)
+    pts = []
+    for k in range(60):
+        px = CX0 + 2 + (CX1 - CX0 - 4) * k / 59.0
+        v = 0.35 + 0.22 * math.sin(k * 0.55) + 0.10 * math.sin(k * 1.7 + 1.0)
+        pts.append((px, y + gh - 4 - v * (gh - 10)))
+    d.line([(px * S, py * S) for px, py in pts], fill=C_ACCENT, width=S,
+           joint="curve")
+    y += gh + ITEM_SPACING_Y
+    diag = "Menu open 00:12:34  |  87 actions  |  144 FPS now"
+    T(CX0, y, diag, C_MUT)
+    y += TEXT_LH + ITEM_SPACING_Y
+    y = dsep(CX0, CX1, y)
+    T(CX0, y, "Session activity", C_TEXT)
+    bh, bw_copy, bw_clear = 20, 50, 60
+    x_clear = CX1 - bw_clear
+    x_copy = x_clear - 4 - bw_copy
+    by = y + (TEXT_LH - bh) / 2 - 1
+    for bx, bw, bl in ((x_copy, bw_copy, "Copy"), (x_clear, bw_clear, "Clear")):
+        R(bx, by, bx + bw, by + bh, C_BUTTON)
+        T(bx + (bw - TW(bl)) / 2, by + (bh - FONT_SIZE) / 2, bl, C_TEXT)
+    y += TEXT_LH + ITEM_SPACING_Y
+    for ent in ("[12:00:09] Diagnostics copied to the clipboard.",
+                "[12:00:04] Execute requested for esx_extended (not implemented).",
+                "[12:00:01] Loaded C:\\scripts\\sync.lua (412 bytes) into the editor."):
+        T(CX0, y, ent, C_TEXT)
+        y += TEXT_LH + ITEM_SPACING_Y   # TextWrapped line advance
+
+    # --- the landing column is the widest in the shell, but the hint and the
+    # uptime line are single ImGui::Text calls, and the Copy/Clear pair shares
+    # its line with the heading: assert all of it fits ---
+    cw = CX1 - CX0
+    for t in (hint, diag, "Session activity"):
+        assert TW(t) <= cw, "landing line clipped: " + t
+    assert x_copy >= CX0 + TW("Session activity") + ITEM_SPACING_X, \
+        "Copy/Clear row collides with the heading"
+    assert y <= CY1 + 0.5, "landing overflows: %.1f > %.1f" % (y, CY1)
+
+
 if TAB == "config":
     # Warn card (KindColor -> red bar): the honest answer to flipping one of the
     # two inert switches.  Safemode is drawn off above, because this is the frame
     # right after that flip.
     draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 0, 0))
-elif TAB in ("resources", "menus"):
+elif TAB in ("resources", "menus", "default"):
     # No toast here: the frame shows the tab right after opening it, and a card
     # anchored 10px off the bottom-right would cover content these views exist
     # to show (the dump button block, row 86 / the Run stubs).
