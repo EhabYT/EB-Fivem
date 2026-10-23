@@ -680,6 +680,7 @@ elif TAB == "config":
     ry += TEXT_LH + ITEM_SPACING_Y
     T(rx0, ry, "Remade : by EB", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
+    # code prints ImGui::GetVersion(); the preview pins the vendored tag
     T(rx0, ry, "Interface: ImGui 1.92.9 (ocornut)", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
     # code prints this via #ifdef _DEBUG / _WIN64; previews depict Release x64

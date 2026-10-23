@@ -241,7 +241,10 @@ namespace Config
 		Gui::Seperator("##about_seperator_1");
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
 		ImGui::TextColored(ImColor(93, 156, 214, 153), "Remade : by EB");
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Interface: ImGui 1.92.9 (ocornut)");
+		// GetVersion() reports the version the linked imgui.cpp was compiled
+		// with, so this line can never drift from the vendored sources.
+		ImGui::TextColored(ImColor(93, 156, 214, 153), "Interface: ImGui %s (ocornut)",
+			ImGui::GetVersion());
 		// A Debug DLL behaves visibly differently in a host (asserts on, no
 		// optimisation), so the About block says which configuration this is.
 #if defined(_DEBUG) && defined(_WIN64)
@@ -277,11 +280,12 @@ namespace Config
 #else
 			const char* cfg = "Release Win32";
 #endif
-			char diag[256];
+			char diag[640];
 			snprintf(diag, sizeof(diag),
-				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | ImGui 1.92.9 | toggle: %s",
+				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | ImGui %s | toggle: %s | settings: %s",
 				cfg, Settings::DpiScale, Settings::Current.ScalePercent,
-				Settings::KeyName(Settings::Current.ToggleKey));
+				ImGui::GetVersion(), Settings::KeyName(Settings::Current.ToggleKey),
+				Settings::IniPath().c_str());
 			if (CopyTextToClipboard(diag))
 			{
 				Activity::Push("Diagnostics copied to the clipboard.");

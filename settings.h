@@ -55,6 +55,10 @@ namespace Settings
 	// and a warn toast instead of staying silent.
 	bool SaveFailed();
 
+	// Absolute path of the persisted settings.ini; the Config diagnostics
+	// line reports it so a report names the file it should attach.
+	std::string IniPath();
+
 	// Human-readable name for a virtual key, for the capture button.
 	const char* KeyName(int vk);
 }

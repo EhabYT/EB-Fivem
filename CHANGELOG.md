@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Version strings from the compiled library, settings path in diagnostics (row 106)
+- The About line and the Copy diagnostics string hardcoded `1.92.9`; both now format
+  `ImGui::GetVersion()`, i.e. the version the linked imgui.cpp was actually compiled with, so
+  a future vendored update cannot leave them lying.
+- The diagnostics line appends `| settings: <path>` via a now-public `Settings::IniPath()`, so
+  a report names the exact file to attach; the buffer grew from 256 to 640 bytes for MAX_PATH.
+- No pixel changes: the rendered strings are identical at the vendored tag, previews untouched.
+
 ## Copy diagnostics: one click, environment attached (row 105)
 - Config's About block ends with a `Copy diagnostics` button: one line with name, build
   configuration, host DPI and interface scale, ImGui version and toggle key goes to the

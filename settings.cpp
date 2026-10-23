@@ -14,7 +14,7 @@ namespace Settings
 	float DpiScale = 1.0f;
 	static bool g_saveFailed = false;
 
-	static std::string IniPath()
+	std::string IniPath()
 	{
 		return ResolveAssetPath("settings.ini");
 	}
