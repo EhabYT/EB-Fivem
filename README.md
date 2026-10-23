@@ -140,8 +140,10 @@ flowchart TD
     Q["NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"Toggle key pressed?<br/>edge triggered"}
     R -- "yes" --> S["toggle Menu::IsMenuOpen"] --> T
     R -- "no" --> T{"IsMenuOpen?"}
-    T -- "yes" --> U["Menu::Render<br/>sidebar column + Tabs::Render"] --> V
-    T -- "no" --> V
+    T -- "yes" --> U["Menu::Render<br/>first open: splash card, then shell:<br/>sidebar column + Tabs::Render"] --> V
+    T -- "no" --> UH{"FPS HUD on?<br/>[ui] hud = 1"}
+    UH -- "yes" --> UHR["Menu::RenderHud<br/>FPS plate on the background list"] --> V
+    UH -- "no" --> V
 
     V["ImGui::Render<br/>OMSetRenderTargets<br/>RenderDrawData"] --> W["hr = oPresent"]
     W --> X{"DEVICE_REMOVED<br/>or DEVICE_RESET?"}

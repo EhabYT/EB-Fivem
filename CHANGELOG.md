@@ -9,6 +9,12 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Architecture views synced with splash and HUD
+- README lifecycle diagram: the `IsMenuOpen?` no-branch now runs through the HUD decision
+  (`[ui] hud`) into `Menu::RenderHud`, and the render node names the splash card on first
+  open; BUILD.md section 9's Shell row lists the nav rail, selection wash, splash card and
+  HUD plate.  The README keeps its own rule: change the frame loop, change the diagram.
+
 ## Doc consistency after the HUD batch
 - The renderer docstring lists all six outputs now (--hud included); the README Config
   caption names the FPS HUD switch among the Interface preferences.

@@ -249,7 +249,7 @@ How the pieces fit together, top to bottom:
 | Layer | Files | Responsibility |
 |---|---|---|
 | Hook & lifetime | `main.cpp`, `includes.h`, `kiero/` | `DllMain` spawns `MainThread`; kiero hooks `IDXGISwapChain::Present` (vtable 8). `hkPresent` owns device/render-target lifecycle, resize & device-lost rebuild, the edge-triggered toggle poll and the frame pump |
-| Shell | `menu.cpp`, `menu.h`, `menu_style.h` | One ImGui window: sidebar (logo, tab buttons, animated marker, FPS footer), two-column table shell, open fade, drop shadow, brand rule, window-position persistence; `ApplyStyle()` sets the six-stop theme once |
+| Shell | `menu.cpp`, `menu.h`, `menu_style.h` | One ImGui window: sidebar on a darker nav-rail cell (logo, tab buttons, animated marker, accent wash on the selected row, FPS footer plus credit line), two-column table shell, open fade, drop shadow, brand rule, window-position persistence; first-open splash start card; `RenderHud()` FPS plate over the scene while the overlay is closed; `ApplyStyle()` sets the theme once (six-stop ramps plus the cohesion stops) |
 | Routing | `tabs.cpp`, `tabs.h` | `switch (Menu::Tab)` into the five tab bodies; the shell never learns which tabs exist |
 | Tab bodies | `default.cpp`, `exec.cpp`, `resources.cpp`, `luamenus.cpp`, `config.cpp` | Landing (activity log, diagnostics card), executor (TextEditor + toolbar + status line), resources (browser/triggers/stopper + filters + dump), menus (two lists), config (switches, key capture, reset) |
 | Widgets & feedback | `gui.h`, `toasts.*`, `activity.*`, `perf.*`, `settings.*` | `SectionTitle`/`Seperator`/`PrimaryButton`/`Toggle`; toast stack; session log; frame-time ring; `settings.ini` persistence — single-purpose modules, each with its own header |
