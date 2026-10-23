@@ -260,13 +260,20 @@ namespace Resources
 			selectedResource = 0;
 
 		const ImVec2 avail = ImGui::GetContentRegionAvail();
-		const ImVec2 listSize(avail.x, avail.y - Settings::Px(48.0f));
+		// SaveResources() below the list (sub-tabs 1 and 2) needs: separator
+		// (1+4) + the 33px primary (+4) + Spacing() (4) + the 26px copy button (+4)
+		// = 76px.  The old 48px reserve left "Copy dump path" ~24px below the
+		// visible content area - and the window is created with NoScrollbar, so it
+		// could not even be scrolled into view: clipped and unreachable.  Found by
+		// modelling this tab for docs/preview_resources.png.
+		const float saveBlockH = Settings::Px(76.0f);
+		const ImVec2 listSize(avail.x, avail.y - saveBlockH);
 
 		if (Settings::Current.ResourceTab == 1)
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::InputTextWithHint("##resfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
-			const ImVec2 listSize1(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
+			const ImVec2 listSize1(avail.x, ImGui::GetContentRegionAvail().y - saveBlockH);
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##resourcebox", listSize1))
@@ -356,6 +363,8 @@ namespace Resources
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
+			// The stopper block below is separator (1+4) + the 33px button (+4) =
+			// 42px, so the 48px reserve is the right one here.
 			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
 
 			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(31, 58, 97, 255));

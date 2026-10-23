@@ -32,6 +32,15 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > answers every flip. The asserts in the renderer are what keep this pane's labels
 > inside its ~216 px column.
 
+![redENGINE menu preview - Resources tab](docs/preview_resources.png)
+
+> Third render (`python docs/render_preview.py --resources`), File Browser sub-tab:
+> the filter field, the resource list with one header open and its read-only dump
+> preview, and — since the fix in BUILD.md row 86 — the complete dump button
+> block including "Copy dump path" inside the visible area. Every entry is the
+> repository's own resource list from `exec.cpp`; the Triggers sub-tab is
+> deliberately never depicted in preview imagery.
+
 ## Layout
 
 | Path | What it is |
@@ -59,6 +68,7 @@ labelled `Enabled (no effect)`, inert tooltips |
 | [`rE.png`](rE.png) | Menu logo, loaded from beside the DLL at runtime |
 | [`docs/preview.png`](docs/preview.png) | The preview render shown above, with its caption explaining exactly what is and is not faithful |
 | [`docs/preview_config.png`](docs/preview_config.png) | The same render with the Config tab open, produced by `docs/render_preview.py --config` |
+| [`docs/preview_resources.png`](docs/preview_resources.png) | The same render with the Resources tab open (`--resources`); the Triggers sub-tab is never depicted |
 
 ## Architecture
 

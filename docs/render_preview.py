@@ -33,6 +33,7 @@ screenshot.
 
 Usage:  python docs/render_preview.py            -> docs/preview.png         (Executor tab)
         python docs/render_preview.py --config   -> docs/preview_config.png  (Config tab)
+        python docs/render_preview.py --resources -> docs/preview_resources.png
         (requires Pillow)
 """
 import os
@@ -48,8 +49,15 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Which tab the shell is rendered with.  "executor" is the product shot;
 # "config" shows the Interface preferences and the two inert switches, i.e. the
 # pane whose labels are narrow enough to be clipped without anyone noticing.
-TAB = "config" if "--config" in sys.argv[1:] else "executor"
-OUT = os.path.join(REPO, "docs", "preview_config.png" if TAB == "config" else "preview.png")
+if "--config" in sys.argv[1:]:
+    TAB = "config"
+elif "--resources" in sys.argv[1:]:
+    TAB = "resources"
+else:
+    TAB = "executor"
+OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
+                                  "config": "preview_config.png",
+                                  "resources": "preview_resources.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -309,7 +317,7 @@ img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
 
 SIDEBAR = [("\uf121", " Executor"), ("\uf019", " Resources"),
            ("\uf02d", " Menus"),    ("\uf085", " Config")]
-ACTIVE = 3 if TAB == "config" else 0
+ACTIVE = {"executor": 0, "resources": 1, "config": 3}[TAB]
 
 sep_y = 170
 R(SX0, sep_y, SX1, sep_y + 1, C_BORDER)
@@ -418,7 +426,7 @@ if TAB == "executor":
     d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
 
 
-else:
+elif TAB == "config":
     # ------------------------------------------------------------------
     # content column: Config::Render()
     #   left pane  = avail.x / 3   the two inert switches + Interface prefs
@@ -543,6 +551,109 @@ else:
     assert ry <= bot + 0.5, "right Config pane overflows: %.1f > %.1f" % (ry, bot)
 
 
+else:
+    # ------------------------------------------------------------------
+    # content column: Resources::Render(), File Browser sub-tab open.
+    # The Triggers sub-tab is deliberately never rendered: its list is a
+    # clipboard collection of server-event strings, and preview imagery does
+    # not reproduce them.  Everything drawn here is repo data: the resource
+    # names from exec.cpp, the dumper line format from resources.cpp, the
+    # toast literal from the copy-dump-path branch.
+    # ------------------------------------------------------------------
+    C_DIS = RGBA(128, 128, 128)                     # ImGuiCol_TextDisabled (stock grey)
+    T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Resources", C_TEXT)
+    y = CY0 + LINE_ADV
+    R(CX0, y, CX1, y + 1, C_BORDER)
+    y += 1 + ITEM_SPACING_Y
+
+    bw = (CX1 - CX0 - 2 * ITEM_SPACING_X) / 3.0        # resources.cpp buttonWidth
+    SUBTABS = [("\uf07c", " File Browser"), ("\uf00e", " Triggers"), ("\uf02c", " Stopper")]
+    for k, (glyph, lab) in enumerate(SUBTABS):
+        bx = CX0 + k * (bw + ITEM_SPACING_X)
+        d.rounded_rectangle([bx*S, y*S, (bx+bw)*S-1, (y+33)*S-1], radius=6*S, fill=C_BUTTON)
+        lw = TW(glyph, f_icon, 1.0) + TW(lab)
+        ix = bx + (bw - lw) / 2
+        T(ix, y + (33-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, glyph, C_TEXT, f_icon, 1.0)
+        T(ix + TW(glyph, f_icon, 1.0), y + (33-FONT_SIZE)/2, lab, C_TEXT)
+    y += 33 + ITEM_SPACING_Y
+    R(CX0, y, CX1, y + 1, C_BORDER)                     # ##resources_seperator_3
+    y += 1 + ITEM_SPACING_Y
+
+    # filter input (InputTextWithHint, stock FrameBg, hint in TextDisabled grey)
+    d.rounded_rectangle([CX0*S, y*S, CX1*S-1, (y+LINE_H)*S-1], radius=6*S, fill=C_FRAME_BG)
+    d.rectangle([CX0*S, y*S, CX1*S-1, (y+LINE_H)*S-1], outline=C_BORDER, width=S)
+    T(CX0 + FRAME_PAD_X, y + (LINE_H-FONT_SIZE)/2, "Filter resources...", C_DIS)
+    y += LINE_H + ITEM_SPACING_Y
+
+    # list box: pushed FrameBg #14263F == C_WINDOW_BG, child border, 14px scrollbar
+    SAVE_BLOCK = 76.0                                   # see resources.cpp comment
+    lh = (CY1 - y) - SAVE_BLOCK
+    R(CX0, y, CX1, y + lh, C_WINDOW_BG)
+    inner_x, inner_r = CX0 + 8, CX1 - 1 - 14
+    names = ["_cfx_internal", "fivem", "hardcap", "anti-cheese", "esx_mafia",
+             "esx_gopostal", "esx_jail", "mysql-async", "es_admin2", "async"]
+    OPEN = "hardcap"
+    row_h = LINE_H + ITEM_SPACING_Y
+    ry = y + 8
+    while ry < y + lh:
+        name = names.pop(0) if names else None
+        if name is None:
+            break
+        cy = ry + LINE_H / 2
+        ax = inner_x + 2
+        if name == OPEN:
+            d.polygon([(ax*S, (cy-3)*S), ((ax+8)*S, (cy-3)*S), ((ax+4)*S, (cy+4)*S)], fill=C_TEXT)
+            T(inner_x + 14, ry + (LINE_H-FONT_SIZE)/2, name, C_TEXT)
+            ry += row_h
+            # the read-only dumper editor, indented like tree content
+            ex0, ew, eh = inner_x + 21, inner_r - (inner_x + 21), 200.0
+            R(ex0, ry, ex0 + ew, ry + eh, P["bg"])
+            d.rectangle([ex0*S, ry*S, (ex0+ew)*S-1, (ry+eh)*S-1], outline=C_BORDER, width=S)
+            gut = TW("1") + 10                          # mLeftMargin
+            T(ex0 + gut - TW("1"), ry + 4 + (LINE_ADV-FONT_SIZE)/2, "1", P["lineno"])
+            cx = ex0 + gut + 4
+            for txt, key in colorize(["--successfully dumped hardcap."])[0]:
+                T(cx, ry + 4 + (LINE_ADV-FONT_SIZE)/2, txt, P[key])
+                cx += TW(txt)
+            ry += eh + ITEM_SPACING_Y
+        else:
+            d.polygon([(ax*S, (cy-4)*S), (ax*S, (cy+4)*S), ((ax+6)*S, cy*S)], fill=C_TEXT)
+            T(inner_x + 14, ry + (LINE_H-FONT_SIZE)/2, name, C_TEXT)
+            ry += row_h
+    # rows past the list bottom are clipped by the child's clip rect
+    if ry > y + lh:
+        R(CX0, y + lh, CX1, y + lh + row_h + 4, C_WINDOW_BG)
+    d.rectangle([CX0*S, y*S, CX1*S-1, (y+lh)*S-1], outline=C_BORDER, width=S)
+    # scrollbar grab (overflowing child): thumb = track * visible/content
+    vis, content = lh - 16, 37 * row_h + 204
+    th = max(20.0, vis * vis / content)
+    gx0, gx1 = CX1 - 1 - 14 + 3, CX1 - 1 - 3
+    d.rounded_rectangle([gx0*S, (y+8)*S, gx1*S-1, (y+8+th)*S-1], radius=4*S, fill=RGBA(79, 79, 79))
+    y += lh
+
+    # SaveResources(): separator, 33px primary, Spacing, 26px copy button = 76px
+    R(CX0, y, CX1, y + 1, C_BORDER)
+    y += 1 + ITEM_SPACING_Y
+    d.rounded_rectangle([CX0*S, y*S, CX1*S-1, (y+33)*S-1], radius=6*S, fill=C_PRIMARY)
+    d.rounded_rectangle([(CX0+1)*S, (y+1)*S, (CX1-1)*S-1, (y+16.5)*S-1], radius=6*S,
+                        fill=blend((255, 255, 255, 26), C_PRIMARY))
+    T(CX0 + (CX1-CX0-TW("Save All Resources"))/2, y + (33-FONT_SIZE)/2, "Save All Resources", C_TEXT)
+    y += 33 + ITEM_SPACING_Y + ITEM_SPACING_Y
+    d.rounded_rectangle([CX0*S, y*S, CX1*S-1, (y+26)*S-1], radius=6*S, fill=C_BUTTON)
+    cl = TW("\uf0ea", f_icon, 1.0) + TW(" Copy dump path")
+    cix = CX0 + (CX1-CX0-cl)/2
+    T(cix, y + (26-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf0ea", C_TEXT, f_icon, 1.0)
+    T(cix + TW("\uf0ea", f_icon, 1.0), y + (26-FONT_SIZE)/2, " Copy dump path", C_TEXT)
+    y += 26 + ITEM_SPACING_Y
+
+    for glyph, lab in SUBTABS:
+        assert TW(glyph, f_icon, 1.0) + TW(lab) + 2*FRAME_PAD_X <= bw, "sub-tab clipped: " + lab
+    assert TW("Save All Resources") <= CX1 - CX0, "primary clipped"
+    assert max(TW(nm) for nm in ["_cfx_internal", "mysql-async"]) + 14 <= inner_r - inner_x
+    assert 1 + ITEM_SPACING_Y + 33 + ITEM_SPACING_Y + ITEM_SPACING_Y + 26 + ITEM_SPACING_Y == SAVE_BLOCK
+    assert y <= CY1 + 0.5, "Resources column overflows: %.1f > %.1f" % (y, CY1)
+
+
 # toast stack (toasts.cpp): one card, 10px off the window's bottom-right corner.
 # Card metrics straight from the source: 320px max width, 3px kind bar, 8px inner
 # padding, text wrapped at maxW - barW - inner*3, height = text height + 2*inner.
@@ -567,6 +678,11 @@ if TAB == "config":
     # two inert switches.  Safemode is drawn off above, because this is the frame
     # right after that flip.
     draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 0, 0))
+elif TAB == "resources":
+    # No toast here: the frame shows the tab right after opening it, and a card
+    # anchored 10px off the bottom-right would cover exactly the dump button
+    # block this view exists to show (row 86).
+    pass
 else:
     draw_toast("Dump saved to Dumps", C_ACCENT)      # Success card
 
