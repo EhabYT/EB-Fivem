@@ -182,6 +182,19 @@ namespace Config
 		// HUD keeps it over the scene while the overlay is closed.
 		if (Gui::Toggle("FPS HUD##ui_hud", &Settings::Current.Hud))
 			Settings::Save();
+		// UI: row 148 - where the plate sits while the overlay is closed; game
+		// HUDs often own the top-left corner.  Grey with the HUD itself.
+		ImGui::BeginDisabled(!Settings::Current.Hud);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		// "Corner" not "Plate corner": at 20px font the longer label plus the
+		// widest value ("Bottom right") overflow the third-of-column pane;
+		// the tooltip carries the full sentence.
+		if (ImGui::Combo("Corner##ui_hud_corner", &Settings::Current.HudCorner,
+			"Top left\0Top right\0Bottom left\0Bottom right\0"))
+			Settings::Save();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Which screen corner the FPS HUD plate sits in\nwhile the overlay is closed.");
+		ImGui::EndDisabled();
 
 		// Interface scale, 70..200%.  Applied through ImGui 1.92's global font
 		// scale factor (style.FontScaleMain), so the whole shell - fonts, frames,
@@ -207,16 +220,6 @@ namespace Config
 			Activity::Push("Interface scale set to " + pct);
 			Toasts::Push(Toasts::Info, "Interface scale set to " + pct + ".");
 		}
-
-		ImGui::Spacing();
-		// TextColored does not wrap, and this hint is ~448px against a ~216px pane:
-		// it was clipped after "Tab/arrows".  There is no TextWrappedColored, so the
-		// colour goes through the style stack.  The cast is required - ImColor
-		// converts to both ImU32 and ImVec4, which PushStyleColor would find
-		// ambiguous.
-		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ColMuted);
-		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates.");
-		ImGui::PopStyleColor();
 
 		ImGui::Spacing();
 		if (Gui::PrimaryButton("Reset interface settings",
@@ -401,6 +404,15 @@ namespace Config
 		}
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Opens the folder holding settings.ini in Explorer,\nwith the file highlighted once it exists.");
+
+		// UI: row 148 - the keyboard-nav hint moved here from the Interface
+		// pane: the plate-corner combo joined that pane, and the three wrapped
+		// hint lines no longer fit its third-of-column budget.  At this width
+		// the hint is a single line.  Same style-stack trick as before.
+		ImGui::Spacing();
+		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ColMuted);
+		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates.");
+		ImGui::PopStyleColor();
 		ImGui::EndChild();
 	}
 }

@@ -19,6 +19,7 @@ namespace Settings
 		bool Animations = true;  // open fade, sliding tab marker, switch easing
 		bool Toasts     = true;  // non-blocking notifications (toasts.h)
 		bool Hud        = true;  // FPS/frame-time line over the scene, overlay closed
+		int  HudCorner  = 0;     // UI: row 148 - plate corner: 0 TL, 1 TR, 2 BL, 3 BR
 		bool ShowWhitespace = false;  // editor whitespace dots
 		int  ResourceTab    = 0;      // Resources sub-tab: 0 none, 1 browser, 2 triggers, 3 stopper
 		int  ScalePercent   = 100;    // interface scale 70..200 (%), applied as style.FontScaleMain

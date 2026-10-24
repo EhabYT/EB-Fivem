@@ -306,7 +306,18 @@ namespace Menu
 		const float w = ts.x > cs.x ? ts.x : cs.x;
 		const float adv = ImGui::GetTextLineHeightWithSpacing();
 		const float pad = Settings::Px(6.0f);
-		const ImVec2 pos(Settings::Px(10.0f), Settings::Px(10.0f));
+		// UI: row 148 - the plate used to be pinned top-left, exactly where game
+		// HUDs (minimap, score strips) commonly sit; the corner is a setting now.
+		const ImVec2 disp = ImGui::GetIO().DisplaySize;
+		const float m = Settings::Px(10.0f);
+		ImVec2 pos(m, m);
+		switch (Settings::Current.HudCorner)
+		{
+		case 1: pos = ImVec2(disp.x - m - w, m); break;
+		case 2: pos = ImVec2(m, disp.y - m - adv - cs.y); break;
+		case 3: pos = ImVec2(disp.x - m - w, disp.y - m - adv - cs.y); break;
+		default: break;
+		}
 		ImDrawList* bg = ImGui::GetBackgroundDrawList();
 		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
 			ImVec2(pos.x + w + pad, pos.y + adv + cs.y + pad),

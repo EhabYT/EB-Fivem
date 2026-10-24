@@ -39,6 +39,7 @@ namespace Settings
 		Current.Animations = GetPrivateProfileIntA("ui", "anim", 1, path.c_str()) != 0;
 		Current.Toasts     = GetPrivateProfileIntA("ui", "toasts", 1, path.c_str()) != 0;
 		Current.Hud        = GetPrivateProfileIntA("ui", "hud", 1, path.c_str()) != 0;
+		Current.HudCorner  = GetPrivateProfileIntA("ui", "hudcorner", 0, path.c_str());
 		Current.ShowWhitespace = GetPrivateProfileIntA("ui", "whitespace", 0, path.c_str()) != 0;
 		Current.ResourceTab    = GetPrivateProfileIntA("menu", "resourcetab", 0, path.c_str());
 		Current.ScalePercent   = GetPrivateProfileIntA("ui", "scale", 100, path.c_str());
@@ -60,6 +61,8 @@ namespace Settings
 			Current.Tab = 0;
 		if (Current.ToggleKey <= 0 || Current.ToggleKey > 254)
 			Current.ToggleKey = 0x2D;
+		if (Current.HudCorner < 0 || Current.HudCorner > 3)
+			Current.HudCorner = 0;
 		if (Current.ResourceTab < 0 || Current.ResourceTab > 3)
 			Current.ResourceTab = 0;
 		// Below 70% the shell is unreadable, above 200% it no longer fits a 1080p
@@ -93,6 +96,7 @@ namespace Settings
 		ok = WriteInt("ui", "anim", Current.Animations ? 1 : 0) && ok;
 		ok = WriteInt("ui", "toasts", Current.Toasts ? 1 : 0) && ok;
 		ok = WriteInt("ui", "hud", Current.Hud ? 1 : 0) && ok;
+		ok = WriteInt("ui", "hudcorner", Current.HudCorner) && ok;
 		ok = WriteInt("ui", "whitespace", Current.ShowWhitespace ? 1 : 0) && ok;
 		ok = WriteInt("menu", "resourcetab", Current.ResourceTab) && ok;
 		ok = WriteInt("ui", "scale", Current.ScalePercent) && ok;

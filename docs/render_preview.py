@@ -693,14 +693,20 @@ elif TAB == "config":
     ly = toggle(lx0, ly, "Animations", True)
     ly = toggle(lx0, ly, "Toast notifications", True)
     ly = toggle(lx0, ly, "FPS HUD", True)          # Settings::Current.Hud
+    # UI: row 148 - plate corner combo, greyed only with the HUD itself;
+    # ImGui draws the label left of the frame on one row
+    fh_c = FONT_SIZE + FRAME_PAD_Y * 2
+    T(lx0, ly + (fh_c-FONT_SIZE)/2, "Corner", C_TEXT)
+    cbx = lx0 + TW("Corner") + ITEM_SPACING_X
+    R(cbx, ly, lx1, ly + fh_c, C_FRAME_BG)
+    d.rectangle([cbx*S, ly*S, lx1*S-1, (ly+fh_c)*S-1], outline=C_BORDER, width=S)
+    T(cbx + FRAME_PAD_X, ly + (fh_c-FONT_SIZE)/2, "Top left", C_TEXT)
+    aw, ax, ay = 9, lx1 - FRAME_PAD_X - 9, ly + fh_c / 2
+    d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
+    ly += fh_c + ITEM_SPACING_Y
     ly += ITEM_SPACING_Y
     ly = slider(lx0, ly, pane_w, "Interface scale 100%", (100 - 70) / 130.0)
     ly += ITEM_SPACING_Y
-    hint_lines = wrap_text(HINT, pane_w)              # TextWrapped: 3 lines at this width
-    for k, hl in enumerate(hint_lines):
-        T(lx0, ly + k * TEXT_LH, hl, C_MUTED)
-    ly += len(hint_lines) * TEXT_LH + ITEM_SPACING_Y
-    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     ly = button(lx0, ly, pane_w, 30, "Reset interface settings", primary=True)
 
     # --- right pane ----------------------------------------------------
@@ -735,9 +741,15 @@ elif TAB == "config":
     ry = sep(rx0, rx1, ry)
     ry = button(rx0, ry, rx1 - rx0, 26, "Copy diagnostics")
     ry = button(rx0, ry, rx1 - rx0, 26, "Open settings folder")
+    ry += ITEM_SPACING_Y          # UI: row 148 - nav hint moved to this pane
+    _hl = wrap_text(HINT, rx1 - rx0)
+    for k, hl in enumerate(_hl):
+        T(rx0, ry + k * TEXT_LH, hl, C_MUTED)
+    ry += len(_hl) * TEXT_LH + ITEM_SPACING_Y
 
     # --- the pane is only a third of the column and ImGui::Text does not
     # wrap, so these asserts are what keeps a label from being clipped ---
+    assert TW(HINT) <= rx1 - rx0, "nav hint clipped in right pane"
     for s in ("Safe Mode", "ScriptHook Bypass", "Interface"):
         assert TW(s) + TW("(?)") <= pane_w, "heading clipped: " + s
     for lab in ("Enabled (no effect)", "Animations", "Toast notifications", "FPS HUD"):
@@ -746,6 +758,8 @@ elif TAB == "config":
         assert TW(lab) + 2 * FRAME_PAD_X <= pane_w, "button label clipped: " + lab
     for lab in ("Reset interface settings", "Interface scale 100%"):
         assert TW(lab) <= pane_w, "label clipped: " + lab
+    assert (TW("Corner") + ITEM_SPACING_X + TW("Bottom right")
+            + 2 * FRAME_PAD_X + 12 <= pane_w), "corner combo row clipped"
     for s in ("Server related stuff", "Connects to no server; reads no server IP.",
               "The Dumps folder is its server artifact:", "Open dumps folder",
               "About", "EBengin", "Remade : by EB", "Interface: ImGui 1.93.0 (ocornut)",

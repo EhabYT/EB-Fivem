@@ -599,16 +599,27 @@ namespace Executor
 		if (ImGui::Button(ICON_FA_LIST_UL " Recent", ImVec2(Settings::Px(90.0f), Settings::Px(30.0f))))
 			ImGui::OpenPopup("##ed_recent_popup");
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("The five last used files, newest first.");
+			ImGui::SetTooltip("The five last used files, newest first.\nRight-click an entry to remove it.");
 		ImGui::EndDisabled();
 		if (ImGui::BeginPopup("##ed_recent_popup"))
 		{
-			for (const std::string& r : Settings::Current.Recent)
+			for (int i = 0; i < (int)Settings::Current.Recent.size(); ++i)
 			{
+				const std::string& r = Settings::Current.Recent[i];
 				if (ImGui::MenuItem(BaseName(r).c_str()))
 					loadFile(r.c_str());
+				else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+				{
+					// UI: row 149 - a renamed or moved file used to sit in the list
+					// until it failed on use; right-click drops the entry now.
+					Settings::Current.Recent.erase(Settings::Current.Recent.begin() + i);
+					Settings::Save();
+					Activity::Push("Removed " + r + " from the recent list.");
+					Toasts::Push(Toasts::Info, "Removed from recent files.");
+					break;   // indices shifted; the next frame redraws the popup
+				}
 				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip(r.c_str());
+					ImGui::SetTooltip((r + "\nRight-click removes the entry.").c_str());
 			}
 			ImGui::EndPopup();
 		}

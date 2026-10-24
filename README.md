@@ -28,7 +28,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 ![EBengin menu preview - Config tab](docs/preview_config.png)
 
 > The same render with the **Config tab** open (`python docs/render_preview.py --config`):
-> the Interface preferences - toggle-key capture, animations, toasts, FPS HUD, the persisted
+> the Interface preferences - toggle-key capture, animations, toasts, FPS HUD with plate corner, the persisted
 > 70-200 % scale slider, reset - and the two inert switches: greyed headings,
 > `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
 > answers every flip. The right pane's About block names brand, credit, build
@@ -63,7 +63,7 @@ name and the credit line, dismissed with Continue.  Fifth render
 ![EBengin splash card](docs/preview_splash.png)
 
 While the overlay is closed, the frame-rate line lives on as a small HUD plate over
-the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`).  Sixth render
+the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`; the plate corner is `Corner`, persisted as `[ui] hudcorner`).  Sixth render
 (`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
 
 ![EBengin FPS HUD](docs/preview_hud.png)

@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## HUD plate corner setting and Recent-entry removal (rows 148-149)
+- The FPS HUD plate sat pinned top-left, the one corner game HUDs (minimap, score strips)
+  almost always own.  `[ui] hudcorner` (0=top left .. 3=bottom right, clamped on load) and a
+  "Corner" combo under the FPS HUD switch - greyed together with the HUD - now place the plate
+  in any screen corner; the plate math keeps the 10px margin and the AA backing from row 147.
+  The three-line keyboard-nav hint moved from the Interface pane to the bottom of the right
+  pane (one line at that width): the combo row exhausted the left pane's third-of-column
+  budget, and the preview renderer's fit-assert refused to render the overflow, so the layout
+  was fixed before any compiler saw it.  Label is "Corner", not "Plate corner" - at the shell's
+  20px font the longer label plus the widest value clip the pane; the tooltip says the rest.
+- Right-click removes an entry from the Recent popup: a renamed or moved file used to linger
+  in `[recent]` until picking it failed with the unreadable-file dialog.  Removal persists
+  immediately and lands in Activity plus an info toast; both tooltips name the interaction.
+
 ## AA contrast pass: muted ink and the HUD plate (row 147)
 - Measured audit (WCAG relative luminance, not eyeballed): the muted secondary ink - brand
   accent at 60% alpha, i.e. blend (64,109,154) - held 2.8:1 on the canvas and 3.1:1 on the rail,
