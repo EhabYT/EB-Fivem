@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The toggle-key capture refuses keys that flip while typing (row 142)
+- The toggle poll sits in the present loop, outside any widget focus, so a letter, digit or
+  modifier bound as toggle key flipped the overlay on every keystroke of it - and the capture
+  happily accepted any of them.  It now takes only keys nobody types (F1-F24, INSERT, DELETE,
+  HOME, END, PGUP/PGDN, the lock keys), refuses everything else with a reason while staying
+  armed for the next press, and a settings.ini that already carries such a key is reset to
+  INSERT on the first Config frame, named in a warn toast.
+
 ## Save asks before burying edits made outside the menu (row 141)
 - If Notepad or a second session wrote the file behind the buffer after it was loaded, a
   one-click Save buried those edits without a word - the dialog's overwrite prompt only covers

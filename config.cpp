@@ -18,6 +18,17 @@ namespace Config
 	bool Safemode = true;
 	bool ShBypass = true;
 
+	// The toggle poll runs in the present loop, outside any widget focus, so a
+	// letter, digit or modifier bound as toggle key flips the overlay every
+	// time the user types it.  Only keys nobody types are bindable.
+	static bool ValidToggleKey(int vk)
+	{
+		return (vk >= VK_F1 && vk <= VK_F24)
+			|| vk == VK_INSERT || vk == VK_DELETE || vk == VK_HOME || vk == VK_END
+			|| vk == VK_PRIOR || vk == VK_NEXT
+			|| vk == VK_PAUSE || vk == VK_SCROLL || vk == VK_NUMLOCK;
+	}
+
 	void Render()
 	{
 		Gui::SectionTitle("Config", "##config_seperator_0");
@@ -86,6 +97,24 @@ namespace Config
 		Gui::Seperator("##config_seperator_5");
 
 		static bool capturing = false;
+		// A settings.ini from before row 142 may carry a key that flips while
+		// typing; reset it once, named, instead of letting it misfire forever.
+		static bool keyChecked = false;
+		if (!keyChecked)
+		{
+			keyChecked = true;
+			if (!ValidToggleKey(Settings::Current.ToggleKey))
+			{
+				const std::string oldKey = Settings::KeyName(Settings::Current.ToggleKey);
+				Settings::Current.ToggleKey = VK_INSERT;
+				Settings::Save();
+				Activity::Push("Stored toggle key " + oldKey
+					+ " flips while typing; reset to INSERT.");
+				Toasts::Push(Toasts::Warn, "Stored toggle key " + oldKey
+					+ " reset to INSERT.");
+			}
+		}
+
 		// "press any key...  (ESC cancels)" measured ~377px against a ~216px pane and
 		// was clipped at the edge - so while capturing, the button never actually
 		// told the user that ESC cancels, the one thing they need to know then.
@@ -109,14 +138,25 @@ namespace Config
 			{
 				if (GetAsyncKeyState(vk) & 1)
 				{
-					if (vk != VK_ESCAPE)
+					if (vk == VK_ESCAPE)
+						capturing = false;   // cancel, keep the old key
+					else if (ValidToggleKey(vk))
 					{
 						Settings::Current.ToggleKey = vk;
 						Settings::Save();
 						Activity::Push(std::string("Toggle key set to ") + Settings::KeyName(vk));
 						Toasts::Push(Toasts::Success, std::string("Toggle key set to ") + Settings::KeyName(vk));
+						capturing = false;
 					}
-					capturing = false;
+					else
+					{
+						// Refuse, but stay in capture so the next press can still
+						// succeed; the toast cap keeps a slipped key from flooding.
+						Activity::Push(std::string("Toggle key refused: ") + Settings::KeyName(vk)
+							+ " flips the overlay while typing.");
+						Toasts::Push(Toasts::Warn, std::string(Settings::KeyName(vk))
+							+ " can't toggle - it flips while typing. Try F-keys or INSERT.");
+					}
 					break;
 				}
 			}
