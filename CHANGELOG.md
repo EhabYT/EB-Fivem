@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The file dialogs remember where they worked (row 136)
+- Save As opened on an empty name in the process working directory even when the buffer came
+  from a file: renaming meant retyping the name and re-navigating to the folder, and Load
+  started the same trek on every use.  Both dialogs now open on the last file's folder via
+  `lpstrInitialDir`, and Save As prefills the current base name - on the Shift path only,
+  since a first save has neither a name nor a folder to remember.
+
 ## Config's three action buttons get tooltips too (row 135)
 - Row 132 closed the tooltip family on the Executor, Resources and Menus surfaces and called
   it complete - Config's Copy diagnostics, Open settings folder and reset buttons were the

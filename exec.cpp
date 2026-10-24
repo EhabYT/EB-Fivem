@@ -208,6 +208,16 @@ namespace Executor
 			if (target.empty() || ImGui::GetIO().KeyShift)
 			{
 				char file[MAX_PATH] = { 0 };
+				// Save As starts from the current name in the current folder, so
+				// renaming is an edit, not a retype; a first save has neither.
+				std::string initDir;
+				if (!g_lastFile.empty())
+				{
+					strncpy_s(file, BaseName(g_lastFile).c_str(), _TRUNCATE);
+					const size_t slash = g_lastFile.find_last_of("\\/");
+					if (slash != std::string::npos)
+						initDir = g_lastFile.substr(0, slash);
+				}
 				OPENFILENAMEA ofn;
 				ZeroMemory(&ofn, sizeof(ofn));
 				ofn.lStructSize = sizeof(ofn);
@@ -217,6 +227,7 @@ namespace Executor
 				ofn.nMaxFile = MAX_PATH;
 				ofn.lpstrDefExt = "lua";
 				ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+				ofn.lpstrInitialDir = initDir.empty() ? NULL : initDir.c_str();
 				if (!GetSaveFileNameA(&ofn))
 					return;
 				target = file;
@@ -434,6 +445,12 @@ namespace Executor
 			// Was an empty `// load file code` stub.  Wire up a real Win32 file
 			// dialog: picking a .lua/.txt file loads it into the editor.
 			char file[MAX_PATH] = { 0 };
+			// The dialog reopens where the last file lives, so loading a second
+			// script from the same folder is not a directory trek each time.
+			std::string initDir;
+			const size_t slash = g_lastFile.find_last_of("\\/");
+			if (slash != std::string::npos)
+				initDir = g_lastFile.substr(0, slash);
 			OPENFILENAMEA ofn;
 			ZeroMemory(&ofn, sizeof(ofn));
 			ofn.lStructSize = sizeof(ofn);
@@ -442,6 +459,7 @@ namespace Executor
 			ofn.lpstrFile = file;
 			ofn.nMaxFile = MAX_PATH;
 			ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+			ofn.lpstrInitialDir = initDir.empty() ? NULL : initDir.c_str();
 
 			if (GetOpenFileNameA(&ofn))
 			{
