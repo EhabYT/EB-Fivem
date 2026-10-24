@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Save asks before burying edits made outside the menu (row 141)
+- If Notepad or a second session wrote the file behind the buffer after it was loaded, a
+  one-click Save buried those edits without a word - the dialog's overwrite prompt only covers
+  names picked in the dialog, not the file the buffer already belongs to.  Every successful
+  Load, Save and Revert now stores the file's last-write time, and a Save onto that same file
+  compares the stamp first: changed on disk means a question, and a cancel lands in the
+  activity trace.  The stamp rides on GetFileAttributesEx - no open, no handle, no polling.
+
 ## The server pane stops pretending and opens the Dumps folder (row 140)
 - "Server IP: not connected" was a phantom state: nothing in this build connects anywhere, and
   reading a real server IP would mean reading game state - outside this menu by design.  The

@@ -31,6 +31,11 @@ namespace Executor
 	// Last file the buffer came from or went to.  After a second load the
 	// origin of the text on screen was simply gone; the status line keeps it.
 	static std::string g_lastFile;
+	// Last-write time of the file behind the buffer, stored at every successful
+	// Load/Save/Revert, so a Save can see whether something else edited the file
+	// in between - the one loss path the file workflow had no guard for.
+	static FILETIME g_fileTime = { 0, 0 };
+	static bool g_haveFileTime = false;
 
 	static std::string BaseName(const std::string& path)
 	{
@@ -86,6 +91,16 @@ namespace Executor
 		written = fwrite(text.data(), 1, text.size(), fp);
 		fclose(fp);
 		return written == text.size() ? 0 : 2;
+	}
+
+	// Last-write time via GetFileAttributesEx - no open, no handle, cheap.
+	static bool FileMTime(const char* path, FILETIME& out)
+	{
+		WIN32_FILE_ATTRIBUTE_DATA attr;
+		if (GetFileAttributesExA(path, GetFileExInfoStandard, &attr) == 0)
+			return false;
+		out = attr.ftLastWriteTime;
+		return true;
 	}
 
 	void Init()
@@ -189,6 +204,7 @@ namespace Executor
 			{
 				editor.SetText("");
 				g_lastFile.clear();
+				g_haveFileTime = false;
 				dirty = false;
 				suppress = 1;
 				if (!cur.empty())
@@ -237,6 +253,24 @@ namespace Executor
 					return;
 				target = file;
 			}
+			// Another editor may have written the file since the stamp was taken:
+			// saving would silently bury those edits under the buffer, so ask -
+			// the same loss family the rest of the workflow confirms for.  Only
+			// the quick path and Save As onto the very same file can do it.
+			if (!g_lastFile.empty() && target == g_lastFile && g_haveFileTime)
+			{
+				FILETIME nowTime;
+				if (FileMTime(target.c_str(), nowTime)
+					&& (nowTime.dwLowDateTime != g_fileTime.dwLowDateTime
+						|| nowTime.dwHighDateTime != g_fileTime.dwHighDateTime)
+					&& MessageBoxA(NULL, "The file changed on disk since it was loaded or saved.\n"
+						"Overwrite it with the buffer?", "EBengin",
+						MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
+				{
+					Activity::Push("Save cancelled - the file changed on disk.");
+					return;
+				}
+			}
 			const std::string text = editor.GetText();
 			size_t written = 0;
 			const int rc = WriteFileText(target.c_str(), text, written);
@@ -260,6 +294,7 @@ namespace Executor
 			{
 				g_lastFile = target;
 				dirty = false;
+				g_haveFileTime = FileMTime(target.c_str(), g_fileTime);
 				Activity::Push("Saved " + std::to_string(written)
 					+ " bytes to " + target + ".");
 				Toasts::Push(Toasts::Success, "Saved "
@@ -297,6 +332,7 @@ namespace Executor
 			else if (fileText == editor.GetText())
 			{
 				dirty = false;
+				g_haveFileTime = FileMTime(g_lastFile.c_str(), g_fileTime);
 				Toasts::Push(Toasts::Info, "Buffer already matches the file.");
 			}
 			else
@@ -308,6 +344,7 @@ namespace Executor
 				if (go)
 				{
 					editor.SetText(fileText);
+					g_haveFileTime = FileMTime(g_lastFile.c_str(), g_fileTime);
 					dirty = false;
 					suppress = 1;
 					Activity::Push("Reverted to " + g_lastFile + ".");
@@ -506,6 +543,7 @@ namespace Executor
 					{
 						editor.SetText(text);
 						g_lastFile = file;
+						g_haveFileTime = FileMTime(file, g_fileTime);
 						dirty = false;
 						suppress = 1;
 						// Reported size is what the editor holds, i.e. after the BOM

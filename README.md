@@ -464,7 +464,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear, save (one click to the
   last file, Shift+click or a first save through the dialog - which reopens on the last
   file's folder with its name prefilled - Ctrl+S from the keyboard, Ctrl+Shift+S forcing
-  that dialog, Ctrl+O mirroring Load) and
+  that dialog, Ctrl+O mirroring Load, and a Save onto a file that changed on disk since it
+  was loaded asks before burying those edits) and
   revert-to-last-file sit above the executor (tooltips
   name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
   undo, redo or copy, paste while the clipboard holds no text and clear while the buffer
