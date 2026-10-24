@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Kiero freeze recorded in the docs (docs only)
+- The vendored hook library stays at 1.2.6 by decision, and the docs now say so wherever the
+  vendored trees are described: upstream Rebzzel/kiero's last code commit is May 2022, tag
+  1.2.12, everything since is README-only, and the 1.2.6→1.2.12 delta is hook-layer code this
+  project does not carry.  The README file table, the README Notes and BUILD.md §9 carry the
+  note; no line of code changed, and the hook layer remains exactly as vendored.
+
 ## The empty-buffer check stops copying the buffer per frame (row 139)
 - Row 127's `bufEmpty` sample answered "is the buffer empty?" by copying the entire editor
   text into a temporary `std::string` on every frame - a heap allocation per frame in the
