@@ -181,22 +181,34 @@ namespace Config
 		if (Gui::PrimaryButton("Reset interface settings",
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(30.0f))))
 		{
-			// One click back to the compiled defaults - before this, a bad key
-			// bind or a window dragged off-screen meant hand-editing or
-			// deleting settings.ini.  Window position and tab apply on the next
-			// start (the position is restored with ImGuiCond_Once); the key,
-			// the switches, the scale and the whitespace dot take effect at once.
-			Settings::Current = Settings::Prefs();
-			Settings::Save();
-			// Two of the prefs also live somewhere else at runtime - the scale in
-			// ImGui's style and the whitespace flag inside the TextEditor widget -
-			// so writing the struct alone is not enough.  Push both out again,
-			// otherwise the shell keeps its old size and the dots stay on screen
-			// until the toolbar switch is clicked.
-			Settings::ApplyScale();
-			Executor::ApplyPrefs();
-			Activity::Push("Interface settings reset to defaults.");
-			Toasts::Push(Toasts::Info, "Interface settings reset; window position applies on next start.");
+			// One click overwrites a custom key bind, scale and switches - the same
+			// loss family Load/Clear/Revert confirm for, so the reset confirms too.
+			// Cancel keeps everything, including the ini, exactly as it was.
+			if (MessageBoxA(NULL, "Restore the compiled defaults?\n"
+				"Custom key bind, scale and switches are overwritten.",
+				"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
+			{
+				Activity::Push("Reset cancelled - settings kept.");
+			}
+			else
+			{
+				// One click back to the compiled defaults - before this, a bad key
+				// bind or a window dragged off-screen meant hand-editing or
+				// deleting settings.ini.  Window position and tab apply on the next
+				// start (the position is restored with ImGuiCond_Once); the key,
+				// the switches, the scale and the whitespace dot take effect at once.
+				Settings::Current = Settings::Prefs();
+				Settings::Save();
+				// Two of the prefs also live somewhere else at runtime - the scale in
+				// ImGui's style and the whitespace flag inside the TextEditor widget -
+				// so writing the struct alone is not enough.  Push both out again,
+				// otherwise the shell keeps its old size and the dots stay on screen
+				// until the toolbar switch is clicked.
+				Settings::ApplyScale();
+				Executor::ApplyPrefs();
+				Activity::Push("Interface settings reset to defaults.");
+				Toasts::Push(Toasts::Info, "Interface settings reset; window position applies on next start.");
+			}
 		}
 
 		ImGui::EndChild();

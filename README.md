@@ -467,8 +467,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   text in the editor's own top-left corner.  A right-click in the editor opens a context
   menu mirroring undo/redo, cut/copy/paste and select-all with the same disabled rules.
 * **Small persistences:** a first start without `settings.ini` says so in the log and a toast,
-  the editor whitespace dots, the open Resources sub-tab and a one-click
-  "Reset interface settings" button join window position, last tab, toggle key, the
+  the editor whitespace dots, the open Resources sub-tab and a
+  "Reset interface settings" button that confirms before overwriting join window
+  position, last tab, toggle key, the
   animation/toast switches and the interface scale in `settings.ini`.
 * **Interface scale:** Config → Interface carries a 70–200% slider, persisted as `[ui] scale` and
   applied through ImGui 1.92's `style.FontScaleMain`, so fonts, frames, sidebar and window size

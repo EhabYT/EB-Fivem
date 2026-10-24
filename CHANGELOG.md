@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Reset confirms before it overwrites (row 133)
+- "Reset interface settings" was the one control in the menu that discarded user state on a
+  single click: a mis-click cost a custom key bind, the interface scale and every switch,
+  while Load, Clear and Revert all confirm first.  It now asks - "Restore the compiled
+  defaults?" - and a cancel leaves everything, including settings.ini, exactly as it was.
+- The cancel lands in the activity trace ("Reset cancelled - settings kept."), the same
+  pattern the other guarded actions use, so the trace shows the question was asked and
+  declined rather than nothing at all.
+
 ## The last unlabeled controls get tooltips (row 132)
 - Execute, Save All Resources, Copy dump path, the stopper's Stop button and the Menus Run
   buttons were the last controls without tooltips - and three of them are stubs whose honesty
