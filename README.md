@@ -403,7 +403,10 @@ Until then there is **no CI and no compile proof** — every check on this branc
   upstream code; keep local changes in the project's own files so those trees can be re-synced
   cleanly. `kiero/` is additionally frozen at 1.2.6 by decision: upstream has been README-only
   since its last code commit in May 2022 (tag `1.2.12`), and the 1.2.6→1.2.12 delta is
-  hook-layer code this project does not carry (BUILD.md, §9 "Vendored freeze status").
+  hook-layer code this project does not carry (BUILD.md, §9 "Vendored freeze and pin
+  status").
+  `TextEditor.*` and the Font Awesome blob are pinned for the same kind of reason: no
+  meaningful upstream delta, and the successor editor is a rewrite, not a new version.
   Note that `imgui_tables.cpp` is a separate translation unit since 1.80 and must stay
   in the project.
 * The code uses **no deprecated ImGui API**: the menu shell was moved off the legacy

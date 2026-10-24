@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Pin status recorded for TextEditor and the Font Awesome blob (docs only)
+- The vendored freeze note in BUILD.md §9 now covers all three pinned trees: kiero/MinHook
+  (frozen by decision, hook layer), TextEditor (upstream's only later delta targets ImGui
+  <= 1.92.5 while this copy is verified clean against 1.93, and the successor project is a
+  rewrite with a different API), and the Font Awesome blob (regeneration needs external
+  tooling plus a glyph audit of every icon in use).  Upgrade requests for any of the three
+  are answered with the note, not with code; nothing but docs changed.
+
 ## Vendored refresh: ImGui 1.93.0 and stb_image 2.30
 - The upgrade request, minus the frozen hook layer: the vendored ImGui tree moves 1.92.9 to
   1.93.0 (unmodified upstream swap, DX11/Win32 backends included, demo still excluded from the
