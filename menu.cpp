@@ -413,7 +413,19 @@ namespace Menu
 			ImGui::SetNextWindowPos(ImVec2(px, py), ImGuiCond_Once);
 		}
 
-		ImGui::Begin("EBengin", NULL,
+		// Two affordances the shell used to lack.  p_open gives the title bar a
+		// close button - with the toggle key as the only way out, a mouse-only
+		// user had none - and the title names the open tab, so a alt-tabbed user
+		// sees where they are.  The ### suffix keeps the window id stable across
+		// tab switches, so ImGui state and the persisted position survive them.
+		static const char* const titles[] = {
+			"EBengin", "EBengin - Executor", "EBengin - Resources",
+			"EBengin - Menus", "EBengin - Config",
+		};
+		char title[64];
+		snprintf(title, sizeof(title), "%s###ebengin_shell",
+			titles[Tab >= TabDefault && Tab <= TabConfig ? Tab : TabDefault]);
+		ImGui::Begin(title, &IsMenuOpen,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
 		// Reachability guard for a shell that changes size mid-session.  Config's

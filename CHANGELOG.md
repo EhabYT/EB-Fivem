@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The shell grows a close button and a talking title bar (rows 144-145)
+- `Begin` passed `p_open = NULL`, so the title bar had no close cross and the toggle key was
+  the only way out of the overlay - a mouse-only user had none.  `p_open` is now `&IsMenuOpen`,
+  and the cross closes the shell exactly like the bound key does.
+- The title bar read "EBengin" in every tab; it now names the open tab ("EBengin - Executor",
+  "… - Resources", "… - Menus", "… - Config"; the landing tab stays "EBengin"), so an
+  alt-tabbed user sees where they are.  A `###ebengin_shell` suffix keeps the window id stable
+  across tab switches, so ImGui state and the persisted window position survive them.
+- The preview renderer draws both affordances (title per tab, cross as two strokes - the
+  renderer font has no multiplication sign); the five shell previews were re-rendered, HUD and
+  splash previews stay byte-identical.
+
 ## F5 opens the output folder instead of the invalid-Win32 dialog (row 143)
 - A DLL has no executable entry point, so Visual Studio's F5 / Start Debugging answered with
   "…\EBengin UI.dll is not a valid Win32 application" - row 98 documented that away, but the

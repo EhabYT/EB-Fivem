@@ -16,7 +16,7 @@ invented:
 
   menu_style.h   the two theme ramps and every ImGuiCol_* below
   menu.h         SidebarWidth (225), SidebarButtonHeight (46), ContentPadding (8), Accent
-  menu.cpp       Begin("EBengin", NoScrollbar|NoCollapse|NoResize), SidebarItems[]
+  menu.cpp       Begin(title###id, &IsMenuOpen, NoScrollbar|NoCollapse|NoResize), SidebarItems[]
                  labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
                  Load from File 180x30, toolbar save and revert icons,
@@ -433,11 +433,21 @@ if TAB == "splash":
     print("geschrieben:", OUT, "(splash)", os.path.getsize(OUT), "Bytes", canvas.size)
     sys.exit(0)
 
-# window + title bar (WindowTitleAlign 0,0.5; NoCollapse + p_open NULL)
+# window + title bar (WindowTitleAlign 0,0.5; NoCollapse, p_open = &IsMenuOpen:
+# row 144 added the close button, row 145 the tab name in the title)
 R(0, 0, W, H, C_WINDOW_BG)
 R(SX0, CY0, SX1 + 1, CY1, C_RAIL)          # nav rail: sidebar cell, TableSetBgColor
 R(0, 0, W, TITLE_H, C_TITLE_BG)
-T(WIN_PAD, (TITLE_H - FONT_SIZE) / 2, "EBengin", C_TEXT)
+TITLE = {"default": "EBengin", "executor": "EBengin - Executor",
+         "resources": "EBengin - Resources", "menus": "EBengin - Menus",
+         "config": "EBengin - Config"}[TAB]
+T(WIN_PAD, (TITLE_H - FONT_SIZE) / 2, TITLE, C_TEXT)
+# close button cross at the right end of the title bar (ImGui p_open glyph;
+# drawn as two strokes - the renderer font has no multiplication sign)
+_cx1, _cy1 = W - WIN_PAD - 9, (TITLE_H - 8) / 2
+_cx2, _cy2 = W - WIN_PAD - 2, (TITLE_H + 8) / 2
+d.line([(_cx1 * S, _cy1 * S), (_cx2 * S, _cy2 * S)], fill=C_TEXT, width=S)
+d.line([(_cx1 * S, _cy2 * S), (_cx2 * S, _cy1 * S)], fill=C_TEXT, width=S)
 
 # brand rule under the title bar (menu.cpp): accent -> pressed blue, left to right
 for _x in range(W):
