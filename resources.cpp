@@ -158,6 +158,8 @@ namespace Resources
 				Activity::Push("Dump FAILED for " + dir);
 			}
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Writes fxmanifest.lua and resources.txt into\nthe Dumps folder next to the DLL.");
 
 		// The dump message box names the folder, but there was no way to actually
 		// *get* that path other than transcribing it from the box.
@@ -186,6 +188,8 @@ namespace Resources
 					: "Dump path copied - the folder is created by the first dump.");
 			}
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Copies the Dumps folder path to the clipboard.");
 	}
 
 	void Render()

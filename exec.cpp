@@ -298,6 +298,9 @@ namespace Executor
 			ApplyPrefs();
 			Settings::Save();
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(Settings::Current.ShowWhitespace
+				? "Whitespace dots in the editor: on" : "Whitespace dots in the editor: off");
 		ImGui::Spacing();
 
 		// The Resource stopper can shrink `resources`, so keep the selection in range.
@@ -404,6 +407,8 @@ namespace Executor
 					+ resources[selectedResource] + " (not implemented).");
 			}
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Reports only: executing code is not implemented in this build.");
 
 		ImGui::SameLine();
 		// Ctrl+O mirrors the Load button for keyboard flow, the way Ctrl+S
