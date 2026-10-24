@@ -1,0 +1,26 @@
+# The repository already has a consistent split, and this file exists to keep it
+# that way rather than to change anything:
+#
+#   project sources (.cpp/.h/.sln/.vcxproj/.bat)  -> CRLF   (MSVC / repo convention)
+#   vendored trees  (imgui/, kiero/)              -> LF     (byte-identical to upstream)
+#   docs and CI     (*.md, *.yml)                 -> LF
+#
+# Deliberately NO `* text=auto` and no broad `eol=` rules: those would renormalise
+# the vendored LF files on the next checkout and destroy the property that imgui/
+# and kiero/ are byte-for-byte identical to their upstream releases, which is what
+# makes them re-syncable with a plain file copy.
+
+# cmd.exe misparses LF-only batch files (labels and multi-line blocks in
+# particular), so pin the one file type where the line ending is functional.
+*.bat text eol=crlf
+
+# Vendored third-party code: store and check out exactly as committed.
+imgui/** -text
+kiero/** -text
+
+# Binary assets - never diff or normalise these.
+*.png binary
+*.ttf binary
+*.dll binary
+*.pdb binary
+*.lib binary

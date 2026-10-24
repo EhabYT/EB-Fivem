@@ -10,7 +10,7 @@
 #include <regex>
 #include "imgui/imgui.h"
 
-static class TextEditor
+class TextEditor
 {
 public:
 	enum class PaletteIndex
