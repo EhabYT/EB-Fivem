@@ -421,6 +421,7 @@ namespace Resources
 						Toasts::Push(Toasts::Info, "'" + stopped
 							+ "' removed from the list (not stopped on the server).");
 					}
+				}
 			}
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Removes the entry from this list only (asks first) -\nstopping it on the server is not implemented.");

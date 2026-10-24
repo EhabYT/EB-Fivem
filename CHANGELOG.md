@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Brace restored in the stopper guard (row 138)
+- The row-137 splice consumed the outer `else` closing brace of the stop block while only
+  re-closing the inner one, so `resources.cpp` sat in the committed state with an unbalanced
+  brace - the next MSVC build would have failed on it before reaching any UI.  The brace is
+  back at its nesting level, and the verification battery now includes a string- and
+  comment-aware brace/paren balance check over every root source file, clean across all 32.
+
 ## The stopper confirms before it removes (row 137)
 - Stop was the one visible state change among the stubs and the last action in the menu that
   discarded something on a single click: a mis-click cost the list entry until the next
