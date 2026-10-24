@@ -9,6 +9,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## One-click Save, Ctrl+S, and a shared write path (row 128)
+- Saving reopened the file dialog every time, even to write the buffer back to the very file
+  it was loaded from.  The dialog is now Save As - Shift+click, or the first save before any
+  file reference exists - while a plain click writes to the last file in one go, and Ctrl+S
+  mirrors the button for keyboard flow.  The tooltip names the file the click would write to.
+- The open/write/short-write sequence moved into a `WriteFileText()` helper, the write-side
+  counterpart to row 126's `ReadFileText()`, so the button and the shortcut share one write
+  path and one set of failure messages.
+
 ## Paste and clear grey out instead of clicking into nothing (row 127)
 - Paste with an empty clipboard and clear on an empty buffer were the last toolbar buttons
   that answered a click with silence.  Both join the disabled family the undo/redo/copy

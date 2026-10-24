@@ -182,61 +182,68 @@ namespace Executor
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 			ImGui::SetTooltip(bufEmpty ? "Nothing to clear" : "Clear the buffer");
 		ImGui::SameLine();
-		// Load from File had no counterpart: a buffer could only leave the
-		// editor through the clipboard.  Same dialog family as the loader -
-		// the overwrite prompt is the dialog's own, every failure path says
-		// what happened instead of doing nothing.
-		if (ImGui::Button(ICON_FA_SAVE "##ed_save", ImVec2(tb, tb)))
+		// Save grew a fast path: once a file reference exists the button writes
+		// straight to it - the dialog becomes Save As, reached with Shift+click or
+		// on a first save - and Ctrl+S mirrors the button for keyboard flow.  The
+		// write itself lives in WriteFileText above, so both call sites share one
+		// open/write/short-write path the way Load and Revert share ReadFileText.
+		auto saveBuffer = [&]()
 		{
-			char file[MAX_PATH] = { 0 };
-			OPENFILENAMEA ofn;
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = FindWindowA(NULL, "FiveM");
-			ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
-			ofn.lpstrFile = file;
-			ofn.nMaxFile = MAX_PATH;
-			ofn.lpstrDefExt = "lua";
-			ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
-
-			if (GetSaveFileNameA(&ofn))
+			std::string target = g_lastFile;
+			if (target.empty() || ImGui::GetIO().KeyShift)
 			{
-				const std::string text = editor.GetText();
-				FILE* fp = NULL;
-				if (fopen_s(&fp, file, "wb") != 0 || fp == NULL)
-				{
-					MessageBoxA(NULL, (std::string("Could not write:\n") + file).c_str(),
-						"EBengin", MB_OK | MB_ICONERROR);
-					Activity::Push(std::string("Save failed: ") + file);
-					Toasts::Push(Toasts::Warn, std::string("Save failed: ") + file);
-				}
-				else
-				{
-					const size_t written = fwrite(text.data(), 1, text.size(), fp);
-					fclose(fp);
-					if (written != text.size())
-					{
-						MessageBoxA(NULL, (std::string("Write stopped after "
-							+ std::to_string(written) + " of "
-							+ std::to_string(text.size()) + " bytes:\n") + file).c_str(),
-							"EBengin", MB_OK | MB_ICONERROR);
-						Activity::Push(std::string("Save incomplete: ") + file);
-						Toasts::Push(Toasts::Warn, "Save incomplete - disk full?");
-					}
-					else
-					{
-						g_lastFile = file;
-						dirty = false;
-						Activity::Push("Saved " + std::to_string(written)
-							+ " bytes to " + file + ".");
-						Toasts::Push(Toasts::Success, "Saved "
-							+ std::to_string(written) + " bytes.");
-					}
-				}
+				char file[MAX_PATH] = { 0 };
+				OPENFILENAMEA ofn;
+				ZeroMemory(&ofn, sizeof(ofn));
+				ofn.lStructSize = sizeof(ofn);
+				ofn.hwndOwner = FindWindowA(NULL, "FiveM");
+				ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
+				ofn.lpstrFile = file;
+				ofn.nMaxFile = MAX_PATH;
+				ofn.lpstrDefExt = "lua";
+				ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+				if (!GetSaveFileNameA(&ofn))
+					return;
+				target = file;
 			}
-		}
+			const std::string text = editor.GetText();
+			size_t written = 0;
+			const int rc = WriteFileText(target.c_str(), text, written);
+			if (rc == 1)
+			{
+				MessageBoxA(NULL, (std::string("Could not write:\n") + target).c_str(),
+					"EBengin", MB_OK | MB_ICONERROR);
+				Activity::Push(std::string("Save failed: ") + target);
+				Toasts::Push(Toasts::Warn, std::string("Save failed: ") + target);
+			}
+			else if (rc == 2)
+			{
+				MessageBoxA(NULL, (std::string("Write stopped after "
+					+ std::to_string(written) + " of "
+					+ std::to_string(text.size()) + " bytes:\n") + target).c_str(),
+					"EBengin", MB_OK | MB_ICONERROR);
+				Activity::Push(std::string("Save incomplete: ") + target);
+				Toasts::Push(Toasts::Warn, "Save incomplete - disk full?");
+			}
+			else
+			{
+				g_lastFile = target;
+				dirty = false;
+				Activity::Push("Saved " + std::to_string(written)
+					+ " bytes to " + target + ".");
+				Toasts::Push(Toasts::Success, "Saved "
+					+ std::to_string(written) + " bytes.");
+			}
+		};
+		if (ImGui::Button(ICON_FA_SAVE "##ed_save", ImVec2(tb, tb)))
+			saveBuffer();
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Save the buffer to a file");
+			ImGui::SetTooltip(g_lastFile.empty() ? "Save the buffer to a file"
+				: ("Save to " + BaseName(g_lastFile) + " (Shift+click: save as...)").c_str());
+		// Ctrl+S: the editor owns Ctrl+Z/Y/C/V but not S, so the shortcut is free
+		// here.  Repeat off, and tab-local because the check lives in this tab.
+		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+			saveBuffer();
 		ImGui::SameLine();
 		// Revert reloads the file behind the buffer - the counterpart to
 		// the dirty mark: once it shows, one click takes the edits back.
@@ -442,4 +449,19 @@ namespace Executor
 			ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to select.");
 		ImGui::PopItemWidth();
 	}
+}
+
+// The write path, single-sourced the way the read path is (ReadFileText
+// above): open, fwrite, short-write check.  Returns 0 on success, 1 when the
+// file would not open, 2 when the write stopped early - `written` then holds
+// how far it got, for the message.
+static int WriteFileText(const char* file, const std::string& text, size_t& written)
+{
+	written = 0;
+	FILE* fp = NULL;
+	if (fopen_s(&fp, file, "wb") != 0 || fp == NULL)
+		return 1;
+	written = fwrite(text.data(), 1, text.size(), fp);
+	fclose(fp);
+	return written == text.size() ? 0 : 2;
 }
