@@ -98,12 +98,12 @@ labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, cre
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab - diagnostics card (sparkline, uptime, action count) and the session activity log with Copy/Clear |
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
-| [`imgui/`](imgui) | Dear ImGui **1.92.9** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified). `imgui_demo.cpp` is on disk but not built — see [BUILD.md](BUILD.md) |
+| [`imgui/`](imgui) | Dear ImGui **1.93.0** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified). `imgui_demo.cpp` is on disk but not built — see [BUILD.md](BUILD.md) |
 | [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored,
   unmodified, frozen by decision - see Notes) |
 | [`ci/`](ci) | The GitHub Actions build workflow, staged as [`ci/build.yml`](ci/build.yml) + [`ci/enable.bat`](ci/enable.bat) — written and validated, **not yet enabled**. See [`ci/README.md`](ci/README.md) |
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
-| [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo |
+| [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo (vendored **v2.30**) |
 | [`EBengin.png`](EBengin.png) | Menu logo, loaded from beside the DLL at runtime |
 | [`docs/preview.png`](docs/preview.png) | The preview render shown above, with its caption explaining exactly what is and is not faithful |
 | [`docs/preview_config.png`](docs/preview_config.png) | The same render with the Config tab open, produced by `docs/render_preview.py --config` |
@@ -398,7 +398,7 @@ Until then there is **no CI and no compile proof** — every check on this branc
 
 ## Notes
 
-* The vendored ImGui is **1.92.9** (upgraded from 1.75 — see the migration table in
+* The vendored ImGui is **1.93.0** (upgraded from 1.75 via 1.92.9 — see the migration table in
   [BUILD.md](BUILD.md#6-imgui-175--1929-migration)). `imgui/` and `kiero/` hold unmodified
   upstream code; keep local changes in the project's own files so those trees can be re-synced
   cleanly. `kiero/` is additionally frozen at 1.2.6 by decision: upstream has been README-only

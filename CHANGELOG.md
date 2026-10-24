@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Vendored refresh: ImGui 1.93.0 and stb_image 2.30
+- The upgrade request, minus the frozen hook layer: the vendored ImGui tree moves 1.92.9 to
+  1.93.0 (unmodified upstream swap, DX11/Win32 backends included, demo still excluded from the
+  build) and stb_image jumps 2.26 to 2.30, four years of loader fixes behind the logo decode.
+  The 1.93 ImDrawList rework was audited against every custom draw call in the repo: no
+  renamed enums or flags in use, all closed shapes at thickness 1.0 render identically, and
+  the editor's three indent-guide lines are the only half-pixel delta candidates.
+- Not upgraded, with reason: kiero and its bundled MinHook stay frozen at 1.2.6/1.3.3 by the
+  recorded decision (hook layer); TextEditor has no upstream upgrade path - the original
+  project is superseded by a rewrite, and the vendored copy compiles clean against 1.93; the
+  Font Awesome blob stays pinned because regenerating it needs tooling this repo does not
+  carry.
+
 ## Kiero freeze recorded in the docs (docs only)
 - The vendored hook library stays at 1.2.6 by decision, and the docs now say so wherever the
   vendored trees are described: upstream Rebzzel/kiero's last code commit is May 2022, tag
