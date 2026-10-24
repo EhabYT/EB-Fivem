@@ -164,7 +164,7 @@ C_ACCENT     = RGBA(93, 156, 214)    # Menu::Accent / SliderGrab    #5D9CD6
 C_FRAME_BG   = RGBA(31, 58, 97)      # ImGuiCol_FrameBg             #1F3A61
 C_BORDER     = RGBA(42, 74, 123)     # ImGuiCol_Border / _Separator #2A4A7B
 C_TEXT       = RGBA(255, 255, 255)   # ImGuiCol_Text (default, not overridden)
-C_MUTED_BRAND = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
+C_MUTED_BRAND = RGBA(125, 175, 225)  # ColMuted token, row 147 (was accent@153)
 C_RAIL     = RGBA(16, 31, 52)      # sidebar CellBg: WindowBg darkened 18%
 C_SCROLL   = RGBA(42, 74, 123)     # ImGuiCol_ScrollbarGrab (raised navy)
 
@@ -353,13 +353,12 @@ if TAB == "hud":
     ImageDraw.Draw(plate).rounded_rectangle(
         [(pos[0] - pad) * S, (pos[1] - pad) * S,
          (pos[0] + ts_w + pad) * S - 1, (pos[1] + plate_h + pad) * S - 1],
-        radius=6 * S, fill=(12, 18, 28, 160))
+        radius=6 * S, fill=(12, 18, 28, 220))   # row 147: AA backing alpha
     canvas.alpha_composite(plate)
     d = ImageDraw.Draw(canvas)
-    T(pos[0], pos[1], HUD, C_ACCENT)
-    # credit ink: brand accent at alpha 153 over the plate-over-scene base
-    T(pos[0], pos[1] + adv, CREDIT,
-      blend((93, 156, 214, 153), blend((12, 18, 28, 160), SCENE)))
+    T(pos[0], pos[1], HUD, C_TEXT)             # row 147: FPS line white, not accent
+    # credit ink: opaque AA muted token (row 147)
+    T(pos[0], pos[1] + adv, CREDIT, (125, 175, 225))
 
     canvas.save(OUT, optimize=True)
     os.unlink(fa_path)
@@ -569,7 +568,7 @@ if TAB == "executor":
     # code appends "| file: <name>" once a load or save happened and
     # "| modified" while the buffer holds unsaved edits; the preview
     # depicts a buffer with no file behind it and nothing unsaved
-    T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
+    T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", (125, 175, 225, 255))
 
     # button row: Execute 116x30, Load 180x30, Recent 90x30, combo fills rest
     y = ey1 + LINE_ADV + ITEM_SPACING_Y
@@ -613,7 +612,7 @@ elif TAB == "config":
     # ------------------------------------------------------------------
     TEXT_LH = FONT_SIZE
     C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
-    C_MUTED = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
+    C_MUTED = RGBA(125, 175, 225)  # ColMuted token, row 147
     HINT = "Tab/arrows move, Enter/Space activates."
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)
@@ -942,7 +941,7 @@ if TAB == "default":
     # Landing tab (default.cpp): title, hint line, Diagnostics block (sparkline
     # panel plus the uptime/actions/FPS line), then Session activity with the
     # Copy/Clear pair and three log entries, newest first.
-    C_MUT = blend((93, 156, 214, 153), C_WINDOW_BG)
+    C_MUT = RGBA(125, 175, 225)  # ColMuted token, row 147
     TEXT_LH = FONT_SIZE          # ImGui::GetTextLineHeight(), as in config
 
     def dsep(x0, x1, sy):

@@ -178,7 +178,7 @@ namespace Menu
 		CenteredInSidebar(buildDate);
 
 		// Visible brand credit, same wording as the source comment.
-		CenteredInSidebarColored("Remade : by EB", ImColor(93, 156, 214, 153));
+		CenteredInSidebarColored("Remade : by EB", ColMuted);
 
 		// The old layout ended with
 		//     SetCursorPosY(GetWindowHeight() - 10); Text("");
@@ -256,7 +256,7 @@ namespace Menu
 			Centered("EBengin", ImColor(93, 156, 214, 255));
 		}
 
-		Centered("Remade : by EB", ImColor(93, 156, 214, 153));
+		Centered("Remade : by EB", ColMuted);
 
 		ImGui::Spacing();
 		Gui::Seperator("##splash_seperator");
@@ -310,11 +310,17 @@ namespace Menu
 		ImDrawList* bg = ImGui::GetBackgroundDrawList();
 		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
 			ImVec2(pos.x + w + pad, pos.y + adv + cs.y + pad),
-			IM_COL32(12, 18, 28, 160), Settings::Px(6.0f));
+			// UI: row 147 - alpha 160 let a bright game scene wash the plate out
+			// (worst-case ~1.0:1 for the credit line); 220 keeps the scene visible
+			// behind it while both plate lines hold WCAG AA worst-case.
+			IM_COL32(12, 18, 28, 220), Settings::Px(6.0f));
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(), pos,
-			ImColor(93, 156, 214, 255), line);
+			// UI: row 147 - the FPS line was brand accent (4.4:1 on the plate);
+			// primary white gives 12.7:1 worst-case and keeps accent for the
+			// interactive ramp only.
+			ImColor(255, 255, 255, 255), line);
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
-			ImVec2(pos.x, pos.y + adv), ImColor(93, 156, 214, 153), credit);
+			ImVec2(pos.x, pos.y + adv), ColMuted, credit);
 	}
 
 	void Render()

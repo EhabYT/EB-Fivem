@@ -26,7 +26,7 @@ namespace Default
 		char diag[128];
 		snprintf(diag, sizeof(diag), "Menu open %s  |  %u actions  |  %.0f FPS now",
 			Perf::UptimeString(), Activity::TotalCount(), ImGui::GetIO().Framerate);
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", diag);
+		ImGui::TextColored(ColMuted, "%s", diag);
 
 		// Session action log: actions whose only other feedback is a message box
 		// (loads, dumps, copies, stop/run requests) leave a timestamped trace
@@ -74,7 +74,7 @@ namespace Default
 		}
 		if (entries.empty())
 		{
-			ImGui::TextColored(ImColor(93, 156, 214, 153), "Nothing yet this session.");
+			ImGui::TextColored(ColMuted, "Nothing yet this session.");
 		}
 		else
 		{

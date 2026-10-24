@@ -1,4 +1,5 @@
 #include "resources.h"
+#include "menu_style.h"   // ColMuted
 #include "clipboard.h"
 #include "assets.h"
 #include "activity.h"
@@ -370,7 +371,7 @@ namespace Resources
 
 			if (resources.empty())
 			{
-				ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to stop.");
+				ImGui::TextColored(ColMuted, "No resources left to stop.");
 				return;
 			}
 

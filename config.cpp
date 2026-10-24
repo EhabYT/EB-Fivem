@@ -1,4 +1,5 @@
 #include "config.h"
+#include "menu_style.h"   // ColMuted
 #include "activity.h"
 #include "settings.h"
 #include "toasts.h"
@@ -213,7 +214,7 @@ namespace Config
 		// colour goes through the style stack.  The cast is required - ImColor
 		// converts to both ImU32 and ImVec4, which PushStyleColor would find
 		// ambiguous.
-		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(93, 156, 214, 153));
+		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ColMuted);
 		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates.");
 		ImGui::PopStyleColor();
 
@@ -266,9 +267,9 @@ namespace Config
 		// mean reading game state, which is outside this menu by design.  The
 		// one server-facing artifact it does produce is the Dumps resource
 		// folder, so the pane names it and opens it: something that works.
-		ImGui::TextColored(ImColor(93, 156, 214, 153),
+		ImGui::TextColored(ColMuted,
 			"Connects to no server; reads no server IP.");
-		ImGui::TextColored(ImColor(93, 156, 214, 153),
+		ImGui::TextColored(ColMuted,
 			"The Dumps folder is its server artifact:");
 		if (ImGui::Button("Open dumps folder",
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
@@ -302,21 +303,21 @@ namespace Config
 		ImGui::Spacing();
 		Gui::Seperator("##about_seperator_1");
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Remade : by EB");
+		ImGui::TextColored(ColMuted, "Remade : by EB");
 		// GetVersion() reports the version the linked imgui.cpp was compiled
 		// with, so this line can never drift from the vendored sources.
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Interface: ImGui %s (ocornut)",
+		ImGui::TextColored(ColMuted, "Interface: ImGui %s (ocornut)",
 			ImGui::GetVersion());
 		// A Debug DLL behaves visibly differently in a host (asserts on, no
 		// optimisation), so the About block says which configuration this is.
 #if defined(_DEBUG) && defined(_WIN64)
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug x64 (asserts on, slower)");
+		ImGui::TextColored(ColMuted, "Build: Debug x64 (asserts on, slower)");
 #elif defined(_DEBUG)
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug Win32 (asserts on, slower)");
+		ImGui::TextColored(ColMuted, "Build: Debug Win32 (asserts on, slower)");
 #elif defined(_WIN64)
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release x64");
+		ImGui::TextColored(ColMuted, "Build: Release x64");
 #else
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release Win32 (x86)");
+		ImGui::TextColored(ColMuted, "Build: Release Win32 (x86)");
 #endif
 		// Environment factors behind the shell size: host contents scale
 		// (GetDpiForWindow / 96) times the persisted interface scale - the two
@@ -324,7 +325,7 @@ namespace Config
 		char hostLine[96];
 		snprintf(hostLine, sizeof(hostLine), "Host: DPI %.2f, interface %d%%",
 			Settings::DpiScale, Settings::Current.ScalePercent);
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", hostLine);
+		ImGui::TextColored(ColMuted, "%s", hostLine);
 		// A failed settings.ini write answers once with a toast (settings.cpp),
 		// but a toast is gone in seconds and the consequence - every change
 		// lost on restart - deserves a permanent line while it is true.

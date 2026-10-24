@@ -2,6 +2,12 @@
 
 #include "imgui/imgui.h"
 
+// UI: AA contrast pass (row 147).  Secondary/muted ink used to be the brand
+// accent at 60% alpha (blend 64,109,154), which measures 2.8:1 on the canvas -
+// below WCAG AA.  This lighter tint of the accent holds >=4.9:1 on canvas,
+// rail and panel, so hierarchy stays visible without failing contrast.
+static const ImColor ColMuted(125, 175, 225, 255);   // #7DAFE1
+
 // Applies the EBengin colour scheme / metrics.
 //
 // Called once from InitImGui() rather than every frame: the style is static, and
@@ -82,11 +88,11 @@ inline void ApplyStyle()
 	style.Colors[ImGuiCol_SliderGrabActive]		= ImColor(55, 120, 181, 255);
 
 	// Cohesion pass: everything ImGui would otherwise paint in stock grey or
-	// near-black is pulled into the two ramps.  TextDisabled is the muted accent
-	// (93,156,214 at 60% over the canvas), the scrollbar grab runs raised ->
-	// hover -> pressed like every other interactive surface, and popups sit on
-	// the canvas navy instead of the default black.
-	style.Colors[ImGuiCol_TextDisabled]		= ImColor(64, 109, 154, 255);
+	// near-black is pulled into the two ramps.  TextDisabled is the AA muted
+	// token (row 147 - the old 60% accent blend measured 2.8:1 on the canvas),
+	// the scrollbar grab runs raised -> hover -> pressed like every other
+	// interactive surface, and popups sit on the canvas navy instead of black.
+	style.Colors[ImGuiCol_TextDisabled]		= ImColor(125, 175, 225, 255);
 	style.Colors[ImGuiCol_TextSelectedBg]		= ImColor(93, 156, 214, 90);
 	style.Colors[ImGuiCol_PopupBg]			= ImColor(20, 38, 63, 245);
 	style.Colors[ImGuiCol_ScrollbarGrab]		= ImColor(42, 74, 123, 255);

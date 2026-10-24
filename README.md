@@ -15,7 +15,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > this branch (no MSVC, no Windows), so the image is drawn from the repository's own constants
 > instead of being captured from a running game: every colour from [`menu_style.h`](menu_style.h),
 > the 225 px sidebar and 46 px buttons from [`menu.h`](menu.h), the window title, logo placement,
-> tab labels and footer strings from [`menu.cpp`](menu.cpp), the editor palette and Lua token
+> tab labels and footer strings from [`menu.cpp`](menu.cpp), the editor palette, the AA muted token #7DAFE1 (row 147) and Lua token
 > colours from [`TextEditor.cpp`](TextEditor.cpp), and the sidebar/button glyphs from the project's
 > **own embedded Font Awesome font** (the stb-compressed blob in `font_awesome.cpp`, decompressed for
 > this render). Two things are substituted and cannot be faithful: the text face — `Bahnschrift.ttf`

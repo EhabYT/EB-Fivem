@@ -461,7 +461,7 @@ namespace Executor
 			statusLine += "  |  modified";
 		if (editor.HasSelection())
 			statusLine += "  |  " + std::to_string(editor.GetSelectedText().size()) + " selected";
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", statusLine.c_str());
+		ImGui::TextColored(ColMuted, "%s", statusLine.c_str());
 		ImGui::Spacing();
 
 		if (Gui::PrimaryButton(ICON_FA_CODE " Execute",
@@ -621,7 +621,7 @@ namespace Executor
 		else
 			// The stopper can erase the last entry; without a fallback the row
 			// would just be empty where a selection used to be.
-			ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to select.");
+			ImGui::TextColored(ColMuted, "No resources left to select.");
 		ImGui::PopItemWidth();
 	}
 }

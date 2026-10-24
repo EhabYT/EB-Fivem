@@ -4,6 +4,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "font_awesome.h"
+#include "menu_style.h"   // ColMuted token for every Gui consumer
 #include "settings.h"
 
 #include <Windows.h>

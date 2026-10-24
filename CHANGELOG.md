@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## AA contrast pass: muted ink and the HUD plate (row 147)
+- Measured audit (WCAG relative luminance, not eyeballed): the muted secondary ink - brand
+  accent at 60% alpha, i.e. blend (64,109,154) - held 2.8:1 on the canvas and 3.1:1 on the rail,
+  below the 4.5:1 AA line, at 18 call sites plus ImGui's TextDisabled.  The HUD plate fared worse:
+  with backing alpha 160 a bright game scene washed the credit line out to ~1.0:1, and the accent
+  FPS line sat at 4.4:1 on the plate.
+- Phase 2 token: ColMuted #7DAFE1 (a lighter tint of the accent) in menu_style.h - 6.6:1 on canvas,
+  7.2:1 on rail, 5.0:1 on panel, so the visual hierarchy survives the fix.  It replaces all 18
+  hardcoded sites and TextDisabled; the HUD backing goes 160 to 220 and the FPS line accent to
+  white (12.7:1 worst case).  Accent #5D9CD6 stays reserved for the interactive ramp and surfaces
+  where it measures >=4.5:1.
+- Every change carries a `// UI:` marker per the upgrade prompt; the preview renderer models the
+  new token and backing, all seven previews re-rendered, HUD and shell visually checked.
+
 ## Recent files: one click back to the last scripts (row 146)
 - Nothing remembered which files the editor had used, so every session retreaded the file
   dialog.  The five last loaded/saved paths now persist in `[recent]` of settings.ini, newest
