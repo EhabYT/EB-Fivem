@@ -314,6 +314,20 @@ namespace Executor
 		editor.Render("##Null", ImVec2(avail.x - 16.0f,
 			avail.y - Settings::Px(52.0f) - statusH - tb - Settings::Px(4.0f)), true);
 
+		// Empty-state hint: a fresh buffer is a blank rectangle, and its three ways
+		// in (type, paste, load) stay invisible until something names them.  Muted
+		// placeholder text in the editor's own top-left does that; it rides on the
+		// window draw list so it never eats a click, and the first character - or
+		// any load/paste - removes it with the frame that fills the buffer.
+		if (bufEmpty)
+		{
+			const ImVec2 p = ImGui::GetItemRectMin();
+			ImGui::GetWindowDrawList()->AddText(
+				ImVec2(p.x + Settings::Px(8.0f), p.y + Settings::Px(4.0f)),
+				ImGui::GetColorU32(ImGuiCol_TextDisabled),
+				"Empty buffer - start typing, Ctrl+V pastes, Ctrl+O loads a file.");
+		}
+
 		if (editor.IsTextChanged())
 		{
 			if (suppress > 0)

@@ -461,7 +461,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   is empty, each saying so in the tooltip. Load and Clear confirm before discarding
   a non-empty buffer (SetText wipes undo). The status line reports the selection size, the
   resource combo falls back to a muted line once the stopper erased the last entry, and toast
-  cards dismiss on click without ever stealing a click from a widget under the stack.
+  cards dismiss on click without ever stealing a click from a widget under the stack, and
+  an empty buffer names its three ways in - type, Ctrl+V, Ctrl+O - as muted placeholder
+  text in the editor's own top-left corner.
 * **Small persistences:** a first start without `settings.ini` says so in the log and a toast,
   the editor whitespace dots, the open Resources sub-tab and a one-click
   "Reset interface settings" button join window position, last tab, toggle key, the

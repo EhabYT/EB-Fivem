@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The empty buffer names its ways in (row 130)
+- A fresh editor buffer was a blank rectangle: nothing told a first-time user that typing,
+  Ctrl+V or the new Ctrl+O all land text in it.  While the buffer is empty, a muted
+  placeholder line in the editor's own top-left corner now names the three routes - drawn on
+  the window draw list so it cannot eat a click, and gone with the frame the buffer fills.
+- The hint reuses the per-frame `bufEmpty` sample row 127 introduced for the clear button, so
+  it costs no extra text copy and cannot disagree with the toolbar state.
+
 ## Keyboard mirrors finish the file workflow (row 129)
 - Ctrl+S mirrored Save since row 128, but Load stayed mouse-only and the Save As dialog had no
   shortcut of its own.  Ctrl+O now opens the load dialog (the handler body moved into a
