@@ -9,6 +9,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Right-click context menu in the editor (row 131)
+- Toolbar buttons and shortcuts covered undo/redo, cut/copy/paste and select-all, but the
+  mouse-native route was absent: a right click in the editor did nothing.  It now opens a
+  context menu with exactly those actions - greyed by the same rules as the toolbar (no
+  selection, no clipboard text), every label naming the shortcut it mirrors, so the menu
+  teaches the keyboard while it serves the mouse.
+
 ## The empty buffer names its ways in (row 130)
 - A fresh editor buffer was a blank rectangle: nothing told a first-time user that typing,
   Ctrl+V or the new Ctrl+O all land text in it.  While the buffer is empty, a muted

@@ -328,6 +328,30 @@ namespace Executor
 				"Empty buffer - start typing, Ctrl+V pastes, Ctrl+O loads a file.");
 		}
 
+		// Right-click context menu: toolbar and shortcuts cover these actions,
+		// but the mouse-native route was missing - a right click in the editor
+		// did nothing at all.  Same disabled family as the toolbar: cut/copy
+		// grey without a selection, paste without clipboard text, and every
+		// label names the shortcut it mirrors.
+		if (ImGui::BeginPopupContextItem("##ed_ctx"))
+		{
+			if (ImGui::MenuItem("Undo\tCtrl+Z", NULL, false, editor.CanUndo()))
+				editor.Undo();
+			if (ImGui::MenuItem("Redo\tCtrl+Y", NULL, false, editor.CanRedo()))
+				editor.Redo();
+			ImGui::Separator();
+			if (ImGui::MenuItem("Cut\tCtrl+X", NULL, false, editor.HasSelection()))
+				editor.Cut();
+			if (ImGui::MenuItem("Copy\tCtrl+C", NULL, false, editor.HasSelection()))
+				editor.Copy();
+			if (ImGui::MenuItem("Paste\tCtrl+V", NULL, false, clipAvail))
+				editor.Paste();
+			ImGui::Separator();
+			if (ImGui::MenuItem("Select All\tCtrl+A"))
+				editor.SelectAll();
+			ImGui::EndPopup();
+		}
+
 		if (editor.IsTextChanged())
 		{
 			if (suppress > 0)

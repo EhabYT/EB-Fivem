@@ -463,7 +463,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   resource combo falls back to a muted line once the stopper erased the last entry, and toast
   cards dismiss on click without ever stealing a click from a widget under the stack, and
   an empty buffer names its three ways in - type, Ctrl+V, Ctrl+O - as muted placeholder
-  text in the editor's own top-left corner.
+  text in the editor's own top-left corner.  A right-click in the editor opens a context
+  menu mirroring undo/redo, cut/copy/paste and select-all with the same disabled rules.
 * **Small persistences:** a first start without `settings.ini` says so in the log and a toast,
   the editor whitespace dots, the open Resources sub-tab and a one-click
   "Reset interface settings" button join window position, last tab, toggle key, the
