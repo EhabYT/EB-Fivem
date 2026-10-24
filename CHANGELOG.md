@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The last unlabeled controls get tooltips (row 132)
+- Execute, Save All Resources, Copy dump path, the stopper's Stop button and the Menus Run
+  buttons were the last controls without tooltips - and three of them are stubs whose honesty
+  arrived only after the click, inside a message box.  Each now says before the click what it
+  is: reports only, list-only removal, or a dump into the Dumps folder.  The whitespace toggle
+  reports its current on/off state, matching the inert-toggle tooltips Config already had.
+- The README's stub paragraph now names the tooltip as the pre-click surface, and the executor
+  row in the file table - stale since row 126 - lists revert, the whitespace toggle, the
+  shortcuts, the right-click menu and the empty-state hint.
+
 ## Right-click context menu in the editor (row 131)
 - Toolbar buttons and shortcuts covered undo/redo, cut/copy/paste and select-all, but the
   mouse-native route was absent: a right click in the editor did nothing.  It now opens a

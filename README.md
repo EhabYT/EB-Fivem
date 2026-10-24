@@ -90,7 +90,7 @@ log with its Copy/Clear pair - is the seventh render
 | [`activity.h`](activity.h) · [`activity.cpp`](activity.cpp) | Timestamped in-memory session log (newest first, 32 kept, total counted) - the trace behind the landing tab |
 | [`perf.h`](perf.h) · [`perf.cpp`](perf.cpp) | Frame-time ring and session uptime: the sidebar FPS line and the landing sparkline |
 | [`clipboard.h`](clipboard.h) | Header-only Win32 `CF_TEXT` writer shared by Config (diagnostics), the landing log and the Resources copy buttons |
-| [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor with toolbar (undo/redo/copy/paste/clear/save), status line (cursor, lines, last file, modified mark), honest Execute stub, Load/Save dialogs with confirmations, resource combo |
+| [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor with toolbar (undo/redo/copy/paste/clear/save/revert, whitespace toggle), status line (cursor, lines, last file, modified mark), honest Execute stub, Load/Save dialogs with confirmations and shortcuts, right-click menu, empty-state hint, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
 | [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, FPS HUD, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches
 labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, credit, ImGui version, build configuration, host scale, not-writable warning, Copy diagnostics, Open settings folder |
@@ -412,7 +412,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   usable width. Keep it at zero, or subtract the padding from `Menu::SidebarWidth`.
 * What is **implemented**: the full UI, the Lua editor with syntax highlighting, Load-from-file,
   the trigger clipboard list, resource dumps, and the resource-list stopper.
-  What is **still a stub** (and now says so in a message box instead of doing nothing silently):
+  What is **still a stub** (and now says so in a tooltip before the click as well as in a
+  message box after it, instead of doing nothing silently):
   actually executing a script, actually stopping a server resource, launching the listed menus,
   and the Safe Mode / ScriptHook Bypass toggles — those two carry greyed headings and switches
   labelled `Enabled (no effect)` in the tab itself, with inert tooltips and a toast on every

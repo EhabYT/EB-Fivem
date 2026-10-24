@@ -411,6 +411,8 @@ namespace Resources
 						+ "' removed from the list (not stopped on the server).");
 				}
 			}
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Removes the entry from this list only -\nstopping it on the server is not implemented.");
 		}
 	}
 }

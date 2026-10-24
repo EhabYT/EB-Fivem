@@ -81,6 +81,8 @@ namespace Menus
 				Toasts::Push(Toasts::Info, std::string("Run requested for '") + items[selected]
 					+ "' (not bundled).");
 			}
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Reports only - this menu is not bundled\nwith this build.");
 		}
 
 		ImGui::EndChild();
