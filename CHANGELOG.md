@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The server pane stops pretending and opens the Dumps folder (row 140)
+- "Server IP: not connected" was a phantom state: nothing in this build connects anywhere, and
+  reading a real server IP would mean reading game state - outside this menu by design.  The
+  pane now says exactly that in two muted lines, and offers the one server-facing artifact the
+  build does produce: an "Open dumps folder" button that creates <DLL folder>\Dumps if it is
+  missing and opens it in Explorer, with the same failure reporting as the settings-folder
+  button and a tooltip naming the Resources tab's Save All as its writer.
+- The Config preview follows the new pane (lines, button, fit asserts), and its About block's
+  pinned ImGui tag was corrected to the vendored 1.93.0 while the renderer was open.
+
 ## Pin status recorded for TextEditor and the Font Awesome blob (docs only)
 - The vendored freeze note in BUILD.md §9 now covers all three pinned trees: kiero/MinHook
   (frozen by decision, hook layer), TextEditor (upstream's only later delta targets ImGui

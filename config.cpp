@@ -221,9 +221,39 @@ namespace Config
 		ImGui::Text("Server related stuff");
 		ImGui::Spacing();
 		Gui::Seperator("##server_seperator_1");
-		// Was a hardcoded "127.0.0.1" string; nothing in this build connects to a
-		// server, so don't imply that it does.
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Server IP: not connected");
+		// Was a hardcoded "127.0.0.1", then a "not connected" line - both imply a
+		// connection this build never has, and reading a real server IP would
+		// mean reading game state, which is outside this menu by design.  The
+		// one server-facing artifact it does produce is the Dumps resource
+		// folder, so the pane names it and opens it: something that works.
+		ImGui::TextColored(ImColor(93, 156, 214, 153),
+			"Connects to no server; reads no server IP.");
+		ImGui::TextColored(ImColor(93, 156, 214, 153),
+			"The Dumps folder is its server artifact:");
+		if (ImGui::Button("Open dumps folder",
+			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
+		{
+			// Same Explorer route as the settings-folder button.  The Dumps tree
+			// appears with the first resource dump, so create it here instead of
+			// letting Explorer fail on a path that does not exist yet.
+			const std::string ini = Settings::IniPath();
+			const size_t slash = ini.find_last_of("\\/");
+			const std::string dir = (slash == std::string::npos
+				? std::string(".") : ini.substr(0, slash)) + "\\Dumps";
+			CreateDirectoryA(dir.c_str(), NULL);   // ignores "already exists"
+			const intptr_t r = (intptr_t)ShellExecuteA(NULL, "explore",
+				dir.c_str(), NULL, NULL, SW_SHOWNORMAL);
+			if (r > 32)
+				Activity::Push("Opened the Dumps folder in Explorer.");
+			else
+			{
+				Activity::Push("Explorer could not be started (code "
+					+ std::to_string(r) + ").");
+				Toasts::Push(Toasts::Warn, "Could not open the Dumps folder.");
+			}
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Opens <DLL folder>\\Dumps - the resource drop-in this\nbuild writes (Save All Resources, Resources tab).");
 		Gui::Seperator("##server_seperator_2");
 
 		// Visible brand block: name, credit and the interface this UI builds on.

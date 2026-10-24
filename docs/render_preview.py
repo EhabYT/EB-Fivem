@@ -694,7 +694,9 @@ elif TAB == "config":
     ry = heading(rx0, top, "Server related stuff", C_TEXT)
     ry += ITEM_SPACING_Y                              # ImGui::Spacing()
     ry = sep(rx0, rx1, ry)
-    ry = heading(rx0, ry, "Server IP: not connected", C_MUTED)
+    ry = heading(rx0, ry, "Connects to no server; reads no server IP.", C_MUTED)
+    ry = heading(rx0, ry, "The Dumps folder is its server artifact:", C_MUTED)
+    ry = button(rx0, ry, rx1 - rx0, 26, "Open dumps folder")
     ry = sep(rx0, rx1, ry)
 
     # --- About block (config.cpp): visible brand name + credit ------------
@@ -707,7 +709,7 @@ elif TAB == "config":
     T(rx0, ry, "Remade : by EB", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
     # code prints ImGui::GetVersion(); the preview pins the vendored tag
-    T(rx0, ry, "Interface: ImGui 1.92.9 (ocornut)", C_MUTED)
+    T(rx0, ry, "Interface: ImGui 1.93.0 (ocornut)", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
     # code prints this via #ifdef _DEBUG / _WIN64; previews depict Release x64
     T(rx0, ry, "Build: Release x64", C_MUTED)
@@ -731,8 +733,9 @@ elif TAB == "config":
         assert TW(lab) + 2 * FRAME_PAD_X <= pane_w, "button label clipped: " + lab
     for lab in ("Reset interface settings", "Interface scale 100%"):
         assert TW(lab) <= pane_w, "label clipped: " + lab
-    for s in ("Server related stuff", "Server IP: not connected", "About",
-              "EBengin", "Remade : by EB", "Interface: ImGui 1.92.9 (ocornut)",
+    for s in ("Server related stuff", "Connects to no server; reads no server IP.",
+              "The Dumps folder is its server artifact:", "Open dumps folder",
+              "About", "EBengin", "Remade : by EB", "Interface: ImGui 1.93.0 (ocornut)",
               "Build: Release x64", "Build: Release Win32 (x86)",
               "Build: Debug x64 (asserts on, slower)",
               "Build: Debug Win32 (asserts on, slower)",
