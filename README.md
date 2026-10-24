@@ -411,7 +411,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   `CellPadding` on every side, so the default `4,1` would leave the 225px sidebar with 217px of
   usable width. Keep it at zero, or subtract the padding from `Menu::SidebarWidth`.
 * What is **implemented**: the full UI, the Lua editor with syntax highlighting, Load-from-file,
-  the trigger clipboard list, resource dumps, and the resource-list stopper.
+  the trigger clipboard list, resource dumps, and the resource-list stopper (which
+  confirms before removing an entry).
   What is **still a stub** (and now says so in a tooltip before the click as well as in a
   message box after it, instead of doing nothing silently):
   actually executing a script, actually stopping a server resource, launching the listed menus,

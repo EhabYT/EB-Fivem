@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The stopper confirms before it removes (row 137)
+- Stop was the one visible state change among the stubs and the last action in the menu that
+  discarded something on a single click: a mis-click cost the list entry until the next
+  start, while Clear, Load, Revert and Reset all ask first.  It now confirms - naming the
+  entry and repeating that nothing is stopped on the server - and a cancel lands in the
+  activity trace.  The _cfx_internal refusal still answers before any question, and the
+  button tooltip says it asks first.
+
 ## The file dialogs remember where they worked (row 136)
 - Save As opened on an empty name in the process working directory even when the buffer came
   from a file: renaming meant retyping the name and re-navigating to the folder, and Load

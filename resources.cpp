@@ -383,36 +383,47 @@ namespace Resources
 				}
 				else
 				{
-					// Erase by index.  The old code was
-					//   erase(std::find(begin, end, resources[selectedResource]))
-					// which searches a vector<const char*> for a pointer value and
-					// compares pointers, so it only ever matched by accident; when it
-					// missed, find() returned end() and erase(end()) is undefined
-					// behaviour.  The try/catch around it cannot catch that.
 					const std::string stopped = resources[selectedResource];
-					resources.erase(resources.begin() + selectedResource);
+					// Erasing is the one visible state change among the stubs, and
+					// the entry stays gone until the next start - the same loss
+					// family as Clear and Reset, so it confirms first.
+					if (MessageBoxA(NULL, (std::string("Remove '") + stopped
+						+ "' from the resource list?\nThis does not stop it on the server.").c_str(),
+						"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
+					{
+						Activity::Push("Stop cancelled - '" + stopped + "' kept.");
+					}
+					else
+					{
+						// Erase by index.  The old code was
+						//   erase(std::find(begin, end, resources[selectedResource]))
+						// which searches a vector<const char*> for a pointer value and
+						// compares pointers, so it only ever matched by accident; when it
+						// missed, find() returned end() and erase(end()) is undefined
+						// behaviour.  The try/catch around it cannot catch that.
+						resources.erase(resources.begin() + selectedResource);
 
-					if (selectedResource >= (int)resources.size())
-						selectedResource = resources.empty() ? 0 : (int)resources.size() - 1;
+						if (selectedResource >= (int)resources.size())
+							selectedResource = resources.empty() ? 0 : (int)resources.size() - 1;
 
-					// Still no actual stop logic in this build - but at least the list
-					// is consistent and the user is told the truth.
-					MessageBoxA(NULL,
-						(std::string("'") + stopped + "' removed from the list.\n\n"
-							"Stopping the resource on the server is not implemented in this build.").c_str(),
-						"EBengin", MB_OK | MB_ICONINFORMATION);
-					// Execute and Run requests leave an activity entry and a toast
-					// behind the message box; the stopper's removal - the one stub
-					// that visibly changes state - had only the modal box, so once
-					// it was closed nothing in the persistent trace said it happened.
-					Activity::Push("'" + stopped + "' removed from the resource list "
-						"(server stop not implemented).");
-					Toasts::Push(Toasts::Info, "'" + stopped
-						+ "' removed from the list (not stopped on the server).");
-				}
+						// Still no actual stop logic in this build - but at least the list
+						// is consistent and the user is told the truth.
+						MessageBoxA(NULL,
+							(std::string("'") + stopped + "' removed from the list.\n\n"
+								"Stopping the resource on the server is not implemented in this build.").c_str(),
+							"EBengin", MB_OK | MB_ICONINFORMATION);
+						// Execute and Run requests leave an activity entry and a toast
+						// behind the message box; the stopper's removal - the one stub
+						// that visibly changes state - had only the modal box, so once
+						// it was closed nothing in the persistent trace said it happened.
+						Activity::Push("'" + stopped + "' removed from the resource list "
+							"(server stop not implemented).");
+						Toasts::Push(Toasts::Info, "'" + stopped
+							+ "' removed from the list (not stopped on the server).");
+					}
 			}
 			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Removes the entry from this list only -\nstopping it on the server is not implemented.");
+				ImGui::SetTooltip("Removes the entry from this list only (asks first) -\nstopping it on the server is not implemented.");
 		}
 	}
 }
