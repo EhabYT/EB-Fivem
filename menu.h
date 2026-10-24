@@ -1,113 +1,63 @@
 #pragma once
 
-#include "font_awesome.h"
-#include "imgui/imgui_internal.h"
 #include "imgui/imgui.h"
+#include "settings.h"   // ScaleFactor() for the layout metrics below
 
-#include "default.h"
-#include "exec.h"
-#include "resources.h"
-#include "luamenus.h"
-#include "config.h"
+#include <d3d11.h>
 
-#include "gui.h"
-
-ID3D11ShaderResourceView* logo = NULL;
+// Defined in main.cpp.  These used to be defined *in the header*, which is only
+// legal while exactly one .cpp includes it - a second include anywhere would be
+// a LNK2005 duplicate symbol.
+extern ID3D11ShaderResourceView* logo;
+extern bool LogoLoaded;
 
 namespace Menu
 {
-	int logoWidth = 18;
-	int logoHeight = 18;
-	static int Tab = 0;
-	bool IsMenuOpen = true;
-
-	void Render()
+	// Tabs are addressed by name rather than by bare int, so the sidebar in
+	// menu.cpp and the routing in tabs.cpp cannot drift apart.  Menu::Tab itself
+	// stays an int (defined in main.cpp) because ImGui widgets take int*.
+	enum TabId
 	{
-		//redENGINE Remade : by xo1337 
-		ImGui::Begin("redENGINE", NULL, ImGuiWindowFlags_NoScrollbar); 
-		ImGui::Columns(2, "##maincolumn", true);
-		ImGui::SetColumnOffset(1, 225);
+		TabDefault   = 0,   // landing page
+		TabExecutor  = 1,
+		TabResources = 2,
+		TabMenus     = 3,
+		TabConfig    = 4,
+	};
 
-		ImGui::SetCursorPosX(74);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 9);
-		ImGui::Image((void*)logo, ImVec2(76, 87)); 
-		ImGui::NewLine();
+	// Both defined in main.cpp.
+	extern bool IsMenuOpen;   // toggled with the bound key (Settings::Current.ToggleKey, INSERT by default)
+	extern int Tab;
 
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_1", 225, 1);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_CODE" Executor", ImVec2(225, 46)))
-		{
-			Tab = 1;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_2", 225, 1);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_DOWNLOAD" Resources", ImVec2(225, 46)))
-		{
-			Tab = 2;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_3", 225, 1);
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3); //+ goes down , - goes up
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_BOOK" Menus", ImVec2(225, 46)))
-		{
-			Tab = 3;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_4", 225, 1);
+	// Layout of the shell, shared with nothing else - the sidebar buttons are the
+	// only consumer of SidebarWidth.
+	//
+	// All three are the metrics at 100% interface scale.  The inline accessors
+	// multiply by the persisted scale (settings.ini [ui] scale) so the sidebar and
+	// the tab inset grow with the font instead of clipping their labels; they have
+	// to be functions rather than constants because Config can change the scale
+	// while the menu is open.
+	static const float SidebarWidthBase        = 225.0f;
+	static const float SidebarButtonHeightBase = 46.0f;
+	static const float ContentPaddingBase      = 8.0f;
 
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 3);
-		ImGui::SetCursorPosX(0);
-		if (ImGui::Button(ICON_FA_COGS" Config", ImVec2(225, 46)))
-		{
-			Tab = 4;
-		}
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 4);
-		ImGui::SetCursorPosX(0);
-		Gui::Seperator("##main_seperator_5", 225, 1);
-		
-		ImGui::SetCursorPosY(380);
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 25);
-		ImGui::Text("Licensed to #4278");
-		ImGui::SetCursorPosY(399);
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 18);
-		ImGui::Text("Build Date: Feb 10 2021");
+	inline float SidebarWidth()        { return SidebarWidthBase        * Settings::ScaleFactor(); }
+	inline float SidebarButtonHeight() { return SidebarButtonHeightBase * Settings::ScaleFactor(); }
 
-		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - 10); //Same here
-		ImGui::Text(""); //Makes sure that the column goes the whole gui height, so don't remove :)
+	// Left inset of the tab column.  The shell table uses NoPadOuterX and a
+	// (0,0) CellPadding so the sidebar keeps exactly SidebarWidth of usable
+	// width; the same flags leave the content column starting flush against the
+	// column divider, which this pushes the tab bodies away from.
+	inline float ContentPadding()      { return ContentPaddingBase      * Settings::ScaleFactor(); }
 
-		ImGui::NextColumn();
+	// The brand accent, #5D9CD6 - the top of the light ramp in menu_style.h.
+	// The sidebar's selected-tab marker, the editor line numbers (TextEditor
+	// palette) and the logo fallback text all share it.
+	static const ImU32 Accent              = IM_COL32(93, 156, 214, 255);
 
-		if (Tab == 0) 
-		{
-			Default::Render();
-		}
-		if (Tab == 1)
-		{
-			Executor::Render();
-		}
-		else if (Tab == 2)
-		{
-			Resources::Render();
-		}
-		else if (Tab == 3)
-		{
-			Menus::Render();
-		}
-		else if (Tab == 4)
-		{
-			Config::Render();
-		}
-
-		ImGui::End();
-	}
-		
+	// Draws the whole menu window: sidebar column + tab content column.
+	// Implemented in menu.cpp.
+	void Render();
+	void RenderHud();   // FPS/frame-time plate with the MADE BY EB credit
+	                    // line, over the scene while the overlay is closed
 }
