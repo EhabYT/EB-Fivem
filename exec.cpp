@@ -130,7 +130,12 @@ namespace Executor
 		// only sampled once per frame here, so both checks stay cheap.
 		const bool clipAvail = ::IsClipboardFormatAvailable(CF_UNICODETEXT) != 0
 			|| ::IsClipboardFormatAvailable(CF_TEXT) != 0;
-		const bool bufEmpty = editor.GetText().empty();
+		// Asking "empty?" used to copy the whole buffer into a std::string every
+		// frame.  The answer now rides a cache that the text-changed poll after
+		// Render maintains, so steady frames allocate nothing; a change (typing,
+		// paste, or one of our own SetText calls) refreshes it in the same frame
+		// it happens, one frame ahead of the toolbar that reads it.
+		static bool bufEmpty = true;
 		// The actions that need something to work on now say so: on a fresh
 		// buffer undo/redo/copy are greyed instead of clicking into a no-op, paste
 		// waits for clipboard text and clear for buffer text - the
@@ -383,6 +388,7 @@ namespace Executor
 
 		if (editor.IsTextChanged())
 		{
+			bufEmpty = editor.GetText().empty();
 			if (suppress > 0)
 				--suppress;
 			else

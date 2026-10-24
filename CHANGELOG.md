@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The empty-buffer check stops copying the buffer per frame (row 139)
+- Row 127's `bufEmpty` sample answered "is the buffer empty?" by copying the entire editor
+  text into a temporary `std::string` on every frame - a heap allocation per frame in the
+  steady state, for a question whose answer only changes when the text does.  It is now a
+  cached flag that the existing text-changed poll refreshes in the frame a change happens,
+  whether that change is typing, a paste, or one of the UI's own SetText calls; the toolbar,
+  the placeholder hint and the context menu read the cache.
+- The remaining `GetText()` calls in the file all sit in click handlers (save, clear, revert,
+  load confirm, execute report), where a copy is the work itself, not overhead.
+
 ## Brace restored in the stopper guard (row 138)
 - The row-137 splice consumed the outer `else` closing brace of the stop block while only
   re-closing the inner one, so `resources.cpp` sat in the committed state with an unbalanced
