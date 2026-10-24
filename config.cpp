@@ -210,6 +210,8 @@ namespace Config
 				Toasts::Push(Toasts::Info, "Interface settings reset; window position applies on next start.");
 			}
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Back to compiled defaults - asks first;\nwindow position applies on the next start.");
 
 		ImGui::EndChild();
 		ImGui::SameLine();
@@ -295,6 +297,8 @@ namespace Config
 				Toasts::Push(Toasts::Warn, "Clipboard unavailable - nothing copied.");
 			}
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Copies the diagnostics line above to the clipboard,\nso a report carries its environment with it.");
 
 		// Copy diagnostics puts the environment on the clipboard; this one
 		// opens the folder that holds settings.ini (and the Dumps folder
@@ -324,6 +328,8 @@ namespace Config
 				Toasts::Push(Toasts::Warn, "Could not open the settings folder.");
 			}
 		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Opens the folder holding settings.ini in Explorer,\nwith the file highlighted once it exists.");
 		ImGui::EndChild();
 	}
 }

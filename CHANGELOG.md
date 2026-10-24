@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Config's three action buttons get tooltips too (row 135)
+- Row 132 closed the tooltip family on the Executor, Resources and Menus surfaces and called
+  it complete - Config's Copy diagnostics, Open settings folder and reset buttons were the
+  remainder.  Each now says on hover what it does: the clipboard line that carries the
+  environment into a report, the Explorer window on the settings folder (file highlighted
+  once the ini exists), and a reset that asks first while the window position waits for the
+  next start.
+
 ## Build fix: missing <string> and a helper outside the namespace (row 134)
 - The first MSVC build since the row-125/128 batches reported two breaks.  `settings.h`
   declared `std::string IniPath()` without including `<string>`, so every translation unit
