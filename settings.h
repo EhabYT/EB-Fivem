@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>   // std::string in IniPath() below
+
 // Persisted interface preferences, stored as <DLL folder>\settings.ini.
 // Nothing in here touches the game: it only remembers where the window sat,
 // which tab was open and which key toggles the overlay, so a re-inject

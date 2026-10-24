@@ -73,6 +73,21 @@ namespace Executor
 		return 0;
 	}
 
+	// The write path, single-sourced the way the read path is (ReadFileText
+	// above): open, fwrite, short-write check.  Returns 0 on success, 1 when the
+	// file would not open, 2 when the write stopped early - `written` then holds
+	// how far it got, for the message.
+	static int WriteFileText(const char* file, const std::string& text, size_t& written)
+	{
+		written = 0;
+		FILE* fp = NULL;
+		if (fopen_s(&fp, file, "wb") != 0 || fp == NULL)
+			return 1;
+		written = fwrite(text.data(), 1, text.size(), fp);
+		fclose(fp);
+		return written == text.size() ? 0 : 2;
+	}
+
 	void Init()
 	{
 		editor.SetReadOnly(false);
@@ -503,19 +518,4 @@ namespace Executor
 			ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to select.");
 		ImGui::PopItemWidth();
 	}
-}
-
-// The write path, single-sourced the way the read path is (ReadFileText
-// above): open, fwrite, short-write check.  Returns 0 on success, 1 when the
-// file would not open, 2 when the write stopped early - `written` then holds
-// how far it got, for the message.
-static int WriteFileText(const char* file, const std::string& text, size_t& written)
-{
-	written = 0;
-	FILE* fp = NULL;
-	if (fopen_s(&fp, file, "wb") != 0 || fp == NULL)
-		return 1;
-	written = fwrite(text.data(), 1, text.size(), fp);
-	fclose(fp);
-	return written == text.size() ? 0 : 2;
 }

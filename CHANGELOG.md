@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Build fix: missing <string> and a helper outside the namespace (row 134)
+- The first MSVC build since the row-125/128 batches reported two breaks.  `settings.h`
+  declared `std::string IniPath()` without including `<string>`, so every translation unit
+  that includes the header before its own `<string>` failed on the declaration - five in
+  total.  And the row-128 `WriteFileText` helper had been appended after `namespace Executor`
+  closed: the splice anchored on a column-0 closing brace, which is the namespace's, while the
+  function's own brace is tab-indented like everything inside the namespace.
+- The header now includes `<string>`, and the helper sits inside the namespace right after
+  `ReadFileText`, its read-path twin.  The anchor mistake is recorded here and in BUILD.md so
+  the same splice is not repeated against this file's indentation.
+
 ## Reset confirms before it overwrites (row 133)
 - "Reset interface settings" was the one control in the menu that discarded user state on a
   single click: a mis-click cost a custom key bind, the interface scale and every switch,
