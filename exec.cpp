@@ -238,10 +238,12 @@ namespace Executor
 		if (ImGui::Button(ICON_FA_SAVE "##ed_save", ImVec2(tb, tb)))
 			saveBuffer();
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(g_lastFile.empty() ? "Save the buffer to a file"
-				: ("Save to " + BaseName(g_lastFile) + " (Shift+click: save as...)").c_str());
-		// Ctrl+S: the editor owns Ctrl+Z/Y/C/V but not S, so the shortcut is free
-		// here.  Repeat off, and tab-local because the check lives in this tab.
+			ImGui::SetTooltip(g_lastFile.empty() ? "Save the buffer to a file (Ctrl+S)"
+				: ("Save to " + BaseName(g_lastFile)
+					+ " (Ctrl+S; Shift+click or Ctrl+Shift+S: save as...)").c_str());
+		// Ctrl+S: the editor owns Ctrl+Z/Y/C/V but not S or O, so both shortcuts
+		// are free here.  Repeat off, and tab-local because the checks live in
+		// this tab.  Ctrl+Shift+S falls out of saveBuffer's KeyShift read.
 		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
 			saveBuffer();
 		ImGui::SameLine();
@@ -366,8 +368,10 @@ namespace Executor
 		}
 
 		ImGui::SameLine();
-		if (ImGui::Button(ICON_FA_FILE " Load from File",
-			ImVec2(Settings::Px(180.0f), Settings::Px(30.0f))))
+		// Ctrl+O mirrors the Load button for keyboard flow, the way Ctrl+S
+		// mirrors Save - and with Shift held, the same Save press routes through
+		// the dialog as Save As, because saveBuffer already reads KeyShift.
+		auto loadFile = [&]()
 		{
 			// Was an empty `// load file code` stub.  Wire up a real Win32 file
 			// dialog: picking a .lua/.txt file loads it into the editor.
@@ -436,7 +440,14 @@ namespace Executor
 					}
 				}
 			}
-		}
+		};
+		if (ImGui::Button(ICON_FA_FILE " Load from File",
+			ImVec2(Settings::Px(180.0f), Settings::Px(30.0f))))
+			loadFile();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Load from File (Ctrl+O)");
+		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+			loadFile();
 
 		ImGui::SameLine();
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);

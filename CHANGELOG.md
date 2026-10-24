@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Keyboard mirrors finish the file workflow (row 129)
+- Ctrl+S mirrored Save since row 128, but Load stayed mouse-only and the Save As dialog had no
+  shortcut of its own.  Ctrl+O now opens the load dialog (the handler body moved into a
+  `loadFile` lambda shared by button and shortcut), and Ctrl+Shift+S forces the dialog as
+  Save As - falling out of the Shift read the save path already had, not a second code path.
+- The Load and Save tooltips name their shortcuts, so the keyboard routes are discoverable
+  from the mouse routes instead of living in a changelog.
+
 ## One-click Save, Ctrl+S, and a shared write path (row 128)
 - Saving reopened the file dialog every time, even to write the buffer back to the very file
   it was loaded from.  The dialog is now Save As - Shift+click, or the first save before any

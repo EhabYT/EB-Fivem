@@ -453,7 +453,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
   card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear, save (one click to the
-  last file, Shift+click or a first save through the dialog, Ctrl+S from the keyboard) and
+  last file, Shift+click or a first save through the dialog, Ctrl+S from the keyboard,
+  Ctrl+Shift+S forcing that dialog, Ctrl+O mirroring Load) and
   revert-to-last-file sit above the executor (tooltips
   name the shortcuts); undo/redo/copy grey out via `BeginDisabled` whenever there is nothing to
   undo, redo or copy, paste while the clipboard holds no text and clear while the buffer
