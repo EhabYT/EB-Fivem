@@ -9,6 +9,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## F5 opens the output folder instead of the invalid-Win32 dialog (row 143)
+- A DLL has no executable entry point, so Visual Studio's F5 / Start Debugging answered with
+  "…\EBengin UI.dll is not a valid Win32 application" - row 98 documented that away, but the
+  dialog kept scaring people.  The tracked `.vcxproj.user` now configures the local debugger
+  (WindowsLocalDebugger, command `explorer.exe`, arguments `"$(TargetDir)"`, attach off), so
+  starting the project opens the folder that holds the fresh DLL; nothing executes or loads
+  the library, and real debugging still goes through Attach to Process or a host command.
+  The warning under build option C, the §8 troubleshooting entry and the README heads-up
+  were rewritten from "dialog expected" to the new behaviour.
+
 ## The toggle-key capture refuses keys that flip while typing (row 142)
 - The toggle poll sits in the present loop, outside any widget focus, so a letter, digit or
   modifier bound as toggle key flipped the overlay on every keystroke of it - and the capture

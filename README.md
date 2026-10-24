@@ -364,9 +364,11 @@ Output: `x64\Release\EBengin UI.dll`. Put `EBengin.png` in the same folder as th
 the sidebar falls back to a text logo.
 
 Heads-up: the output is a **DLL**, so Visual Studio's F5 / "Start Debugging" cannot launch
-it - the dialog ("is not a valid Win32 application" / "ist keine gültige Win32-Anwendung")
-is expected, not a build failure.  Build with Ctrl+Shift+B or `build.bat`; to debug live,
-attach to the process that loads the DLL.  See BUILD.md §8.
+it.  The tracked `.vcxproj.user` therefore points F5 at the output folder (Explorer, attach
+off) - copies from before row 143 instead show the old "is not a valid Win32 application" /
+"ist keine gültige Win32-Anwendung" dialog, which was never a build failure.  Build with
+Ctrl+Shift+B or `build.bat`; to debug live, attach to the process that loads the DLL.
+See BUILD.md §8.
 
 A GitHub Actions workflow that does the same on `windows-latest` (Release and Debug, x64), verifies
 the DLL and its export table exist, and uploads it as an artifact is written, validated and

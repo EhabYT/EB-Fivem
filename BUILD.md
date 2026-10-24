@@ -69,11 +69,13 @@ x64\Release\EBengin UI.dll
 2. Pick **Release / x64** in the toolbar.
 3. `Build → Build Solution` (Ctrl+Shift+B).
 
-**Do not press F5 / "Start Debugging".**  The output of this project is a **DLL**, and
-Windows cannot launch a DLL as a program - Visual Studio answers with
-*"…\EBengin UI.dll" is not a valid Win32 application* (German: *"… ist keine gültige
-Win32-Anwendung"*).  That dialog is not a build failure; the build already succeeded when
-it appears.  The two legitimate ways to build and to debug are in §8 Troubleshooting.
+**F5 / "Start Debugging" opens the output folder, it does not run the DLL.**  The output
+of this project is a **DLL**, and Windows cannot launch a DLL as a program, so the tracked
+`.vcxproj.user` points the local debugger at `explorer.exe "$(TargetDir)"` with attach off
+(row 143): starting now opens the folder holding the fresh `EBengin UI.dll` instead of the
+old *"… is not a valid Win32 application"* dialog.  Copies from before row 143 (or with a
+locally overwritten `.user`) still show that dialog; it was never a build failure.  The two
+legitimate ways to build and to debug are in §8 Troubleshooting.
 
 ---
 
@@ -273,6 +275,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 140 | The Config tab's "Server related stuff" pane showed a phantom state - first a hardcoded 127.0.0.1, then "Server IP: not connected", both implying a connection this build never has, while reading a real server IP would mean reading game state | The pane says the truth in two muted lines and offers the one server-facing artifact the build does produce: an "Open dumps folder" button that creates `<DLL folder>\Dumps` if needed and opens it in Explorer, failure-reported like the settings-folder button; the renderer's Config branch, its fit asserts and the About block's pinned ImGui tag (now 1.93.0) follow |
 | 141 | Saving onto the file behind the buffer silently buried edits another editor had written to it since Load - the one loss path left in the file workflow, because the overwrite prompt only covers names picked in the dialog | Every successful Load/Save/Revert now stores the file's last-write time (`GetFileAttributesEx`, no handle); a Save whose target is that same file compares the stamp and confirms before overwriting a changed file, logging a cancel to the activity trace |
 | 142 | The toggle-key capture accepted any virtual key from 7 to 255: binding a letter, digit or modifier made the present-loop poll flip the overlay on every keystroke of it, and a settings.ini from before this row could already carry such a key | The capture now only accepts keys nobody types (F1-F24, the navigation block, the lock keys), refuses the rest with a reason while staying armed, and a stored invalid key is reset to INSERT on the first Config frame with a warn toast |
+| 143 | F5 / Start Debugging answered with the scary "…\EBengin UI.dll is not a valid Win32 application" dialog because a DLL has no entry point and no debugger host was configured - row 98 only documented that away, and users kept hitting it | The tracked `.vcxproj.user` now carries the local-debugger settings (explorer.exe "$(TargetDir)", attach off), so F5 opens the output folder holding the fresh DLL; the three doc spots that described the dialog as expected were rewritten to the new behaviour |
 
 
 
@@ -510,9 +513,11 @@ Two things worth knowing:
 
 **F5 / "Start Debugging" pops "…\EBengin UI.dll is not a valid Win32 application"
 (German: "… ist keine gültige Win32-Anwendung")**
-Expected, and not a build error: the output of this project is a DLL, and `CreateProcess`
-cannot launch a library - it has no executable entry point.  The build succeeded when this
-dialog appears (check `x64\<Config>\EBengin UI.dll` exists).  Two legitimate workflows:
+Only on copies from before row 143, or with a locally overwritten `.vcxproj.user`: since
+row 143 the tracked `.user` points the local debugger at `explorer.exe "$(TargetDir)"`
+(attach off), so F5 opens the output folder instead of trying to execute the library.
+The dialog was never a build error - a DLL has no executable entry point, and the build
+succeeded when it appeared (check `x64\<Config>\EBengin UI.dll` exists).  Two workflows:
 
 1. **Build only** - Ctrl+Shift+B in the IDE, or `build.bat` / the MSBuild line above.  This
    is what the CI job does as well.
