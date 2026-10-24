@@ -81,6 +81,21 @@ namespace Menu
 			ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
 			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
 		}
+		// UI: row 150 - once a sidebar tab was open, the landing tab (diagnostics
+		// + session activity) had no way back for the whole session; the logo is
+		// the home button now.  Works for the text-logo fallback too, since the
+		// Dummy/Text above are items as well.
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+			ImGui::SetTooltip("Back to the landing tab.");
+		}
+		if (ImGui::IsItemClicked())
+		{
+			Tab = TabDefault;
+			Settings::Current.Tab = Tab;
+			Settings::Save();
+		}
 		ImGui::NewLine();
 
 		for (size_t i = 0; i < IM_ARRAYSIZE(SidebarItems); ++i)
@@ -479,6 +494,18 @@ namespace Menu
 				ImVec2(wp.x + ww, wp.y + titleH + 2.0f),
 				IM_COL32(93, 156, 214, 255), IM_COL32(29, 81, 136, 255),
 				IM_COL32(29, 81, 136, 255), IM_COL32(93, 156, 214, 255));
+		}
+
+		// UI: row 150 - Ctrl+Tab / Ctrl+Shift+Tab cycle all five tabs, landing
+		// included.  The editor consumes plain Tab for indent but leaves the
+		// Ctrl chord alone (TextEditor checks !ctrl), so this stays safe while
+		// the editor has focus.
+		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Tab, false))
+		{
+			const int dir = ImGui::GetIO().KeyShift ? -1 : 1;
+			Tab = (Tab + dir + 5) % 5;
+			Settings::Current.Tab = Tab;
+			Settings::Save();
 		}
 
 		// Two-column shell: fixed sidebar on the left, tab content on the right.

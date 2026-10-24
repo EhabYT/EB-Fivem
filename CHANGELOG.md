@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## A way home: logo button and Ctrl+Tab tab cycling (row 150)
+- The landing tab - diagnostics graph, uptime line, session activity - was a one-way street:
+  once a sidebar tab was open, nothing in the shell returned to Tab 0 for the rest of the
+  session.  The sidebar logo is now a home button: hover shows the hand cursor and a tooltip,
+  a click returns to the landing tab and persists it like any sidebar click; the text-logo
+  fallback (missing EBengin.png) works too, since its Dummy is an item as well.
+- Ctrl+Tab / Ctrl+Shift+Tab now cycle all five tabs, landing included, persisted the same way.
+  Safe while typing: the vendored TextEditor consumes plain Tab for indent but checks !ctrl,
+  so the chord reaches the shell untouched.  The Config nav hint grew the sentence
+  "Ctrl+Tab switches tabs." and wraps to two lines in the right pane; the renderer's
+  single-line assert was replaced with a wrap-width check, since TextWrapped wraps by design.
+
 ## HUD plate corner setting and Recent-entry removal (rows 148-149)
 - The FPS HUD plate sat pinned top-left, the one corner game HUDs (minimap, score strips)
   almost always own.  `[ui] hudcorner` (0=top left .. 3=bottom right, clamped on load) and a

@@ -411,7 +411,7 @@ namespace Config
 		// the hint is a single line.  Same style-stack trick as before.
 		ImGui::Spacing();
 		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ColMuted);
-		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates.");
+		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates. Ctrl+Tab switches tabs.");
 		ImGui::PopStyleColor();
 		ImGui::EndChild();
 	}

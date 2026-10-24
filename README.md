@@ -386,7 +386,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
 ## Runtime behaviour
 
 * The toggle key — **INSERT** by default, rebindable in Config → Interface — toggles the menu.
-* The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates
+* The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates,
+  Ctrl+Tab / Ctrl+Shift+Tab cycle the tabs, and the sidebar logo returns to the landing tab
   (ImGui keyboard nav, accent-coloured focus rectangle).
 * Opening the menu gives it keyboard focus; the nav cursor starts on the sidebar entry of
   the open tab (first entry on the landing tab, which has no sidebar row).

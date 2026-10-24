@@ -613,7 +613,7 @@ elif TAB == "config":
     TEXT_LH = FONT_SIZE
     C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
     C_MUTED = RGBA(125, 175, 225)  # ColMuted token, row 147
-    HINT = "Tab/arrows move, Enter/Space activates."
+    HINT = "Tab/arrows move, Enter/Space activates. Ctrl+Tab switches tabs."
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)
     y = CY0 + LINE_ADV
@@ -749,7 +749,10 @@ elif TAB == "config":
 
     # --- the pane is only a third of the column and ImGui::Text does not
     # wrap, so these asserts are what keeps a label from being clipped ---
-    assert TW(HINT) <= rx1 - rx0, "nav hint clipped in right pane"
+    # TextWrapped wraps at the region width, so width cannot clip; the
+    # vertical budget check below (ry <= bot) is what guards the hint.
+    assert all(TW(hl) <= rx1 - rx0 for hl in wrap_text(HINT, rx1 - rx0)),\
+        "nav hint wrap line clipped"
     for s in ("Safe Mode", "ScriptHook Bypass", "Interface"):
         assert TW(s) + TW("(?)") <= pane_w, "heading clipped: " + s
     for lab in ("Enabled (no effect)", "Animations", "Toast notifications", "FPS HUD"):
