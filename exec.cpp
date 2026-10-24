@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <algorithm>   // std::remove in PushRecent
 
 #pragma comment(lib, "comdlg32.lib")
 
@@ -48,6 +49,19 @@ namespace Executor
 	// cannot drift apart the way the old menu-list copies did.
 	// Returns 0 on success, 1 open failure, 2 empty, 3 oversized; on 0,
 	// out holds the file text after the BOM strip.
+	// Recent-files list: newest first, de-duplicated, capped at five, and
+	// persisted with the rest of the prefs ([recent] in settings.ini), so a
+	// re-inject still offers yesterday's script for one-click reload.
+	static void PushRecent(const std::string& path)
+	{
+		auto& r = Settings::Current.Recent;
+		r.erase(std::remove(r.begin(), r.end(), path), r.end());
+		r.insert(r.begin(), path);
+		if (r.size() > 5)
+			r.resize(5);
+		Settings::Save();
+	}
+
 	static int ReadFileText(const char* file, std::string& out)
 	{
 		FILE* fp = NULL;
@@ -293,6 +307,7 @@ namespace Executor
 			else
 			{
 				g_lastFile = target;
+				PushRecent(target);
 				dirty = false;
 				g_haveFileTime = FileMTime(target.c_str(), g_fileTime);
 				Activity::Push("Saved " + std::to_string(written)
@@ -483,7 +498,7 @@ namespace Executor
 		// Ctrl+O mirrors the Load button for keyboard flow, the way Ctrl+S
 		// mirrors Save - and with Shift held, the same Save press routes through
 		// the dialog as Save As, because saveBuffer already reads KeyShift.
-		auto loadFile = [&]()
+		auto loadFile = [&](const char* preset = NULL)
 		{
 			// Was an empty `// load file code` stub.  Wire up a real Win32 file
 			// dialog: picking a .lua/.txt file loads it into the editor.
@@ -504,7 +519,12 @@ namespace Executor
 			ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
 			ofn.lpstrInitialDir = initDir.empty() ? NULL : initDir.c_str();
 
-			if (GetOpenFileNameA(&ofn))
+			// With a preset path (Recent popup) the dialog is skipped entirely;
+			// strncpy_s into the same buffer keeps one code path below.
+			const bool haveFile = preset
+				? (strncpy_s(file, preset, _TRUNCATE) == 0)
+				: (GetOpenFileNameA(&ofn) != 0);
+			if (haveFile)
 			{
 				// Every failure path used to be silent: pick an unreadable, empty
 				// or oversized file and the button simply did nothing, which is
@@ -543,6 +563,7 @@ namespace Executor
 					{
 						editor.SetText(text);
 						g_lastFile = file;
+						PushRecent(file);
 						g_haveFileTime = FileMTime(file, g_fileTime);
 						dirty = false;
 						suppress = 1;
@@ -568,6 +589,29 @@ namespace Executor
 			ImGui::SetTooltip("Load from File (Ctrl+O)");
 		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
 			loadFile();
+
+		ImGui::SameLine();
+		// Recent files: the five last loaded/saved paths, newest first, from
+		// [recent] in settings.ini - reloading an old script is one click
+		// instead of a dialog trek.  Grey while the list is empty; the popup
+		// rows show the base name and tooltip the full path.
+		ImGui::BeginDisabled(Settings::Current.Recent.empty());
+		if (ImGui::Button(ICON_FA_LIST_UL " Recent", ImVec2(Settings::Px(90.0f), Settings::Px(30.0f))))
+			ImGui::OpenPopup("##ed_recent_popup");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("The five last used files, newest first.");
+		ImGui::EndDisabled();
+		if (ImGui::BeginPopup("##ed_recent_popup"))
+		{
+			for (const std::string& r : Settings::Current.Recent)
+			{
+				if (ImGui::MenuItem(BaseName(r).c_str()))
+					loadFile(r.c_str());
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip(r.c_str());
+			}
+			ImGui::EndPopup();
+		}
 
 		ImGui::SameLine();
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);

@@ -571,7 +571,7 @@ if TAB == "executor":
     # depicts a buffer with no file behind it and nothing unsaved
     T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
 
-    # button row: Execute 116x30, Load from File 180x30, combo fills the rest
+    # button row: Execute 116x30, Load 180x30, Recent 90x30, combo fills rest
     y = ey1 + LINE_ADV + ITEM_SPACING_Y
     bh = 30
     # Execute is a Gui::PrimaryButton: brand fill, soft top highlight, centred label
@@ -589,10 +589,14 @@ if TAB == "executor":
     T(x2 + FRAME_PAD_X + TW("\uf15b", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Load from File", C_TEXT)
 
     x3 = x2 + 180 + ITEM_SPACING_X
+    R(x3, y, x3 + 90, y + bh, C_BUTTON)          # Recent button (row 146)
+    T(x3 + FRAME_PAD_X, y + (bh-FONT_SIZE)/2 + (FONT_SIZE-ICON_SIZE)/2, "\uf0ca", C_TEXT, f_icon, 1.0)
+    T(x3 + FRAME_PAD_X + TW("\uf0ca", f_icon, 1.0), y + (bh-FONT_SIZE)/2, " Recent", C_TEXT)
+    x4 = x3 + 90 + ITEM_SPACING_X
     fh = FONT_SIZE + FRAME_PAD_Y * 2
-    R(x3, y, CX1, y + fh, C_FRAME_BG)
-    d.rectangle([x3*S, y*S, CX1*S-1, (y+fh)*S-1], outline=C_BORDER, width=S)
-    T(x3 + FRAME_PAD_X, y + (fh-FONT_SIZE)/2, "_cfx_internal", C_TEXT)
+    R(x4, y, CX1, y + fh, C_FRAME_BG)
+    d.rectangle([x4*S, y*S, CX1*S-1, (y+fh)*S-1], outline=C_BORDER, width=S)
+    T(x4 + FRAME_PAD_X, y + (fh-FONT_SIZE)/2, "_cfx_internal", C_TEXT)
     aw, ax, ay = 9, CX1 - FRAME_PAD_X - 9, y + fh / 2
     d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
 

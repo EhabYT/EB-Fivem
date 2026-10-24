@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Recent files: one click back to the last scripts (row 146)
+- Nothing remembered which files the editor had used, so every session retreaded the file
+  dialog.  The five last loaded/saved paths now persist in `[recent]` of settings.ini, newest
+  first and de-duplicated; Load success and Save success both push into the list.
+- The Executor's button row grows a "Recent" button (grey while the list is empty) whose popup
+  lists base names with full-path tooltips; picking an entry reloads through the very same
+  guarded path as the dialog - unreadable/empty/oversized files report as before, and a
+  non-empty buffer still asks before being replaced.
+- settings.ini carries `[recent] 0..4`; a hand-edited or truncated list cannot break the load,
+  because every entry fails at use with its own message.  The executor preview shows the button.
+
 ## The shell grows a close button and a talking title bar (rows 144-145)
 - `Begin` passed `p_open = NULL`, so the title bar had no close cross and the toggle key was
   the only way out of the overlay - a mouse-only user had none.  `p_open` is now `&IsMenuOpen`,

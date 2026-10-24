@@ -43,6 +43,17 @@ namespace Settings
 		Current.ResourceTab    = GetPrivateProfileIntA("menu", "resourcetab", 0, path.c_str());
 		Current.ScalePercent   = GetPrivateProfileIntA("ui", "scale", 100, path.c_str());
 
+		// [recent] 0..4, newest first; empty slots are simply absent.  A hand-
+		// edited ini cannot break anything here: unreadable paths fail at use.
+		Current.Recent.clear();
+		for (int i = 0; i < 5; ++i)
+		{
+			char buf[MAX_PATH] = { 0 };
+			GetPrivateProfileStringA("recent", std::to_string(i).c_str(), "", buf, MAX_PATH, path.c_str());
+			if (buf[0])
+				Current.Recent.push_back(buf);
+		}
+
 		// A hand-edited or truncated ini must not produce a tab or key the menu
 		// cannot use; clamp both back to their defaults.
 		if (Current.Tab < 0 || Current.Tab > 4)
@@ -64,6 +75,11 @@ namespace Settings
 		return WritePrivateProfileStringA(section, key, buf, IniPath().c_str()) != 0;
 	}
 
+	static bool WriteStr(const char* section, const char* key, const char* value)
+	{
+		return WritePrivateProfileStringA(section, key, value, IniPath().c_str()) != 0;
+	}
+
 	void Save()
 	{
 		// A DLL folder without write permission (program files, read-only media)
@@ -80,6 +96,9 @@ namespace Settings
 		ok = WriteInt("ui", "whitespace", Current.ShowWhitespace ? 1 : 0) && ok;
 		ok = WriteInt("menu", "resourcetab", Current.ResourceTab) && ok;
 		ok = WriteInt("ui", "scale", Current.ScalePercent) && ok;
+		for (size_t i = 0; i < 5; ++i)
+			ok = WriteStr("recent", std::to_string(i).c_str(),
+				i < Current.Recent.size() ? Current.Recent[i].c_str() : "") && ok;
 		if (!ok && !g_saveFailed)
 		{
 			g_saveFailed = true;

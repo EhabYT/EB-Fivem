@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>   // std::string in IniPath() below
+#include <vector>
 
 // Persisted interface preferences, stored as <DLL folder>\settings.ini.
 // Nothing in here touches the game: it only remembers where the window sat,
@@ -21,6 +22,7 @@ namespace Settings
 		bool ShowWhitespace = false;  // editor whitespace dots
 		int  ResourceTab    = 0;      // Resources sub-tab: 0 none, 1 browser, 2 triggers, 3 stopper
 		int  ScalePercent   = 100;    // interface scale 70..200 (%), applied as style.FontScaleMain
+		std::vector<std::string> Recent;  // last used editor files, newest first, cap 5
 	};
 
 	extern Prefs Current;        // defined in settings.cpp
