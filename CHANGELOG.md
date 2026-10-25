@@ -9,6 +9,22 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Capture behaviour: silent navigation, retired on leave (rows 166-167)
+- While a key capture was armed, every press that was neither ESC nor bindable hit the refuse
+  branch - including pure navigation keys (Tab, Enter, arrows, modifiers).  Keyboard users
+  moving around during a capture therefore collected a warn toast and an activity entry per
+  press.  The refuse branch now only answers printable keys (A-Z, 0-9, space), the ones a user
+  could plausibly expect to bind; everything else is navigation and is ignored silently, with
+  the capture staying armed.
+- An armed capture survived tab switches although its scan only runs while the Config tab
+  renders - and since row 164 the present loop suppresses the toggle flip while any capture is
+  armed, so on every other tab, with no capture UI visible, the toggle key simply looked dead.
+  Config::Render now retires the capture when more than half a second passes without a Config
+  frame (the same gap heuristic the shell uses for its reopen fade), which restores the toggle
+  key the moment the user leaves the tab.
+- Both are capture-path fixes; nothing visual changed, and all eight previews stay
+  byte-identical.
+
 ## Toggle-edge hygiene: capture guard and modal drain (rows 164-165)
 - A toggle-key press while the Config key capture was armed flipped the overlay shut
   mid-capture: the present-loop poll runs before Menu::Render() and consumed the key edge, so

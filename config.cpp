@@ -32,6 +32,18 @@ namespace Config
 
 	void Render()
 	{
+		// UI: row 167 - an armed capture survives tab switches (the scan only
+		// runs while this tab renders), and while it survives the present loop
+		// suppresses the toggle flip (row 164) - on any other tab, with no
+		// visible capture UI, the toggle key just looks dead.  Half a second
+		// without a Config frame means the user left; retire the capture.  The
+		// same gap heuristic the shell uses for its reopen fade.
+		static double lastHere = -1.0;
+		const double hereNow = ImGui::GetTime();
+		if (lastHere >= 0.0 && (hereNow - lastHere) > 0.5)
+			g_capturing = false;
+		lastHere = hereNow;
+
 		Gui::SectionTitle("Config", "##config_seperator_0");
 
 		// GetWindowWidth()/GetWindowHeight() report the *outer* window (900x540),
@@ -159,7 +171,17 @@ namespace Config
 						Toasts::Push(Toasts::Success, std::string("Toggle key set to ") + Settings::KeyName(vk));
 						g_capturing = false;
 					}
-					else
+					// UI: row 166 - the refuse branch used to catch every key that
+					// is neither ESC nor bindable, including pure navigation keys
+					// (Tab, Enter, arrows, modifiers): keyboard users moving
+					// around while a capture was armed were answered with a warn
+					// toast and an activity entry per press.  Only printable keys
+					// are binding candidates worth refusing out loud - they are
+					// the ones a user could plausibly expect to work, and the
+					// toast explains why they cannot.  Everything else is nav:
+					// stay in capture, say nothing.
+					else if ((vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9')
+						|| vk == VK_SPACE)
 					{
 						// Refuse, but stay in capture so the next press can still
 						// succeed; the toast cap keeps a slipped key from flooding.
