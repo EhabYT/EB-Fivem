@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Key-card feedback follow-ups (rows 156-157)
+- The row-155 key is lower-case and compared case-sensitively, so with Caps Lock on every
+  attempt failed looking exactly like a wrong key - nothing told the user why.  The card now
+  reads the Caps-Lock toggle state (GetKeyState; no entered text is inspected), grows by one
+  line while it is on and states "Caps Lock is on - the key is lower-case." in warn amber.
+- The wrong-key line inherited pure red, which measures ~3.7:1 on the card background and so
+  sat under WCAG AA for normal text; it now uses a lighter red at ~5.2:1.  It also answered the
+  previous attempt even while the field was already being edited again - a fresh keystroke now
+  clears the verdict (IsItemEdited, read directly after the input, before any later widget).
+- Both changes are display-only; the gate logic (plaintext local compare, unlock once per
+  inject) is untouched, and the default-state preview `docs/preview_key.png` is unchanged.
+
 ## Session key gate in front of splash and shell (row 155)
 - The overlay opened straight into its splash and shell for anyone who could press the toggle
   key; the owner wanted a key in front of it.  A centred key card now replaces both until the

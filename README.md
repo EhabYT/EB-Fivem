@@ -391,7 +391,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
   Ctrl+Tab / Ctrl+Shift+Tab cycle the tabs, and the sidebar logo returns to the landing tab
 * A session key gate sits in front of splash and shell: once per inject the overlay
   asks for its key (password field, Enter submits); the check is local plaintext against a
-  constant - no server, no persistence - and the card says so
+  constant - no server, no persistence - and the card says so; a Caps-Lock
+  hint line explains case-mismatched attempts while Caps Lock is on
   (ImGui keyboard nav, accent-coloured focus rectangle).
 * Opening the menu gives it keyboard focus; the nav cursor starts on the sidebar entry of
   the open tab (first entry on the landing tab, which has no sidebar row).

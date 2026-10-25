@@ -363,7 +363,12 @@ namespace Menu
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
 
 		const ImVec2 disp = ImGui::GetIO().DisplaySize;
-		const ImVec2 card(Settings::Px(460.0f), Settings::Px(232.0f));
+		// UI: row 156 - the key is lower-case and the compare is case-sensitive,
+		// so with Caps Lock on every attempt fails looking exactly like a wrong
+		// key.  The card grows by one line and says so instead of letting the
+		// user guess; GetKeyState reads the toggle state, no text is inspected.
+		const bool caps = (GetKeyState(VK_CAPITAL) & 1) != 0;
+		const ImVec2 card(Settings::Px(460.0f), Settings::Px(caps ? 256.0f : 232.0f));
 		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
 			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -403,12 +408,18 @@ namespace Menu
 		const bool enter = ImGui::InputText("##key", g_keyBuf, sizeof(g_keyBuf),
 			ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
 		ImGui::PopItemWidth();
+		// UI: row 157 - the red line answers the previous attempt; once the field
+		// is edited again that verdict is stale, so a fresh keystroke clears it.
+		// IsItemEdited must be read here, before any later widget becomes the
+		// "last item"; the declaration moves up with the check.
+		static bool wrong = false;
+		if (ImGui::IsItemEdited())
+			wrong = false;
 
 		ImGui::Spacing();
 		const float bw = Settings::Px(140.0f);
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
 			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - bw) * 0.5f));
-		static bool wrong = false;
 		if (enter || Gui::PrimaryButton("Unlock", ImVec2(bw, Settings::Px(30.0f))))
 		{
 			if (std::strcmp(g_keyBuf, "eb") == 0)
@@ -427,9 +438,15 @@ namespace Menu
 			}
 		}
 		if (wrong)
-			Centered("Wrong key - try again.", ImColor(255, 0, 0, 255));
+			// UI: row 157 - pure red on the card measured ~3.7:1, under WCAG AA
+			// for normal text; this lighter red holds ~5.2:1 on the card bg.
+			Centered("Wrong key - try again.", ImColor(255, 107, 107, 255));
 		else
 			ImGui::Spacing();
+		// UI: row 156 - only shown while Caps Lock is on; amber like the warn
+		// ramp (~8.8:1 on the card), and the card height above makes room.
+		if (caps)
+			Centered("Caps Lock is on - the key is lower-case.", ImColor(255, 193, 7, 255));
 		Centered("Local gate - no server is contacted.", ColMuted);
 
 		Toasts::Render();
