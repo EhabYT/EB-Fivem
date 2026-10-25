@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Perf graph: AA-readable bad frames, right-pinned now (rows 178-179)
+- The perf graph's bad-frame bars used pure red at 200 alpha on the navy canvas, which measures
+  ~2.6:1 - under the 3:1 WCAG AA asks of non-text marks.  They now use the lighter red
+  (255,107,107) of the row-157/175 ramp at the same alpha, ~3.7:1 on the canvas, keeping a single
+  red in the project.
+- While the frame-time history was shorter than the 120-slot ring, the bars grew from the left
+  edge, so "now" sat mid-canvas for the first two minutes of every session - and the hover
+  readout mapped to that left-pinned layout.  The newest bar is now pinned to the right edge
+  (offset by the missing slots), the way every ring-buffer graph reads, with the hover index
+  shifted by the same offset.
+- The preview renderer models the graph as layout only (no bars), so all eight previews stay
+  byte-identical.
+
 ## Clipboard writer: bounded retry and a Unicode format (rows 176-177)
 - The shared clipboard writer (Config's "Copy diagnostics", the landing tab's session-log copy,
   the trigger and dump-path copies) tried OpenClipboard exactly once, so a single transiently

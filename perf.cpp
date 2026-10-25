@@ -38,14 +38,24 @@ namespace Perf
 		dl->AddLine(ImVec2(mn.x, gy), ImVec2(mn.x + size.x, gy), IM_COL32(93, 156, 214, 90));
 
 		const float bw = size.x / (float)kSlots;
+		// UI: row 179 - while the history is shorter than the ring, the bars
+		// grew from the LEFT edge, so "now" sat somewhere mid-canvas for the
+		// first two minutes of every session; pin the newest bar to the right
+		// edge the way every ring-buffer graph reads.  The hover index below
+		// shifts with the same offset.
+		const float x0 = mn.x + (float)(kSlots - g_count) * bw;
 		for (int i = 0; i < g_count; ++i)
 		{
 			const float ms = g_ring[(g_head - g_count + i + kSlots) % kSlots];  // old -> new
 			const float h = (ms < 33.3f ? ms : 33.3f) / 33.3f * (size.y - 2.0f);
-			const ImU32 col = ms > 33.3f ? IM_COL32(255, 0, 0, 200)
+			// UI: row 178 - pure red at 200 alpha on the navy canvas measured
+			// ~2.6:1, under the 3:1 WCAG AA asks of non-text marks; the lighter
+			// red from the row-157/175 ramp holds ~3.7:1 here and keeps one red
+			// in the project.
+			const ImU32 col = ms > 33.3f ? IM_COL32(255, 107, 107, 200)
 				: IM_COL32(93, 156, 214, 220);
-			dl->AddRectFilled(ImVec2(mn.x + i * bw, mn.y + size.y - 1.0f - h),
-				ImVec2(mn.x + (i + 1) * bw, mn.y + size.y - 1.0f), col);
+			dl->AddRectFilled(ImVec2(x0 + i * bw, mn.y + size.y - 1.0f - h),
+				ImVec2(x0 + (i + 1) * bw, mn.y + size.y - 1.0f), col);
 		}
 		// Hover readout: the bars show the shape, the tooltip the numbers.
 		// bw > 0 first: on a zero-width canvas the division below is by zero and
@@ -53,7 +63,7 @@ namespace Perf
 		// check after it would not reliably catch.
 		if (bw > 0.0f && ImGui::IsMouseHoveringRect(mn, mx) && g_count > 0)
 		{
-			const int i = (int)((ImGui::GetMousePos().x - mn.x) / bw);
+			const int i = (int)((ImGui::GetMousePos().x - x0) / bw);   // row 179 offset
 			if (i >= 0 && i < g_count)
 			{
 				const float ms = g_ring[(g_head - g_count + i + kSlots) % kSlots];
