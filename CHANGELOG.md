@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Resources list consistency: one background, explained empty (rows 172-173)
+- The stopper list box used a brighter frame background (31,58,97) than the very same list
+  family on the other two Resources sub-tabs (20,38,63), so switching sub-tab visibly re-lit the
+  box for no reason.  It now uses the shared list background.
+- A resource filter that matched nothing left an empty list box with no explanation on both
+  filtered lists (file browser and stopper) - an empty box reads as a broken list, not as a
+  filter result.  Both lists now count their visible rows and draw a muted "No resource matches
+  the filter." line inside the list box when the count is zero; keeping the hint in-list means it
+  costs no layout height in a shell that has no scrollbar to give.  The genuinely empty case
+  ("No resources left to stop.") keeps its own distinct message.
+- The preview resources scene shows the file list with an empty filter, so all eight previews
+  stay byte-identical.
+
 ## Toast preference consistency (rows 170-171)
 - The key card rendered its toast stack regardless of the "Toast notifications" preference,
   while the shell gates its stack on exactly that pref; with the pref off, a wrong-key attempt

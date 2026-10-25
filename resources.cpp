@@ -267,10 +267,14 @@ namespace Resources
 				static int openRes = -1;
 				if (openRes >= (int)resources.size())
 					openRes = -1;   // the stopper erases entries
+				// UI: row 173 - a filter that matches nothing left an empty box
+				// with no explanation; the count drives the in-list hint below.
+				int shown = 0;
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
+					++shown;
 					ImGui::SetNextItemOpen(openRes == i);
 					const bool open = ImGui::CollapsingHeader(resources[i]);
 					if (open)
@@ -303,6 +307,11 @@ namespace Resources
 						}
 					}
 				}
+				// UI: row 173 - inside the list box so the hint costs no layout
+				// height (the shell has no scrollbar to give); muted like the
+				// other empty states.
+				if (shown == 0 && !resources.empty())
+					ImGui::TextColored(ColMuted, "No resource matches the filter.");
 				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
@@ -362,13 +371,19 @@ namespace Resources
 			// 42px, so the 48px reserve is the right one here.
 			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
 
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(31, 58, 97, 255));
+			// UI: row 172 - the stopper list used a brighter frame background
+			// (31,58,97) than the very same list family on the other two sub-tabs
+			// (20,38,63), so switching sub-tab visibly re-lit the box for no
+			// reason; one list family, one background.
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##resourcestopperbox", listSize3))
 			{
+				int shown = 0;   // UI: row 173, same hint as the file list
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
+					++shown;
 					const bool is_selected = (selectedResource == i);
 					if (ImGui::Selectable(resources[i], is_selected))
 					{
@@ -377,6 +392,8 @@ namespace Resources
 						Settings::Save();
 					}
 				}
+				if (shown == 0 && !resources.empty())
+					ImGui::TextColored(ColMuted, "No resource matches the filter.");
 				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
