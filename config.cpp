@@ -380,7 +380,10 @@ namespace Config
 		// but a toast is gone in seconds and the consequence - every change
 		// lost on restart - deserves a permanent line while it is true.
 		if (Settings::SaveFailed())
-			ImGui::TextColored(ImColor(255, 0, 0, 255),
+			// UI: row 175 - pure red on the pane measured ~3.7:1, under WCAG AA
+			// for normal text; the lighter red from the row-157 wrong-key fix
+			// holds ~5.2:1 here too, and keeps one red ramp in the project.
+			ImGui::TextColored(ImColor(255, 107, 107, 255),
 				"Settings not writable - changes are lost on restart.");
 		Gui::Seperator("##about_seperator_2");
 

@@ -439,7 +439,15 @@ namespace Menu
 		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
 			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-		if (g_justOpened)
+		// UI: row 174 - the field focus below used to be a one-shot static, so
+		// it fired on the very first open only: close the overlay while the
+		// gate is still locked and reopen it, and the window took focus but
+		// the field did not - Enter did nothing until a click or Tab.  The
+		// reopen flag drives both handoffs now, consumed here because the
+		// sidebar (which normally clears it) never runs while gated.
+		const bool fresh = g_justOpened;
+		g_justOpened = false;
+		if (fresh)
 			ImGui::SetNextWindowFocus();
 
 		ImGui::Begin("EBengin Key", NULL,
@@ -471,12 +479,8 @@ namespace Menu
 		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
 			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - iw) * 0.5f));
 		ImGui::PushItemWidth(iw);
-		static bool keyFocused = false;
-		if (!keyFocused)
-		{
-			keyFocused = true;
-			ImGui::SetKeyboardFocusHere(0);
-		}
+		if (fresh)
+			ImGui::SetKeyboardFocusHere(0);   // UI: row 174, every open
 		const bool enter = ImGui::InputText("##key", g_keyBuf, sizeof(g_keyBuf),
 			ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
 		ImGui::PopItemWidth();
@@ -510,6 +514,10 @@ namespace Menu
 			{
 				g_unlocked = true;
 				wrong = false;
+				// UI: row 174 - hand the focus flag to the splash that follows,
+				// so its Continue button gets the same keyboard handoff every
+				// other open path gives it; the shell sidebar consumes it last.
+				g_justOpened = true;
 				SecureZeroMemory(g_keyBuf, sizeof(g_keyBuf));
 				Activity::Push("Key accepted - overlay unlocked.");
 				Toasts::Push(Toasts::Success, "Key accepted.");

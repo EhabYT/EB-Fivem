@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Gate focus on every open, AA red in the About block (rows 174-175)
+- The key field focus was a one-shot static: it fired on the very first open only.  Close the
+  overlay while the gate is still locked and reopen it, and the window took focus but the field
+  did not - Enter did nothing until a click or Tab moved into the field.  The gate now consumes
+  the reopen flag (the sidebar, which normally clears it, never runs while gated) and drives
+  both handoffs from it, window and field; a successful unlock hands the flag on to the splash
+  so its Continue button keeps the keyboard handoff every other open path gives it.
+- The Config About block drew the "settings not writable - changes are lost on restart" line in
+  pure red, which measures ~3.7:1 on the pane and sat under WCAG AA for normal text - the same
+  defect family the row-157 wrong-key line had.  It now uses the lighter red (255,107,107,
+  ~5.2:1) established there, keeping one red ramp in the project.
+- Both are conditional states (a reopen, a save failure), so the default-state previews - all
+  eight - stay byte-identical.
+
 ## Resources list consistency: one background, explained empty (rows 172-173)
 - The stopper list box used a brighter frame background (31,58,97) than the very same list
   family on the other two Resources sub-tabs (20,38,63), so switching sub-tab visibly re-lit the
