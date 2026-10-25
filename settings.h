@@ -24,6 +24,7 @@ namespace Settings
 		int  ResourceTab    = 0;      // Resources sub-tab: 0 none, 1 browser, 2 triggers, 3 stopper
 		int  ScalePercent   = 100;    // interface scale 70..200 (%), applied as style.FontScaleMain
 		std::vector<std::string> Recent;  // last used editor files, newest first, cap 5
+		std::string ResourceName;         // UI: row 154 - persisted dump-target resource
 	};
 
 	extern Prefs Current;        // defined in settings.cpp

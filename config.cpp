@@ -229,7 +229,7 @@ namespace Config
 			// loss family Load/Clear/Revert confirm for, so the reset confirms too.
 			// Cancel keeps everything, including the ini, exactly as it was.
 			if (MessageBoxA(NULL, "Restore the compiled defaults?\n"
-				"Custom key bind, scale and switches are overwritten.",
+				"Custom key bind, scale, switches and HUD corner are overwritten.",
 				"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 			{
 				Activity::Push("Reset cancelled - settings kept.");
@@ -241,7 +241,15 @@ namespace Config
 				// deleting settings.ini.  Window position and tab apply on the next
 				// start (the position is restored with ImGuiCond_Once); the key,
 				// the switches, the scale and the whitespace dot take effect at once.
+				// UI: row 153 - the recent-files list and the dump-target name
+				// are editor/workflow history, not interface preferences: like
+				// the buffer itself they survive the reset instead of being
+				// silently dropped by the whole-struct assignment.
+				const std::vector<std::string> recent = Settings::Current.Recent;
+				const std::string resName = Settings::Current.ResourceName;
 				Settings::Current = Settings::Prefs();
+				Settings::Current.Recent = recent;
+				Settings::Current.ResourceName = resName;
 				Settings::Save();
 				// Two of the prefs also live somewhere else at runtime - the scale in
 				// ImGui's style and the whitespace flag inside the TextEditor widget -

@@ -54,6 +54,9 @@ namespace Settings
 			if (buf[0])
 				Current.Recent.push_back(buf);
 		}
+		char resBuf[128] = { 0 };
+		GetPrivateProfileStringA("menu", "resource", "", resBuf, sizeof(resBuf), path.c_str());
+		Current.ResourceName = resBuf;
 
 		// A hand-edited or truncated ini must not produce a tab or key the menu
 		// cannot use; clamp both back to their defaults.
@@ -103,6 +106,7 @@ namespace Settings
 		for (size_t i = 0; i < 5; ++i)
 			ok = WriteStr("recent", std::to_string(i).c_str(),
 				i < Current.Recent.size() ? Current.Recent[i].c_str() : "") && ok;
+		ok = WriteStr("menu", "resource", Current.ResourceName.c_str()) && ok;
 		if (!ok && !g_saveFailed)
 		{
 			g_saveFailed = true;

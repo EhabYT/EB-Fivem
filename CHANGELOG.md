@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Reset scope and a persistent dump target (rows 153-154)
+- The settings reset assigned the whole Prefs struct, which silently dropped the recent-files
+  list - editor history, not an interface preference, and exactly the kind of thing the buffer
+  itself survives.  The reset now preserves Recent (and the dump-target name) across the
+  assignment, and its confirm text names the HUD corner among what gets overwritten.
+- The dump-target resource combo fell back to _cfx_internal on every inject, so anyone dumping
+  into the same resource re-picked it every session.  The selection now persists by name in
+  `[menu] resource` - by name, not index, because the stopper erases list entries and a stored
+  index could otherwise name a stranger.  Resources::Init restores it when the list still
+  carries it; combo click, list click and the stopper's erase all keep the stored name in step,
+  and a reset leaves it untouched.
+
 ## Heading weight and Ctrl+Tab focus follow (rows 151-152)
 - Every string in the shell rendered in one weight - Bahnschrift 20 regular - so tab headings
   carried hierarchy by colour alone.  A real bold instance of the variable font needs the

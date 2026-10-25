@@ -1,4 +1,5 @@
 #include "resources.h"
+#include "settings.h"   // UI: row 154 persisted dump-target name
 #include "menu_style.h"   // ColMuted
 #include "clipboard.h"
 #include "assets.h"
@@ -99,6 +100,15 @@ namespace Resources
 
 	void Init()
 	{
+		// UI: row 154 - the dump-target selection used to fall back to
+		// _cfx_internal on every inject; restore the persisted name when the
+		// list still carries it (the stopper can have erased it meanwhile).
+		for (int i = 0; i < (int)resources.size(); ++i)
+			if (Settings::Current.ResourceName == resources[i])
+			{
+				selectedResource = i;
+				break;
+			}
 		dumper.SetShowWhitespaces(false);
 		dumper.SetReadOnly(true);
 		dumper.SetPalette(TextEditor::GetDarkPalette());
@@ -361,7 +371,11 @@ namespace Resources
 						continue;
 					const bool is_selected = (selectedResource == i);
 					if (ImGui::Selectable(resources[i], is_selected))
+					{
 						selectedResource = i;
+						Settings::Current.ResourceName = resources[i];
+						Settings::Save();
+					}
 				}
 				ImGui::EndListBox();
 			}
@@ -406,6 +420,11 @@ namespace Resources
 
 						if (selectedResource >= (int)resources.size())
 							selectedResource = resources.empty() ? 0 : (int)resources.size() - 1;
+						// UI: row 154 - keep the persisted name in step with the
+						// post-erase selection, so a restart restores what is shown.
+						Settings::Current.ResourceName = resources.empty()
+							? std::string() : resources[selectedResource];
+						Settings::Save();
 
 						// Still no actual stop logic in this build - but at least the list
 						// is consistent and the user is told the truth.

@@ -628,7 +628,15 @@ namespace Executor
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		// items_count is an int: size_t has no implicit conversion (C2664).
 		if (!resources.empty())
-			ImGui::Combo("##resources", &selectedResource, resources.data(), (int)resources.size());
+		{
+			if (ImGui::Combo("##resources", &selectedResource, resources.data(), (int)resources.size()))
+			{
+				// UI: row 154 - persist by name, not index: the stopper erases
+				// entries, so an index from settings.ini could name a stranger.
+				Settings::Current.ResourceName = resources[selectedResource];
+				Settings::Save();
+			}
+		}
 		else
 			// The stopper can erase the last entry; without a fallback the row
 			// would just be empty where a selection used to be.
