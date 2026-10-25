@@ -158,13 +158,13 @@ namespace Resources
 			// announced a dump that had not happened yet.
 			if (ok)
 			{
-				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "EBengin", MB_OK | MB_ICONINFORMATION);
+				Gui::ModalBoxA( (std::string("Dump saved to:\n") + dir).c_str(), "EBengin", MB_OK | MB_ICONINFORMATION);
 				Activity::Push("Dump saved to " + dir);
 				Toasts::Push(Toasts::Success, "Dump saved to " + dir);
 			}
 			else
 			{
-				MessageBoxA(NULL, (std::string("Failed to write the dump to:\n") + dir +
+				Gui::ModalBoxA( (std::string("Failed to write the dump to:\n") + dir +
 					"\n\nIs the folder writable?").c_str(), "EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push("Dump FAILED for " + dir);
 			}
@@ -181,7 +181,7 @@ namespace Resources
 			const std::string dumpDir = GetDumpDirectory();
 			if (!CopyTextToClipboard(dumpDir.c_str()))
 			{
-				MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
+				Gui::ModalBoxA( "The clipboard is busy - nothing was copied.",
 					"EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push("Copy failed: clipboard busy");
 			}
@@ -330,7 +330,7 @@ namespace Resources
 						{
 							if (!CopyTextToClipboard(Triggers[i]))
 							{
-								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
+								Gui::ModalBoxA( "The clipboard is busy - nothing was copied.",
 									"EBengin", MB_OK | MB_ICONERROR);
 								Activity::Push("Copy failed: clipboard busy");
 							}
@@ -344,7 +344,7 @@ namespace Resources
 							}
 						}
 						else
-							MessageBoxA(NULL, "Nothing to copy.", "EBengin", MB_OK | MB_ICONERROR);
+							Gui::ModalBoxA( "Nothing to copy.", "EBengin", MB_OK | MB_ICONERROR);
 					}
 					ImGui::PopID();
 				}
@@ -394,7 +394,7 @@ namespace Resources
 			{
 				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 				{
-					MessageBoxA(NULL, "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
+					Gui::ModalBoxA( "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
 				}
 				else
 				{
@@ -402,7 +402,7 @@ namespace Resources
 					// Erasing is the one visible state change among the stubs, and
 					// the entry stays gone until the next start - the same loss
 					// family as Clear and Reset, so it confirms first.
-					if (MessageBoxA(NULL, (std::string("Remove '") + stopped
+					if (Gui::ModalBoxA( (std::string("Remove '") + stopped
 						+ "' from the resource list?\nThis does not stop it on the server.").c_str(),
 						"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 					{
@@ -428,7 +428,7 @@ namespace Resources
 
 						// Still no actual stop logic in this build - but at least the list
 						// is consistent and the user is told the truth.
-						MessageBoxA(NULL,
+						Gui::ModalBoxA(
 							(std::string("'") + stopped + "' removed from the list.\n\n"
 								"Stopping the resource on the server is not implemented in this build.").c_str(),
 							"EBengin", MB_OK | MB_ICONINFORMATION);

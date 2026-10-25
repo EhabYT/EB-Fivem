@@ -5,6 +5,7 @@
 #include "menu_style.h"    // ApplyStyle()
 #include "assets.h"        // ResolveAssetPath()
 #include "exec.h"          // Executor::Init()
+#include "config.h"         // Config::IsCapturing() (row 164)
 #include "resources.h"     // Resources::Init()
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -405,7 +406,12 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	const int toggleVk = Settings::Current.ToggleKey;
 	const bool printable = (toggleVk >= 'A' && toggleVk <= 'Z')
 		|| (toggleVk >= '0' && toggleVk <= '9') || toggleVk == VK_SPACE;
+	// UI: row 164 - while the Config capture is armed, every key press is a
+	// binding candidate; flipping the overlay shut on the toggle key would
+	// swallow the capture mid-press.  The poll still reads (and so drains)
+	// the edge, keeping capture and toggle from both acting on one press.
 	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantTextInput)
+		&& !Config::IsCapturing()
 		&& (GetAsyncKeyState(toggleVk) & 1))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 

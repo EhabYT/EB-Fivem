@@ -9,6 +9,21 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Toggle-edge hygiene: capture guard and modal drain (rows 164-165)
+- A toggle-key press while the Config key capture was armed flipped the overlay shut
+  mid-capture: the present-loop poll runs before Menu::Render() and consumed the key edge, so
+  the capture never saw the press and the menu just closed.  The capture flag moved from a
+  function-local static to namespace scope behind a Config::IsCapturing() accessor, and the
+  present loop suppresses the flip - while still draining the edge - whenever a capture is
+  armed, so one press can no longer both bind and close.
+- MessageBoxA spins a modal message loop, which stops the present loop and its toggle-edge poll
+  for as long as the dialog is open; a toggle press during any confirmation dialog therefore
+  survived as a pending edge and flipped the menu on the first frame after the dialog closed.
+  All 23 dialog sites in the project (exec, config, resources, luamenus) now route through a
+  Gui::ModalBoxA wrapper that drains the toggle edge on the way out.  Dialog texts, flags and
+  return handling are untouched.
+- Both are input-path fixes; nothing visual changed, and all eight previews stay byte-identical.
+
 ## Toast anchor for small surfaces and card drop shadows (rows 162-163)
 - Toasts::Render() anchored the stack to the calling window's bottom-right corner, which is
   right for the 900x540 shell but put the toast cards on top of the key card's own Unlock button

@@ -92,12 +92,22 @@ namespace Config
 
 		Gui::Seperator("##config_seperator_4");
 
+	// UI: row 164 - the capture state used to be a function-local static, so
+	// nothing outside Config::Render() could see it.  The present loop needs
+	// it: a toggle-key press while a capture is armed used to flip the overlay
+	// shut mid-capture (the poll runs before Render), swallowing the binding.
+	static bool g_capturing = false;
+
+	bool IsCapturing()
+	{
+		return g_capturing;
+	}
+
 		// Interface preferences: which key toggles the overlay.  Click the button,
 		// then press the key; ESC cancels.  Persisted with the rest of settings.
 		ImGui::Text("Interface");
 		Gui::Seperator("##config_seperator_5");
 
-		static bool capturing = false;
 		// A settings.ini from before row 142 may carry a key that flips while
 		// typing; reset it once, named, instead of letting it misfire forever.
 		static bool keyChecked = false;
@@ -117,19 +127,19 @@ namespace Config
 		}
 
 		// "press any key...  (ESC cancels)" measured ~377px against a ~216px pane and
-		// was clipped at the edge - so while capturing, the button never actually
+		// was clipped at the edge - so while g_capturing, the button never actually
 		// told the user that ESC cancels, the one thing they need to know then.
 		// Shortened to fit; the full sentence moved into the tooltip.
-		const std::string label = capturing
+		const std::string label = g_capturing
 			? std::string("press any key... (ESC)")
 			: std::string("Toggle key:  ") + Settings::KeyName(Settings::Current.ToggleKey);
 		if (ImGui::Button(label.c_str(),
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(30.0f))))
-			capturing = !capturing;
-		if (capturing && ImGui::IsItemHovered())
+			g_capturing = !g_capturing;
+		if (g_capturing && ImGui::IsItemHovered())
 			ImGui::SetTooltip("Press the key you want to bind.\nESC cancels the capture.");
 
-		if (capturing)
+		if (g_capturing)
 		{
 			// vk 1..6 are the mouse buttons and reserved entries.  Binding one
 			// would flip the menu on every click - and the release edge of the
@@ -140,14 +150,14 @@ namespace Config
 				if (GetAsyncKeyState(vk) & 1)
 				{
 					if (vk == VK_ESCAPE)
-						capturing = false;   // cancel, keep the old key
+						g_capturing = false;   // cancel, keep the old key
 					else if (ValidToggleKey(vk))
 					{
 						Settings::Current.ToggleKey = vk;
 						Settings::Save();
 						Activity::Push(std::string("Toggle key set to ") + Settings::KeyName(vk));
 						Toasts::Push(Toasts::Success, std::string("Toggle key set to ") + Settings::KeyName(vk));
-						capturing = false;
+						g_capturing = false;
 					}
 					else
 					{
@@ -228,7 +238,7 @@ namespace Config
 			// One click overwrites a custom key bind, scale and switches - the same
 			// loss family Load/Clear/Revert confirm for, so the reset confirms too.
 			// Cancel keeps everything, including the ini, exactly as it was.
-			if (MessageBoxA(NULL, "Restore the compiled defaults?\n"
+			if (Gui::ModalBoxA( "Restore the compiled defaults?\n"
 				"Custom key bind, scale, switches and HUD corner are overwritten.",
 				"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 			{

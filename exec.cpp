@@ -210,7 +210,7 @@ namespace Executor
 			// to lose, and drop the file reference with the text.
 			const std::string cur = editor.GetText();
 			const bool go = cur.empty()
-				|| MessageBoxA(NULL, (std::string("Discard the current buffer (")
+				|| Gui::ModalBoxA( (std::string("Discard the current buffer (")
 					+ std::to_string(cur.size())
 					+ " bytes)?\nThis cannot be undone.").c_str(),
 					"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
@@ -277,7 +277,7 @@ namespace Executor
 				if (FileMTime(target.c_str(), nowTime)
 					&& (nowTime.dwLowDateTime != g_fileTime.dwLowDateTime
 						|| nowTime.dwHighDateTime != g_fileTime.dwHighDateTime)
-					&& MessageBoxA(NULL, "The file changed on disk since it was loaded or saved.\n"
+					&& Gui::ModalBoxA( "The file changed on disk since it was loaded or saved.\n"
 						"Overwrite it with the buffer?", "EBengin",
 						MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 				{
@@ -290,14 +290,14 @@ namespace Executor
 			const int rc = WriteFileText(target.c_str(), text, written);
 			if (rc == 1)
 			{
-				MessageBoxA(NULL, (std::string("Could not write:\n") + target).c_str(),
+				Gui::ModalBoxA( (std::string("Could not write:\n") + target).c_str(),
 					"EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push(std::string("Save failed: ") + target);
 				Toasts::Push(Toasts::Warn, std::string("Save failed: ") + target);
 			}
 			else if (rc == 2)
 			{
-				MessageBoxA(NULL, (std::string("Write stopped after "
+				Gui::ModalBoxA( (std::string("Write stopped after "
 					+ std::to_string(written) + " of "
 					+ std::to_string(text.size()) + " bytes:\n") + target).c_str(),
 					"EBengin", MB_OK | MB_ICONERROR);
@@ -339,7 +339,7 @@ namespace Executor
 			const int rc = ReadFileText(g_lastFile.c_str(), fileText);
 			if (rc != 0)
 			{
-				MessageBoxA(NULL, (std::string("Revert could not read:\n")
+				Gui::ModalBoxA( (std::string("Revert could not read:\n")
 					+ g_lastFile).c_str(), "EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push(std::string("Revert failed: ") + g_lastFile);
 				Toasts::Push(Toasts::Warn, "Revert failed - file unreadable.");
@@ -353,7 +353,7 @@ namespace Executor
 			else
 			{
 				const bool go = !dirty
-					|| MessageBoxA(NULL, (std::string("Discard the current edits and revert to\n")
+					|| Gui::ModalBoxA( (std::string("Discard the current edits and revert to\n")
 						+ g_lastFile + "?").c_str(),
 						"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
 				if (go)
@@ -469,18 +469,18 @@ namespace Executor
 		{
 			if (resources.empty())
 			{
-				MessageBoxA(NULL, "No resource selected.", "EBengin", MB_OK | MB_ICONERROR);
+				Gui::ModalBoxA( "No resource selected.", "EBengin", MB_OK | MB_ICONERROR);
 			}
 			else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 			{
-				MessageBoxA(NULL, "You can't execute in _cfx_internal.", "EBengin", MB_OK | MB_ICONERROR);
+				Gui::ModalBoxA( "You can't execute in _cfx_internal.", "EBengin", MB_OK | MB_ICONERROR);
 			}
 			else
 			{
 				// Not implemented in this build.  The button used to be silently dead,
 				// which reads as a crash/hang to the user.
 				const std::string script = editor.GetText();
-				MessageBoxA(NULL,
+				Gui::ModalBoxA(
 					(std::string("Execution is not implemented in this build.\n\nTarget: ")
 						+ resources[selectedResource]
 						+ "\nScript: " + std::to_string(script.size()) + " bytes").c_str(),
@@ -533,19 +533,19 @@ namespace Executor
 				const int rc = ReadFileText(file, text);
 				if (rc == 1)
 				{
-					MessageBoxA(NULL, (std::string("Could not open:\n") + file).c_str(),
+					Gui::ModalBoxA( (std::string("Could not open:\n") + file).c_str(),
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load failed: ") + file);
 				}
 				else if (rc == 2)
 				{
-					MessageBoxA(NULL, "The selected file is empty.",
+					Gui::ModalBoxA( "The selected file is empty.",
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load failed (empty): ") + file);
 				}
 				else if (rc == 3)
 				{
-					MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
+					Gui::ModalBoxA( "The selected file is larger than 4 MB and was not loaded.",
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load refused (>4 MB): ") + file);
 				}
@@ -555,7 +555,7 @@ namespace Executor
 					// a non-empty buffer throws away whatever was not saved.
 					const std::string curBuf = editor.GetText();
 					const bool replace = curBuf.empty()
-						|| MessageBoxA(NULL, (std::string("Replace the current buffer (")
+						|| Gui::ModalBoxA( (std::string("Replace the current buffer (")
 							+ std::to_string(curBuf.size()) + " bytes) with\n"
 							+ file + "?\nUnsaved changes cannot be undone.").c_str(),
 							"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;

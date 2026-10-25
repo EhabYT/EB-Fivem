@@ -73,7 +73,7 @@ namespace Menus
 			{
 				// Empty body before: clicking "Run Lux" did nothing at all, with no
 				// indication that it was a stub.
-				MessageBoxA(NULL,
+				Gui::ModalBoxA(
 					(std::string("'") + items[selected] + "' is not bundled with this build.").c_str(),
 					"EBengin", MB_OK | MB_ICONINFORMATION);
 				Activity::Push(std::string("Run requested for '") + items[selected]

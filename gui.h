@@ -15,6 +15,18 @@
 
 namespace Gui
 {
+	// UI: row 165 - MessageBoxA spins a modal message loop: the present loop -
+	// and with it the toggle-edge poll - stops while the dialog is open, so a
+	// toggle press during the dialog survives as a pending edge and flips the
+	// menu on the first frame after it closes.  Every dialog in the project
+	// routes through this wrapper, which drains that edge on the way out.
+	inline int ModalBoxA(const char* text, const char* title, UINT flags)
+	{
+		const int r = ::MessageBoxA(NULL, text, title, flags);
+		(void)::GetAsyncKeyState(Settings::Current.ToggleKey);
+		return r;
+	}
+
 	// Thin full-width rule used as a visual separator between menu sections.
 	//
 	// NOTE: BeginChild() returns false when the child is collapsed or fully

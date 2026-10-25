@@ -22,4 +22,7 @@ namespace Config
 	extern bool ShBypass;
 
 	void Render();
+	// UI: row 164 - true while the toggle-key capture is armed; the present
+	// loop suppresses the toggle flip while it is.
+	bool IsCapturing();
 }
