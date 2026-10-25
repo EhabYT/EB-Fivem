@@ -17,7 +17,7 @@ invented:
   menu_style.h   the two theme ramps and every ImGuiCol_* below
   menu.h         SidebarWidth (225), SidebarButtonHeight (46), ContentPadding (8), Accent
   menu.cpp       Begin(title###id, &IsMenuOpen, NoScrollbar|NoCollapse|NoResize), SidebarItems[]
-                 labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
+                 labels, logo 76x87 centred at CursorPosX(74.5), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
                  Load from File 180x30, toolbar save and revert icons,
                  resource combo,
@@ -520,10 +520,10 @@ for _x in range(W):
 # 2-column table: BordersInnerV, SizingFixedFit, NoPadOuterX, CellPadding (0,0)
 R(SX1, CY0, SX1 + 1, CY1, C_BORDER)
 
-# sidebar: logo centred (74 == (225-76)/2) at CursorPosY + 9
+# sidebar: logo centred ((225-76)/2 = 74.5 since row 161) at CursorPosY + 9
 logo = Image.open(os.path.join(REPO, "EBengin.png")).convert("RGBA")
 logo = logo.resize((int(76*S), int(87*S)), Image.LANCZOS)
-img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
+img.alpha_composite(logo, (int((SX0+74.5)*S), int((CY0+9)*S)))
 
 SIDEBAR = [("\uf121", " Executor"), ("\uf019", " Resources"),
            ("\uf02d", " Menus"),    ("\uf085", " Config")]

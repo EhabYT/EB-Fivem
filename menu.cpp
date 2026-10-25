@@ -72,7 +72,12 @@ namespace Menu
 		static float indX = 0.0f, indY = 0.0f, indH = 0.0f;
 		float tgtX = indX, tgtY = indY, tgtH = 0.0f;
 
-		ImGui::SetCursorPosX(74);
+		// UI: row 161 - 74 was the centred logo offset at 100% only: sidebar and
+		// logo both scale with the interface scale, the constant did not, so at
+		// 70%/200% the logo sat left of centre in the rail.  Derive the offset
+		// from the scaled widths; at 100% this is 74.5, i.e. half a pixel off
+		// the old constant and exactly centred.
+		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth() - Settings::Px(76.0f)) * 0.5f));
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 9);
 		if (LogoLoaded)
 		{
@@ -83,7 +88,10 @@ namespace Menu
 		else
 		{
 			// EBengin.png was not found next to the DLL: keep the sidebar the same height.
-			ImGui::SetCursorPosX(58);
+			// UI: row 161 - same defect as the image logo: centre the fallback
+			// wordmark from its measured width instead of a 100%-only constant.
+			ImGui::SetCursorPosX(ImMax(0.0f,
+				(SidebarWidth() - ImGui::CalcTextSize("EBengin").x) * 0.5f));
 			ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
 			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
 		}
@@ -363,6 +371,23 @@ namespace Menu
 			ImVec2(pos.x, pos.y + adv), ColMuted, credit);
 	}
 
+	// UI: row 160 - a password field shows dots, so whitespace around a pasted
+	// key is invisible and used to fail the compare with no clue why.  The
+	// compare trims leading/trailing spaces, tabs and line ends; the buffer
+	// itself stays as typed (and is zeroed on success), so the display and
+	// the wrong-key path are untouched.  Local plaintext compare, as before.
+	static const char* TrimmedKey(const char* s)
+	{
+		static char buf[sizeof(g_keyBuf)];
+		const size_t n = std::strlen(s);
+		size_t b = 0, e = n;
+		while (b < e && (s[b] == ' ' || s[b] == '\t' || s[b] == '\r' || s[b] == '\n')) ++b;
+		while (e > b && (s[e - 1] == ' ' || s[e - 1] == '\t' || s[e - 1] == '\r' || s[e - 1] == '\n')) --e;
+		std::memcpy(buf, s + b, e - b);
+		buf[e - b] = '\0';
+		return buf;
+	}
+
 	// UI: row 155 - the key card replaces splash and shell until the key
 	// matches; Enter submits like the button, and a wrong key is answered
 	// inline plus in Activity/Toasts instead of silently.
@@ -442,7 +467,7 @@ namespace Menu
 			// with a muted inline nudge only - no verdict, no log, no toast.
 			if (g_keyBuf[0] == '\0')
 				nudged = true;
-			else if (std::strcmp(g_keyBuf, "eb") == 0)
+			else if (std::strcmp(TrimmedKey(g_keyBuf), "eb") == 0)
 			{
 				g_unlocked = true;
 				wrong = false;

@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Key paste tolerance and a scale-safe sidebar logo (rows 160-161)
+- A pasted key carries invisible trailing whitespace - a space, tab or line end - and a
+  password field shows dots, so such an attempt failed the compare with no clue why.  The
+  compare now trims leading/trailing whitespace around the buffer (a small helper working on a
+  local copy); the buffer itself stays as typed and is zeroed on success, the wrong-key path is
+  untouched, and the check remains the local plaintext compare it was.
+- The sidebar logo was placed with the raw constants 74 (image) and 58 (text fallback) while the
+  sidebar width and the logo both scale with the interface scale, so at 70% or 200% the logo sat
+  visibly left of centre in the rail.  Both offsets are derived from the scaled widths now; at
+  100% the image offset becomes 74.5, i.e. exactly centred.  The renderer mirror moved with it,
+  so the five sidebar previews shifted one pixel (intentional), while HUD, splash and key card
+  stay byte-identical.
+
 ## Key-card nudge and logo-click cursor handoff (rows 158-159)
 - Enter or Unlock on an empty password field used to produce the full wrong-key answer - red
   verdict line, "Key refused." activity entry, warn toast - for something that was never an
