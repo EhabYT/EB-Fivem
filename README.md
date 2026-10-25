@@ -388,7 +388,8 @@ Until then there is **no CI and no compile proof** — every check on this branc
 
 * The toggle key — **INSERT** by default, rebindable in Config → Interface — toggles the menu.
 * The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates,
-  Ctrl+Tab / Ctrl+Shift+Tab cycle the tabs, and the sidebar logo returns to the landing tab
+  Ctrl+Tab / Ctrl+Shift+Tab cycle the tabs, and the sidebar logo returns to the landing
+  tab - both hand the keyboard cursor over to the new tab's sidebar entry
 * A session key gate sits in front of splash and shell: once per inject the overlay
   asks for its key (password field, Enter submits); the check is local plaintext against a
   constant - no server, no persistence - and the card says so; a Caps-Lock

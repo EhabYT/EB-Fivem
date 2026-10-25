@@ -101,6 +101,14 @@ namespace Menu
 			Tab = TabDefault;
 			Settings::Current.Tab = Tab;
 			Settings::Save();
+			// UI: row 159 - row 152 gave Ctrl+Tab cyclers the nav-cursor handoff,
+			// but the logo home button switched tabs while the keyboard cursor
+			// stayed on whatever widget held it, so the next Tab/arrow jump
+			// started from the old tab.  The logo is an image item, not a widget,
+			// so a click never moves the cursor by itself; the same flag places
+			// it on the first sidebar entry (the landing tab has no row of its
+			// own) and the loop below consumes the flag this very frame.
+			g_justOpened = true;
 		}
 		ImGui::NewLine();
 
@@ -413,8 +421,14 @@ namespace Menu
 		// IsItemEdited must be read here, before any later widget becomes the
 		// "last item"; the declaration moves up with the check.
 		static bool wrong = false;
+		// UI: row 158 - an empty field is not an attempt; the nudge answers it
+		// instead of the wrong-key verdict (see the submit block below).
+		static bool nudged = false;
 		if (ImGui::IsItemEdited())
+		{
 			wrong = false;
+			nudged = false;   // a fresh keystroke retires the nudge too
+		}
 
 		ImGui::Spacing();
 		const float bw = Settings::Px(140.0f);
@@ -422,7 +436,13 @@ namespace Menu
 			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - bw) * 0.5f));
 		if (enter || Gui::PrimaryButton("Unlock", ImVec2(bw, Settings::Px(30.0f))))
 		{
-			if (std::strcmp(g_keyBuf, "eb") == 0)
+			// UI: row 158 - Enter or Unlock on an empty field used to produce the
+			// wrong-key verdict, a "Key refused." activity entry and a warn toast
+			// for something that was never an attempt.  Empty submits now answer
+			// with a muted inline nudge only - no verdict, no log, no toast.
+			if (g_keyBuf[0] == '\0')
+				nudged = true;
+			else if (std::strcmp(g_keyBuf, "eb") == 0)
 			{
 				g_unlocked = true;
 				wrong = false;
@@ -441,6 +461,10 @@ namespace Menu
 			// UI: row 157 - pure red on the card measured ~3.7:1, under WCAG AA
 			// for normal text; this lighter red holds ~5.2:1 on the card bg.
 			Centered("Wrong key - try again.", ImColor(255, 107, 107, 255));
+		else if (nudged)
+			// UI: row 158 - same line slot as the verdict, so the card height is
+			// untouched; muted brand colour, ~6.2:1 on the card.
+			Centered("Type the key first - then Enter or Unlock.", ColMuted);
 		else
 			ImGui::Spacing();
 		// UI: row 156 - only shown while Caps Lock is on; amber like the warn

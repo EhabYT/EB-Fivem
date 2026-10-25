@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Key-card nudge and logo-click cursor handoff (rows 158-159)
+- Enter or Unlock on an empty password field used to produce the full wrong-key answer - red
+  verdict line, "Key refused." activity entry, warn toast - for something that was never an
+  attempt.  Empty submits now answer with a muted inline nudge in the verdict's line slot
+  ("Type the key first - then Enter or Unlock."); no verdict, no log entry, no toast, no card
+  height change, and the nudge retires on the next keystroke exactly like the verdict does.
+- The sidebar logo home button (row 150) switched to the landing tab but left the keyboard nav
+  cursor on whatever widget held it, so the next Tab/arrow jump started from the old tab - the
+  row-152 defect on the home path.  The logo is an image item rather than a widget, so a click
+  never moved the cursor by itself; it now sets the same handoff flag Ctrl+Tab uses, consumed
+  by the sidebar loop in the same frame (first entry, since the landing tab has no row).
+- Both are display/feedback-level; gate logic and tab persistence are untouched, and no
+  preview changes (the nudge is a conditional state like the verdict and the Caps hint).
+
 ## Key-card feedback follow-ups (rows 156-157)
 - The row-155 key is lower-case and compared case-sensitively, so with Caps Lock on every
   attempt failed looking exactly like a wrong key - nothing told the user why.  The card now
