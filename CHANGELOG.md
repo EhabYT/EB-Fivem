@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Toast anchor for small surfaces and card drop shadows (rows 162-163)
+- Toasts::Render() anchored the stack to the calling window's bottom-right corner, which is
+  right for the 900x540 shell but put the toast cards on top of the key card's own Unlock button
+  and hint line inside its 460x232 window.  The stack painter is a shared helper now: Render()
+  keeps the shell anchor, and the new RenderScreen() draws the same stack - same ageing, same
+  click-to-dismiss rules - anchored to the display's corner on the foreground draw list.  The
+  key card calls RenderScreen(); nothing else changes call sites.
+- The shell's soft three-rect drop shadow was missing on the two floating cards (splash, key),
+  which read as pasted onto bright game scenes.  Both cards draw the same recipe one frame late
+  on the background draw list, with the rect captured right after Begin where the fixed window
+  size is final.  The preview renderer already modelled both shadows, so all eight previews
+  remain byte-identical.
+
 ## Key paste tolerance and a scale-safe sidebar logo (rows 160-161)
 - A pasted key carries invisible trailing whitespace - a space, tab or line end - and a
   password field shows dots, so such an attempt failed the compare with no clue why.  The

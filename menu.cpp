@@ -249,6 +249,21 @@ namespace Menu
 	// credit and two honest hints; it touches no state beyond g_splashDone.
 	static void RenderSplash(float fade)
 	{
+		// UI: row 163 - the shell carries a soft three-rect drop shadow; the
+		// two floating cards did not, so on a bright game scene they read as
+		// pasted on.  Same recipe as the shell, one frame late like there.
+		static ImVec2 shMin, shMax;
+		if (shMax.x > shMin.x)
+		{
+			ImDrawList* bg = ImGui::GetBackgroundDrawList();
+			const float off[3] = { 5.0f, 11.0f, 19.0f };
+			const int   alp[3] = { (int)(70 * fade), (int)(46 * fade), (int)(26 * fade) };
+			for (int i = 0; i < 3; ++i)
+				bg->AddRectFilled(ImVec2(shMin.x - 2.0f, shMin.y + off[i] * 0.4f),
+					ImVec2(shMax.x + 2.0f, shMax.y + off[i]),
+					IM_COL32(0, 0, 0, alp[i]), 12.0f);
+		}
+
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
 
 		const ImVec2 disp = ImGui::GetIO().DisplaySize;
@@ -269,6 +284,11 @@ namespace Menu
 			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoSavedSettings);
+		// UI: row 163 - rect for next frame's shadow; SetNextWindowSize fixes
+		// the size, so the rect is final right after Begin.
+		shMin = ImGui::GetWindowPos();
+		shMax = ImVec2(shMin.x + ImGui::GetWindowSize().x,
+			shMin.y + ImGui::GetWindowSize().y);
 
 		auto Centered = [](const char* text, ImU32 col)
 		{
@@ -393,6 +413,20 @@ namespace Menu
 	// inline plus in Activity/Toasts instead of silently.
 	static void RenderKey(float fade)
 	{
+		// UI: row 163 - same drop shadow as the shell and the splash card, one
+		// frame late; see RenderSplash for the recipe's rationale.
+		static ImVec2 shMin, shMax;
+		if (shMax.x > shMin.x)
+		{
+			ImDrawList* bg = ImGui::GetBackgroundDrawList();
+			const float off[3] = { 5.0f, 11.0f, 19.0f };
+			const int   alp[3] = { (int)(70 * fade), (int)(46 * fade), (int)(26 * fade) };
+			for (int i = 0; i < 3; ++i)
+				bg->AddRectFilled(ImVec2(shMin.x - 2.0f, shMin.y + off[i] * 0.4f),
+					ImVec2(shMax.x + 2.0f, shMax.y + off[i]),
+					IM_COL32(0, 0, 0, alp[i]), 12.0f);
+		}
+
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
 
 		const ImVec2 disp = ImGui::GetIO().DisplaySize;
@@ -412,6 +446,11 @@ namespace Menu
 			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoSavedSettings);
+		// UI: row 163 - rect for next frame's shadow; SetNextWindowSize fixes
+		// the size, so the rect is final right after Begin.
+		shMin = ImGui::GetWindowPos();
+		shMax = ImVec2(shMin.x + ImGui::GetWindowSize().x,
+			shMin.y + ImGui::GetWindowSize().y);
 
 		auto Centered = [](const char* text, ImU32 col)
 		{
@@ -498,7 +537,10 @@ namespace Menu
 			Centered("Caps Lock is on - the key is lower-case.", ImColor(255, 193, 7, 255));
 		Centered("Local gate - no server is contacted.", ColMuted);
 
-		Toasts::Render();
+		// UI: row 162 - inside this 460x232 window the window-anchored stack would
+		// sit on top of the card's own button and hint line; the screen-anchored
+		// variant puts it where the shell puts it, at the display's corner.
+		Toasts::RenderScreen();
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}

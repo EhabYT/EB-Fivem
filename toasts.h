@@ -33,4 +33,7 @@ namespace Toasts
 	// Draws the live stack.  Call from inside the menu window (menu.cpp);
 	// cards fade in, live ~4s and fade out again.
 	void Render();
+	// UI: row 162 - same stack anchored to the display's bottom-right corner,
+	// for surfaces smaller than the stack (the key card).
+	void RenderScreen();
 }
