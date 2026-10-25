@@ -9,6 +9,23 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Modal dialogs no longer leak time or key edges (rows 168-169)
+- A modal dialog stops the frame loop for its whole lifetime, so both gap heuristics - the
+  shell's reopen fade and the row-167 capture retirement - read the dialog duration as idle
+  time: every confirmation dialog longer than half a second replayed the open fade and reset
+  the keyboard nav cursor when it closed, on top of a shell the user never left, and a reset
+  confirmation opened on the Config tab could retire an armed capture on its way out.
+  Gui::ModalBoxA now measures its wall-clock duration (GetTickCount64, because ImGui::GetTime
+  freezes with the frame loop) and publishes it through Gui::ModalSeconds(); both heuristics
+  subtract what is new since their last frame before applying the 0.5s test.
+- The row-165 drain covered only the toggle edge, but an armed key-capture scan reads every
+  key - so a press during a dialog survived as a stale edge and bound itself on the first frame
+  after the dialog closed.  The wrapper now drains the whole keyboard range (vk 7..254; 1..6 are
+  mouse buttons, which neither the capture scan nor the toggle poll reads) after every dialog.
+  Presses inside a dialog belong to the dialog.
+- Both are timing/input-path fixes; nothing visual changed, and all eight previews stay
+  byte-identical.
+
 ## Capture behaviour: silent navigation, retired on leave (rows 166-167)
 - While a key capture was armed, every press that was neither ESC nor bindable hit the refuse
   branch - including pure navigation keys (Tab, Enter, arrows, modifiers).  Keyboard users

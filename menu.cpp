@@ -567,9 +567,18 @@ namespace Menu
 		const double tNow = ImGui::GetTime();
 		static double lastRender = -1.0;
 		static double openT = -1.0;
+		// UI: row 168 - a confirmation dialog stops the frame loop for its whole
+		// lifetime; without this subtraction every dialog longer than 0.5s
+		// replayed the open fade and reset the nav cursor when it closed, on
+		// top of a shell the user never left.  The modal wrapper publishes its
+		// wall-clock duration; subtract what is new since the last frame.
+		static double modalSeen = 0.0;
+		const double modalNow = Gui::ModalSeconds();
+		const double gap = (tNow - lastRender) - (modalNow - modalSeen);
+		modalSeen = modalNow;
 		// 0.5s: far above any real frame hitch (which must not re-trigger the
 		// fade mid-session) and far below any human close/reopen.
-		if (lastRender < 0.0 || (tNow - lastRender) > 0.5)
+		if (lastRender < 0.0 || gap > 0.5)
 		{
 			openT = tNow;
 			g_justOpened = true;

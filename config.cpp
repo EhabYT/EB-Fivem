@@ -40,7 +40,14 @@ namespace Config
 		// same gap heuristic the shell uses for its reopen fade.
 		static double lastHere = -1.0;
 		const double hereNow = ImGui::GetTime();
-		if (lastHere >= 0.0 && (hereNow - lastHere) > 0.5)
+		// UI: row 168 - same modal subtraction as the shell fade: a dialog
+		// opened on this tab (the reset confirmation) must not retire an armed
+		// capture on its way out.
+		static double modalHere = 0.0;
+		const double mNow = Gui::ModalSeconds();
+		const double gapHere = (hereNow - lastHere) - (mNow - modalHere);
+		modalHere = mNow;
+		if (lastHere >= 0.0 && gapHere > 0.5)
 			g_capturing = false;
 		lastHere = hereNow;
 

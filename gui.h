@@ -15,15 +15,36 @@
 
 namespace Gui
 {
+	// UI: row 168 - wall-clock seconds spent inside modal dialogs since start.
+	// The frame loop (and ImGui::GetTime with it) freezes while a dialog is
+	// open, so the two gap heuristics - the shell's reopen fade and the
+	// capture retirement - would read the dialog duration as idle time and
+	// misfire on close.  They subtract what this counter newly reports.
+	// Adder-and-reader in one: the wrapper adds, consumers just read.
+	inline double ModalSeconds(double add = 0.0)
+	{
+		static double total = 0.0;
+		total += add;
+		return total;
+	}
+
 	// UI: row 165 - MessageBoxA spins a modal message loop: the present loop -
 	// and with it the toggle-edge poll - stops while the dialog is open, so a
 	// toggle press during the dialog survives as a pending edge and flips the
 	// menu on the first frame after it closes.  Every dialog in the project
-	// routes through this wrapper, which drains that edge on the way out.
+	// routes through this wrapper, which drains key edges on the way out.
+	// UI: row 169 - not just the toggle edge: an armed key-capture scan reads
+	// every key, so a press during the dialog (F5 out of habit, say) used to
+	// bind itself on the first frame after close.  Presses inside a dialog
+	// belong to the dialog; drain the whole keyboard range (vk 7+; 1..6 are
+	// mouse buttons, which neither the capture scan nor the toggle poll read).
 	inline int ModalBoxA(const char* text, const char* title, UINT flags)
 	{
+		const ULONGLONG t0 = ::GetTickCount64();
 		const int r = ::MessageBoxA(NULL, text, title, flags);
-		(void)::GetAsyncKeyState(Settings::Current.ToggleKey);
+		ModalSeconds((double)(::GetTickCount64() - t0) / 1000.0);
+		for (int vk = 7; vk < 255; ++vk)
+			(void)::GetAsyncKeyState(vk);
 		return r;
 	}
 
