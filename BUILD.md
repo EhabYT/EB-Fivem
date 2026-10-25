@@ -312,6 +312,8 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 177 | The writer offered CF_TEXT only, i.e. ANSI: text outside the active code page (an umlaut in a path, a non-ASCII Lua string) arrived mangled in Unicode-aware paste targets, which is most of them | The writer now also offers CF_UNICODETEXT (MultiByteToWideChar, CP_UTF8); the second global follows the same free-on-refuse rule, and either format being accepted counts as a successful copy |
 | 178 | The perf graph's bad-frame bars used pure red at 200 alpha on the navy canvas, ~2.6:1 and under the 3:1 WCAG AA asks of non-text marks | The bars use the lighter red (255,107,107) of the row-157/175 ramp at the same alpha, ~3.7:1 on the canvas, keeping one red in the project |
 | 179 | While the frame-time history was shorter than the 120-slot ring, the bars grew from the left edge, so "now" sat mid-canvas for the first two minutes of every session and the hover readout mapped to that left-pinned layout | The newest bar is pinned to the right edge (offset by the missing slots), the way every ring-buffer graph reads, and the hover index shifts with the same offset |
+| 180 | The shell's two-column divider is a table inner border, and table borders read ImGuiCol_TableBorderLight/Strong - neither was themed, so the one vertical rule in the project drew in ImGui's default grey instead of the navy every other rule uses | Both table border tokens now carry the Border navy (42,74,123), matching what the preview renderer models |
+| 181 | The scroll groove of any overflowing child (activity log) kept ImGui's near-black default track under the themed grab | ImGuiCol_ScrollbarBg now uses the rail navy (16,31,52), reading as part of the same surface family |
 
 
 

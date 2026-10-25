@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Two unthemed tokens: table borders and the scroll groove (rows 180-181)
+- The shell's two-column divider is a table inner border, and table borders read
+  ImGuiCol_TableBorderLight/Strong - neither was themed, so the one vertical rule in the
+  project drew in ImGui's default grey instead of the navy every other rule uses (and the
+  preview renderer models).  Both tokens now carry the Border navy (42,74,123).
+- The scroll groove of any overflowing child - the activity log once it fills - kept ImGui's
+  near-black default track under the themed grab.  ImGuiCol_ScrollbarBg now uses the rail navy
+  (16,31,52), reading as part of the same surface family.
+- The renderer already drew the divider in navy and no preview scene shows a scrollbar, so all
+  eight previews stay byte-identical.
+
 ## Perf graph: AA-readable bad frames, right-pinned now (rows 178-179)
 - The perf graph's bad-frame bars used pure red at 200 alpha on the navy canvas, which measures
   ~2.6:1 - under the 3:1 WCAG AA asks of non-text marks.  They now use the lighter red

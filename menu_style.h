@@ -95,10 +95,20 @@ inline void ApplyStyle()
 	style.Colors[ImGuiCol_TextDisabled]		= ImColor(125, 175, 225, 255);
 	style.Colors[ImGuiCol_TextSelectedBg]		= ImColor(93, 156, 214, 90);
 	style.Colors[ImGuiCol_PopupBg]			= ImColor(20, 38, 63, 245);
+	// UI: row 181 - the scroll groove (activity log, any overflowing child)
+	// kept ImGui's near-black default track under the themed grab; the rail
+	// navy reads as part of the same surface family instead.
+	style.Colors[ImGuiCol_ScrollbarBg]		= ImColor(16, 31, 52, 255);
 	style.Colors[ImGuiCol_ScrollbarGrab]		= ImColor(42, 74, 123, 255);
 	style.Colors[ImGuiCol_ScrollbarGrabHovered]	= ImColor(55, 120, 181, 255);
 	style.Colors[ImGuiCol_ScrollbarGrabActive]	= ImColor(29, 81, 136, 255);
 
+	// UI: row 180 - the shell's two-column divider is a table inner border,
+	// and table borders read TableBorderLight/Strong - neither was themed,
+	// so the one vertical rule in the project drew in ImGui's default grey
+	// instead of the navy every other rule uses (and the previews model).
+	style.Colors[ImGuiCol_TableBorderLight]	= ImColor(42, 74, 123, 255);
+	style.Colors[ImGuiCol_TableBorderStrong]	= ImColor(42, 74, 123, 255);
 	style.Colors[ImGuiCol_Border]				= ImColor(42, 74, 123);
 	style.Colors[ImGuiCol_Separator]			= ImColor(42, 74, 123);
 	style.Colors[ImGuiCol_SeparatorActive]		= ImColor(55, 120, 181);
