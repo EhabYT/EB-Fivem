@@ -65,7 +65,6 @@ name and the credit line, dismissed with Continue.  Fifth render
 While the overlay is closed, the frame-rate line lives on as a small HUD plate over
 the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`; the plate corner is `Corner`, persisted as `[ui] hudcorner`).  Sixth render
 (`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
-  A seventh render (`--key`) shows the row-155 key card with its empty password field.
 
 ![EBengin FPS HUD](docs/preview_hud.png)
 
@@ -74,6 +73,13 @@ log with its Copy/Clear pair - is the seventh render
 (`python docs/render_preview.py --default`):
 
 ![EBengin landing tab](docs/preview_default.png)
+
+The session key gate in front of splash and shell (row 155: key `eb`, local
+plaintext compare, unlocked once per inject) is the eighth render
+(`python docs/render_preview.py --key`), depicted with its empty password
+field:
+
+![EBengin key card](docs/preview_key.png)
 
 ## Layout
 

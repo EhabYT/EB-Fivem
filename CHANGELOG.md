@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## README key-render placement and open-header hover feedback (rows 182-183)
+- The row-155 README sentence about the key render sat inside the HUD paragraph - directly above
+  the HUD image - and called --key the seventh render, although the landing tab is numbered
+  seventh and the key card is the eighth; the key image was never embedded either.  The sentence
+  moved into its own paragraph after the landing-tab render, renumbered eighth, with
+  docs/preview_key.png embedded like every other scene.
+- An open collapsing header rests on the solid Header colour, and ImGuiCol_HeaderHovered used the
+  same RGB at 100 alpha - the hover overlay blended to exactly the colour underneath, i.e. zero
+  hover feedback on open headers (the resources dump preview sits in one).  HeaderHovered now
+  uses the hover ramp blue (55,120,181) at the same alpha: subtle over the window background on
+  closed headers, clearly readable over the solid header.
+- No preview scene depicts a hover state, so all eight previews stay byte-identical.
+
 ## Two unthemed tokens: table borders and the scroll groove (rows 180-181)
 - The shell's two-column divider is a table inner border, and table borders read
   ImGuiCol_TableBorderLight/Strong - neither was themed, so the one vertical rule in the

@@ -78,7 +78,13 @@ inline void ApplyStyle()
 	// half-transparent HeaderHovered and the brand-blue HeaderActive.
 	style.Colors[ImGuiCol_Header]				= ImColor(42, 74, 123, 255);		// for collapsing headers , etc
 	style.Colors[ImGuiCol_HeaderActive]			= ImColor(55, 120, 181);
-	style.Colors[ImGuiCol_HeaderHovered]		= ImColor(42, 74, 123, 100);
+	// UI: row 183 - an OPEN collapsing header rests on the solid Header colour,
+	// and a hover overlay of the same RGB at 100 alpha blended to exactly the
+	// colour underneath: zero hover feedback on open headers (the resources
+	// dump preview sits in one).  The hover ramp blue at the same alpha stays
+	// subtle on closed headers over the window background and reads clearly
+	// over the solid header.
+	style.Colors[ImGuiCol_HeaderHovered]		= ImColor(55, 120, 181, 100);
 
 	style.Colors[ImGuiCol_ResizeGrip]			= ImColor(42, 74, 123, 255);		// the resize grip thing bottom right
 	style.Colors[ImGuiCol_ResizeGripActive]		= ImColor(93, 156, 214);			// when you hold it / active
