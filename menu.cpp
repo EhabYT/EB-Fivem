@@ -540,7 +540,10 @@ namespace Menu
 		// UI: row 162 - inside this 460x232 window the window-anchored stack would
 		// sit on top of the card's own button and hint line; the screen-anchored
 		// variant puts it where the shell puts it, at the display's corner.
-		Toasts::RenderScreen();
+		// UI: row 170 - the shell gates its stack on the same pref; the key card
+		// used to show toasts even with "Toast notifications" switched off.
+		if (Settings::Current.Toasts)
+			Toasts::RenderScreen();
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}

@@ -34,6 +34,13 @@ namespace Toasts
 
 	void Push(Kind kind, const std::string& text)
 	{
+		// UI: row 171 - with the pref off nothing renders, and so nothing ages;
+		// storing anyway let up to four unseen cards burst onto the screen the
+		// moment the pref was switched back on.  Discard at push instead; the
+		// activity log keeps the trace either way, and Config's switch-off
+		// Clear() stays as the belt to these braces.
+		if (!Settings::Current.Toasts)
+			return;
 		const Entry e = { kind, text, ImGui::GetTime() };
 		g_entries.push_back(e);
 		if (g_entries.size() > kMax)

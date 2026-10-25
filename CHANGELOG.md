@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Toast preference consistency (rows 170-171)
+- The key card rendered its toast stack regardless of the "Toast notifications" preference,
+  while the shell gates its stack on exactly that pref; with the pref off, a wrong-key attempt
+  still popped a card over the gate.  The key card now gates RenderScreen() on
+  Settings::Current.Toasts, exactly like the shell gates Render().
+- With the pref off, nothing rendered and therefore nothing aged: pushes kept storing, and up
+  to four unseen cards burst onto the screen the moment the pref was switched back on.
+  Toasts::Push now discards entries while the pref is off - the activity log keeps the trace
+  either way, and Config's switch-off Clear() remains as the second guard.
+- Both are preference-path fixes; nothing visual changed in the default state, and all eight
+  previews stay byte-identical.
+
 ## Modal dialogs no longer leak time or key edges (rows 168-169)
 - A modal dialog stops the frame loop for its whole lifetime, so both gap heuristics - the
   shell's reopen fade and the row-167 capture retirement - read the dialog duration as idle
