@@ -42,6 +42,19 @@ namespace Gui
 	inline void SectionTitle(const char* title, const char* separatorId)
 	{
 		ImGui::Text("%s", title);
+		// UI: row 151 - type hierarchy by weight.  The shell ships exactly one
+		// font (Bahnschrift 20; no bold instance is reachable without the
+		// FreeType builder), and a larger header font would cost every pane
+		// four pixels of budget - so the heading fakes its weight with a
+		// sub-pixel second pass over itself.  Zero layout cost, and the
+		// draw-list text rides the same font/scale as the first pass.
+		if (ImGui::IsItemVisible())
+		{
+			const ImVec2 mn = ImGui::GetItemRectMin();
+			ImGui::GetWindowDrawList()->AddText(
+				ImVec2(mn.x + Settings::Px(0.7f), mn.y),
+				ImGui::GetColorU32(ImGuiCol_Text), title);
+		}
 		Seperator(separatorId);
 	}
 

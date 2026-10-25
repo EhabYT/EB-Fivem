@@ -506,6 +506,10 @@ namespace Menu
 			Tab = (Tab + dir + 5) % 5;
 			Settings::Current.Tab = Tab;
 			Settings::Save();
+			// UI: row 152 - keyboard users cycling tabs keep the nav cursor on
+			// the old tab's widget otherwise; the same flag the reopen path
+			// uses hands focus to the new tab's sidebar entry next frame.
+			g_justOpened = true;
 		}
 
 		// Two-column shell: fixed sidebar on the left, tab content on the right.

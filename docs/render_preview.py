@@ -502,6 +502,7 @@ for k, (line, col) in enumerate(FOOTER):
 if TAB == "executor":
     # content column: Executor::Render()
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -616,6 +617,7 @@ elif TAB == "config":
     HINT = "Tab/arrows move, Enter/Space activates. Ctrl+Tab switches tabs."
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)                 # Gui::Seperator under the title
     y += 1 + ITEM_SPACING_Y
@@ -787,6 +789,7 @@ elif TAB == "resources":
     # ------------------------------------------------------------------
     C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Resources", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Resources", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -888,6 +891,7 @@ elif TAB == "menus":
     row = FONT_SIZE + ITEM_SPACING_Y
     C_HEADER = RGBA(42, 74, 123)                    # ImGuiCol_Header since row 88
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Menus", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Menus", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -966,6 +970,7 @@ if TAB == "default":
         return sy + 1 + ITEM_SPACING_Y
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Default", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Default", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y

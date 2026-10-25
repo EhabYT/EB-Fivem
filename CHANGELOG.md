@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Heading weight and Ctrl+Tab focus follow (rows 151-152)
+- Every string in the shell rendered in one weight - Bahnschrift 20 regular - so tab headings
+  carried hierarchy by colour alone.  A real bold instance of the variable font needs the
+  FreeType builder (not vendored), and a larger header font would have cost every pane four
+  pixels of vertical budget (the Config left pane runs at 530 of 532).  Gui::SectionTitle now
+  fakes the weight: a second draw-list pass of the same string, offset by a scale-aware 0.7px,
+  same font and colour - zero layout cost.  The five shell previews model the doubled draw.
+- Ctrl+Tab cycling left the keyboard-nav cursor on the old tab's widget, so the next Enter or
+  Space activated something the user could not see in the new tab.  The cycle handler now sets
+  the same one-shot flag the reopen path uses: the nav cursor lands on the new tab's sidebar
+  entry next frame.
+
 ## A way home: logo button and Ctrl+Tab tab cycling (row 150)
 - The landing tab - diagnostics graph, uptime line, session activity - was a one-way street:
   once a sidebar tab was open, nothing in the shell returned to Tab 0 for the rest of the
