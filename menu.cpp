@@ -7,6 +7,7 @@
 #include "perf.h"
 
 #include <cstdio>
+#include <cstring>   // strcmp in the row-155 key gate
 #include <cmath>
 #include <string>
 
@@ -27,6 +28,11 @@ namespace Menu
 	static bool g_justOpened = false;
 	// The branded start card shows on the first open after inject, once.
 	static bool g_splashDone = false;
+	// UI: row 155 - session key gate ("eb" by owner choice).  Plaintext local
+	// compare against a constant, no server, no persistence: an access gate
+	// for the overlay, unlocked once per inject - not a security claim.
+	static bool g_unlocked = false;
+	static char g_keyBuf[64] = { 0 };
 
 	static const SidebarItem SidebarItems[] =
 	{
@@ -349,6 +355,88 @@ namespace Menu
 			ImVec2(pos.x, pos.y + adv), ColMuted, credit);
 	}
 
+	// UI: row 155 - the key card replaces splash and shell until the key
+	// matches; Enter submits like the button, and a wrong key is answered
+	// inline plus in Activity/Toasts instead of silently.
+	static void RenderKey(float fade)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
+
+		const ImVec2 disp = ImGui::GetIO().DisplaySize;
+		const ImVec2 card(Settings::Px(460.0f), Settings::Px(232.0f));
+		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
+		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
+			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+		if (g_justOpened)
+			ImGui::SetNextWindowFocus();
+
+		ImGui::Begin("EBengin Key", NULL,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoSavedSettings);
+
+		auto Centered = [](const char* text, ImU32 col)
+		{
+			const float w = ImGui::CalcTextSize(text).x;
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+				ImMax(0.0f, (ImGui::GetContentRegionAvail().x - w) * 0.5f));
+			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), "%s", text);
+		};
+
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + Settings::Px(16.0f));
+		Centered("EBengin", ImColor(93, 156, 214, 255));
+		Centered("This overlay is key-protected.", ImColor(255, 255, 255, 255));
+		ImGui::Spacing();
+		Gui::Seperator("##key_seperator");
+		ImGui::Spacing();
+
+		const float iw = Settings::Px(280.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - iw) * 0.5f));
+		ImGui::PushItemWidth(iw);
+		static bool keyFocused = false;
+		if (!keyFocused)
+		{
+			keyFocused = true;
+			ImGui::SetKeyboardFocusHere(0);
+		}
+		const bool enter = ImGui::InputText("##key", g_keyBuf, sizeof(g_keyBuf),
+			ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+		ImGui::PopItemWidth();
+
+		ImGui::Spacing();
+		const float bw = Settings::Px(140.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - bw) * 0.5f));
+		static bool wrong = false;
+		if (enter || Gui::PrimaryButton("Unlock", ImVec2(bw, Settings::Px(30.0f))))
+		{
+			if (std::strcmp(g_keyBuf, "eb") == 0)
+			{
+				g_unlocked = true;
+				wrong = false;
+				SecureZeroMemory(g_keyBuf, sizeof(g_keyBuf));
+				Activity::Push("Key accepted - overlay unlocked.");
+				Toasts::Push(Toasts::Success, "Key accepted.");
+			}
+			else
+			{
+				wrong = true;
+				Activity::Push("Key refused.");
+				Toasts::Push(Toasts::Warn, "Wrong key.");
+			}
+		}
+		if (wrong)
+			Centered("Wrong key - try again.", ImColor(255, 0, 0, 255));
+		else
+			ImGui::Spacing();
+		Centered("Local gate - no server is contacted.", ColMuted);
+
+		Toasts::Render();
+		ImGui::End();
+		ImGui::PopStyleVar();
+	}
+
 	void Render()
 	{
 		//Remade : by EB
@@ -402,6 +490,14 @@ namespace Menu
 		// which this skip bypasses - a warn toast queued at load (e.g. unwritable
 		// settings.ini) therefore waits behind the card at full lifetime instead
 		// of expiring unseen.  Do not "fix" that by ageing toasts here.
+		// UI: row 155 - the key gate sits in front of splash and shell: while
+		// the key is missing, nothing else in the overlay is reachable.
+		if (!g_unlocked)
+		{
+			RenderKey(fade);
+			return;
+		}
+
 		if (!g_splashDone)
 		{
 			RenderSplash(fade);

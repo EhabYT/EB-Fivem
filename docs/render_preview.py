@@ -75,6 +75,8 @@ elif "--hud" in sys.argv[1:]:
     TAB = "hud"
 elif "--default" in sys.argv[1:]:
     TAB = "default"
+elif "--key" in sys.argv[1:]:
+    TAB = "key"
 else:
     TAB = "executor"
 OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
@@ -83,7 +85,8 @@ OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
                                   "menus": "preview_menus.png",
                                   "splash": "preview_splash.png",
                                   "hud": "preview_hud.png",
-                                  "default": "preview_default.png"}[TAB])
+                                  "default": "preview_default.png",
+                                  "key": "preview_key.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -430,6 +433,66 @@ if TAB == "splash":
     canvas.save(OUT, optimize=True)
     os.unlink(fa_path)
     print("geschrieben:", OUT, "(splash)", os.path.getsize(OUT), "Bytes", canvas.size)
+    sys.exit(0)
+
+# ------------------------------------------------------------------
+# menu.cpp RenderKey() (row 155): the session key card replaces splash
+# and shell until the key matches.  Standalone canvas, same recipe as
+# the splash card; the input is depicted empty (password field).
+# ------------------------------------------------------------------
+if TAB == "key":
+    MC, RADk = 28, 10
+    CWk, CHk = 460.0, 232.0
+    FW, FH = W + 2 * MC, H + 2 * MC
+    canvas = Image.new("RGBA", (FW * S, FH * S), (12, 18, 28, 255))
+    OX, OY = (FW - CWk) / 2, (FH - CHk) / 2
+
+    sh = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle(
+        [OX * S, OY * S, (OX + CWk) * S - 1, (OY + CHk) * S - 1],
+        radius=RADk * S, fill=(0, 0, 0, 150))
+    sh = sh.filter(ImageFilter.GaussianBlur(9 * S))
+    canvas.alpha_composite(sh, (0, int(12 * S)))
+
+    d = ImageDraw.Draw(canvas)
+    SURF = canvas
+    d.rounded_rectangle([OX * S, OY * S, (OX + CWk) * S - 1, (OY + CHk) * S - 1],
+                        radius=RADk * S, fill=C_WINDOW_BG)
+    d.rounded_rectangle([OX * S, OY * S, (OX + CWk) * S - 1, (OY + CHk) * S - 1],
+                        radius=RADk * S, outline=C_BORDER, width=S)
+
+    def C(text, col, cy):
+        T(OX + (CWk - TW(text)) / 2, cy, text, col)
+        return cy + LINE_ADV
+
+    y = OY + 16
+    y = C("EBengin", C_ACCENT, y)
+    y = C("This overlay is key-protected.", C_TEXT, y)
+    y += ITEM_SPACING_Y
+    R(OX + 8, y, OX + CWk - 8, y + 1, C_BORDER)      # Gui::Seperator
+    y += 1 + ITEM_SPACING_Y
+
+    iw, fh = 280.0, FONT_SIZE + FRAME_PAD_Y * 2
+    ix = OX + (CWk - iw) / 2
+    R(ix, y, ix + iw, y + fh, C_FRAME_BG)
+    d.rectangle([ix * S, y * S, (ix + iw) * S - 1, (y + fh) * S - 1],
+                outline=C_BORDER, width=S)
+    y += fh + ITEM_SPACING_Y
+
+    bw = 140.0
+    bx = OX + (CWk - bw) / 2
+    d.rounded_rectangle([bx * S, y * S, (bx + bw) * S - 1, (y + 30) * S - 1],
+                        radius=6 * S, fill=C_PRIMARY)
+    d.rounded_rectangle([(bx + 1) * S, (y + 1) * S, (bx + bw - 1) * S - 1, (y + 15) * S - 1],
+                        radius=6 * S, fill=blend((255, 255, 255, 26), C_PRIMARY))
+    T(bx + (bw - TW("Unlock")) / 2, y + (30 - FONT_SIZE) / 2, "Unlock", C_TEXT)
+    y += 30 + ITEM_SPACING_Y
+
+    C("Local gate - no server is contacted.", C_MUTED_BRAND, y)
+
+    canvas.save(OUT, optimize=True)
+    os.unlink(fa_path)
+    print("geschrieben:", OUT, "(key)", os.path.getsize(OUT), "Bytes", canvas.size)
     sys.exit(0)
 
 # window + title bar (WindowTitleAlign 0,0.5; NoCollapse, p_open = &IsMenuOpen:

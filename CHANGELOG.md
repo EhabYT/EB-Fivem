@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Session key gate in front of splash and shell (row 155)
+- The overlay opened straight into its splash and shell for anyone who could press the toggle
+  key; the owner wanted a key in front of it.  A centred key card now replaces both until the
+  key matches: password field (dots, keyboard-focused on first frame), Enter or the Unlock
+  button submit, a wrong key answers inline in red plus an Activity entry and a warn toast,
+  and success unlocks once per inject, zeroes the buffer and logs "Key accepted".
+- The key is the owner's "eb", compared in plaintext against a local constant: this build talks
+  to no server, so the card is an access gate for the overlay, not a security claim - and it
+  says exactly that ("Local gate - no server is contacted.").  Nothing game-affecting sits
+  behind it either; the gate is interface-level like everything else here.
+- New preview render `python docs/render_preview.py --key` depicts the card (empty password
+  field) as `docs/preview_key.png`; the seven existing previews are untouched by the change.
+
 ## Reset scope and a persistent dump target (rows 153-154)
 - The settings reset assigned the whole Prefs struct, which silently dropped the recent-files
   list - editor history, not an interface preference, and exactly the kind of thing the buffer

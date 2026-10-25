@@ -65,6 +65,7 @@ name and the credit line, dismissed with Continue.  Fifth render
 While the overlay is closed, the frame-rate line lives on as a small HUD plate over
 the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`; the plate corner is `Corner`, persisted as `[ui] hudcorner`).  Sixth render
 (`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
+  A seventh render (`--key`) shows the row-155 key card with its empty password field.
 
 ![EBengin FPS HUD](docs/preview_hud.png)
 
@@ -388,6 +389,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * The toggle key — **INSERT** by default, rebindable in Config → Interface — toggles the menu.
 * The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates,
   Ctrl+Tab / Ctrl+Shift+Tab cycle the tabs, and the sidebar logo returns to the landing tab
+* A session key gate sits in front of splash and shell: once per inject the overlay
+  asks for its key (password field, Enter submits); the check is local plaintext against a
+  constant - no server, no persistence - and the card says so
   (ImGui keyboard nav, accent-coloured focus rectangle).
 * Opening the menu gives it keyboard focus; the nav cursor starts on the sidebar entry of
   the open tab (first entry on the landing tab, which has no sidebar row).
