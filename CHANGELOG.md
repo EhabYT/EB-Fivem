@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Clipboard writer: bounded retry and a Unicode format (rows 176-177)
+- The shared clipboard writer (Config's "Copy diagnostics", the landing tab's session-log copy,
+  the trigger and dump-path copies) tried OpenClipboard exactly once, so a single transiently
+  busy viewer - Excel mid-copy, a clipboard manager syncing - produced a "clipboard busy" error
+  although the same copy a moment later would have succeeded.  It now retries up to five times at
+  15ms intervals before reporting failure; the whole budget stays far below anything a user
+  perceives as a stall.
+- The writer offered CF_TEXT only, i.e. ANSI: text outside the active code page (an umlaut in a
+  path, a non-ASCII Lua string) arrived mangled in Unicode-aware paste targets, which is most of
+  them.  It now also offers CF_UNICODETEXT via MultiByteToWideChar(CP_UTF8); the second global
+  follows the same free-on-refuse rule as the first, and either format being accepted counts as a
+  successful copy.
+- No visual surface is involved; all eight previews stay byte-identical.
+
 ## Gate focus on every open, AA red in the About block (rows 174-175)
 - The key field focus was a one-shot static: it fired on the very first open only.  Close the
   overlay while the gate is still locked and reopen it, and the window took focus but the field
