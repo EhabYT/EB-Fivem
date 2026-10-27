@@ -18,7 +18,10 @@ namespace Default
 		ImGui::Text("No section has been selected. Click a button on the left navbar.");
 
 		// Diagnostics: the history behind the sidebar's instantaneous FPS line -
-		// 120 frames of frame time, session uptime and the action count.
+		// UI: row 199 - "session uptime" overstated the counter: Sample() ticks
+		// only while the overlay renders, so it is menu-open time, and the label
+		// below already says "Menu open".  Comment and README now agree with it.
+		// 120 frames of frame time, menu-open uptime and the action count.
 		ImGui::Spacing();
 		Gui::Seperator("##default_seperator_3");
 		ImGui::Text("Diagnostics");

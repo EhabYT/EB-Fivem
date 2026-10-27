@@ -95,7 +95,7 @@ field:
 | [`settings.h`](settings.h) · [`settings.cpp`](settings.cpp) | Persisted interface prefs (`[ui]`, `[menu]`, `[window]`), host DPI scale, `ScaleFactor()`/`Px()`, save-failure flag, first-start notice |
 | [`toasts.h`](toasts.h) · [`toasts.cpp`](toasts.cpp) | Non-blocking feedback stack: four-second lifetime, click dismisses, capped, drawn above the tab content |
 | [`activity.h`](activity.h) · [`activity.cpp`](activity.cpp) | Timestamped in-memory session log (newest first, 32 kept, total counted) - the trace behind the landing tab |
-| [`perf.h`](perf.h) · [`perf.cpp`](perf.cpp) | Frame-time ring and session uptime: the sidebar FPS line and the landing sparkline |
+| [`perf.h`](perf.h) · [`perf.cpp`](perf.cpp) | Frame-time ring and menu-open uptime (Sample() ticks only while the overlay renders - the landing card labels it "Menu open"): the sidebar FPS line and the landing sparkline |
 | [`clipboard.h`](clipboard.h) | Header-only Win32 `CF_TEXT` writer shared by Config (diagnostics), the landing log and the Resources copy buttons |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor with toolbar (undo/redo/copy/paste/clear/save/revert, whitespace toggle), status line (cursor, lines, last file, modified mark), honest Execute stub, Load/Save dialogs with confirmations and shortcuts, Recent-files popup (five last used paths from settings.ini), right-click menu, empty-state hint, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
@@ -197,7 +197,7 @@ context disappears under it.
 ### Include graph
 
 Rectangles are translation units, rounded boxes are headers, each subgraph is one `.cpp` plus the
-header it owns. **Generated from the actual `#include` lines** — 35 nodes, 63 edges (regenerate with `python docs/gen_include_graph.py`).
+header it owns. **Generated from the actual `#include` lines** — 35 nodes, 77 edges (regenerate with `python docs/gen_include_graph.py`).
 
 ```mermaid
 flowchart LR
@@ -271,9 +271,11 @@ flowchart LR
     n2 --> n3
     n4 --> n3
     n4 --> n5
+    n4 --> n11
     n4 --> n24
     n4 --> n28
     n4 --> n30
+    n4 --> n33
     n5 --> n13
     n5 --> n31
     n6 --> n3
@@ -295,9 +297,15 @@ flowchart LR
     n14 --> n15
     n14 --> n28
     n14 --> n31
+    n16 --> n5
+    n16 --> n11
     n16 --> n13
     n16 --> n18
+    n16 --> n22
+    n16 --> n24
+    n16 --> n29
     n16 --> n32
+    n16 --> n33
     n16 --> n34
     n17 --> n13
     n17 --> n18
@@ -306,16 +314,21 @@ flowchart LR
     n17 --> n26
     n17 --> n28
     n17 --> n31
+    n18 --> n24
     n19 --> n20
     n21 --> n3
     n21 --> n22
+    n21 --> n24
     n21 --> n28
     n21 --> n29
     n21 --> n30
+    n21 --> n33
     n22 --> n1
+    n22 --> n11
     n22 --> n13
     n22 --> n31
     n23 --> n3
+    n23 --> n5
     n23 --> n24
     n23 --> n28
     n23 --> n29
@@ -330,6 +343,7 @@ flowchart LR
     n27 --> n28
     n31 --> n13
     n31 --> n24
+    n31 --> n33
 ```
 
 What the shape of that graph is meant to show:
@@ -477,7 +491,7 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * **Tab comfort:** the editor carries a status line (Ln/Col, line count, language, the
   last loaded or saved file, and a `modified` mark while unsaved edits exist), the Resources
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
-  card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
+  card draws a 120-frame frame-time sparkline with menu-open uptime and action count (`perf.cpp`).
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear, save (one click to the
   last file, Shift+click or a first save through the dialog - which reopens on the last
   file's folder with its name prefilled - Ctrl+S from the keyboard, Ctrl+Shift+S forcing

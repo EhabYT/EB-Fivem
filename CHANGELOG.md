@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The include graph sees commented includes, and the uptime counter is named honestly (rows 198-199)
+- docs/gen_include_graph.py demanded end-of-line right after the closing include quote, so every
+  include carrying a trailing "// why" comment - the house style in main.cpp and six other files -
+  was invisible to it.  The graph was missing 14 edges, among them all six of main.cpp's commented
+  includes and the settings.cpp -> config.h edge row 194 added, while the README claimed the graph
+  was "generated from the actual #include lines".  INCLUDE_RE now accepts a trailing line comment;
+  re-running the script takes the graph from 63 to 77 edges and makes the claim true again.
+- README and the default.cpp comment sold the landing uptime counter as "session uptime", but
+  Perf::Sample() ticks only while the overlay renders - perf.h itself says "menu-open uptime" and
+  the card label says "Menu open".  Both README mentions and the comment now say menu-open uptime,
+  matching the header, the label and the actual behaviour.
+- No UI surface involved; all eight previews stay byte-identical.
+
 ## The settings-folder button opens Explorer again, and the frame flowchart caught up (rows 196-197)
 - "Open settings folder" passed lpFile = NULL with "/select,..." in lpParameters whenever
   settings.ini existed.  ShellExecute needs an object to open, so the call failed in exactly the
