@@ -7,6 +7,7 @@
 #include <fstream>         // row 188: the hook trace log
 #include "exec.h"          // Executor::Init()
 #include "config.h"         // Config::IsCapturing() (row 164)
+#include "gui.h"            // UI: row 201 - Gui::ModalActive() for the DETACH wait
 #include "resources.h"     // Resources::Init()
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -193,6 +194,12 @@ void InitImGui()
 {
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
+	// UI: row 200 - without this, ImGui's default context auto-saves its own
+	// window state to imgui.ini in the HOST process' working directory: a
+	// stray file in the game folder (silently failing on write-protected
+	// installs) duplicating what settings.ini next to the DLL already
+	// persists deliberately.
+	io.IniFilename = NULL;
 	static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 }; //ICON_MIN_FA , ICON_MAX_FA
 	ImFontConfig icons_config;
 
@@ -544,6 +551,14 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		// Stop rendering before anything is torn down, otherwise the game can be
 		// sitting inside hkPresent while we destroy the ImGui context under it.
 		g_unloading = true;
+		// UI: row 201 - a modal dialog (Gui::ModalBoxA) blocks the render thread
+		// inside a frame for as long as the user leaves it open, and the fixed
+		// 50 ms below would then destroy the ImGui context under the live
+		// dialog: once it closed, the rest of the frame drew with no context.
+		// Wait for the dialog, capped at ~2 s so DETACH cannot stall the loader
+		// lock indefinitely - past the cap we proceed exactly as before.
+		for (int i = 0; i < 80 && Gui::ModalActive(); ++i)
+			Sleep(25);
 		Sleep(50);
 		// The position save in Menu::Render() is throttled to ~1/s; flush the
 		// final window position / tab / toggle key so the next start restores

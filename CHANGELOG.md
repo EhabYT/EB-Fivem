@@ -9,6 +9,22 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## No stray imgui.ini in the game folder, and DETACH waits for open dialogs (rows 200-201)
+- io.IniFilename was never set, so ImGui's default context auto-saved its own window state to
+  imgui.ini in the HOST process' working directory - a stray file in the game folder (silently
+  failing on write-protected installs) duplicating what settings.ini next to the DLL already
+  persists deliberately.  InitImGui now sets io.IniFilename = NULL; settings.ini stays the one
+  persistence route.
+- DllMain DETACH mitigated the unload race with a fixed Sleep(50), but a modal dialog
+  (Gui::ModalBoxA) blocks the render thread inside a frame for as long as the user leaves it
+  open.  Past 50 ms the ImGui context was destroyed under a live dialog, and once it closed the
+  rest of the frame drew with no context.  gui.h now exposes Gui::ModalActive() (an
+  inline-function static set around MessageBoxA), and DETACH waits for it in 25 ms ticks - capped
+  at ~2 s so the loader lock cannot stall indefinitely; past the cap it proceeds exactly as
+  before, honestly commented.
+- The include graph was regenerated for the new main.cpp -> gui.h edge (77 to 78 edges).
+- No UI surface involved; all eight previews stay byte-identical.
+
 ## The include graph sees commented includes, and the uptime counter is named honestly (rows 198-199)
 - docs/gen_include_graph.py demanded end-of-line right after the closing include quote, so every
   include carrying a trailing "// why" comment - the house style in main.cpp and six other files -

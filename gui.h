@@ -38,10 +38,23 @@ namespace Gui
 	// bind itself on the first frame after close.  Presses inside a dialog
 	// belong to the dialog; drain the whole keyboard range (vk 7+; 1..6 are
 	// mouse buttons, which neither the capture scan nor the toggle poll read).
+	// UI: row 201 - true while a modal dialog blocks the render thread.
+	// DllMain's DETACH waits (capped) for this before destroying the ImGui
+	// context; the inline-function static is one instance program-wide,
+	// same trick as ModalSeconds below.
+	inline bool& ModalActiveRef()
+	{
+		static bool s_active = false;
+		return s_active;
+	}
+	inline bool ModalActive() { return ModalActiveRef(); }
+
 	inline int ModalBoxA(const char* text, const char* title, UINT flags)
 	{
 		const ULONGLONG t0 = ::GetTickCount64();
+		ModalActiveRef() = true;
 		const int r = ::MessageBoxA(NULL, text, title, flags);
+		ModalActiveRef() = false;
 		ModalSeconds((double)(::GetTickCount64() - t0) / 1000.0);
 		for (int vk = 7; vk < 255; ++vk)
 			(void)::GetAsyncKeyState(vk);
