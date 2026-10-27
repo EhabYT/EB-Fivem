@@ -155,7 +155,7 @@ flowchart TD
     J --> K{"all succeeded?"}
     K -- "no" --> Z
     K -- "yes" --> L["subclass WndProc<br/>only when oWndProc == NULL"]
-    L --> M["InitImGui: fonts, EBengin.png beside the DLL,<br/>ApplyStyle once, Executor::Init, Resources::Init"]
+    L --> M["InitImGui: fonts, EBengin.png beside the DLL,<br/>ApplyStyle once, host DPI, Settings::Load, ApplyScale,<br/>Executor::Init, Resources::Init"]
     M --> N["init = true"]
 
     I -- "later frames" --> O{"back buffer size<br/>changed?"}
@@ -164,7 +164,7 @@ flowchart TD
     P --> Q
     N --> Q
 
-    Q["NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"Toggle key pressed?<br/>edge triggered"}
+    Q["re-sample host DPI per frame, ApplyScale on change<br/>NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"Toggle key pressed?<br/>edge triggered, suppressed while a<br/>capture is armed or a text field<br/>consumes a printable binding"}
     R -- "yes" --> S["toggle Menu::IsMenuOpen"] --> T
     R -- "no" --> T{"IsMenuOpen?"}
     T -- "yes" --> U["Menu::Render<br/>first open: splash card, first-start<br/>notice if no settings.ini, then shell:<br/>sidebar column + Tabs::Render"] --> V
@@ -185,7 +185,7 @@ flowchart TD
         W2 -- "no" --> W4(["CallWindowProc → game"])
     end
 
-    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"] --> U4["session-ended line<br/>in EBengin.log"]
+    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms,<br/>Settings::Save flush"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"] --> U4["session-ended line<br/>in EBengin.log"]
 ```
 
 The two details that are easy to get wrong in a Present hook, and are therefore explicit in the

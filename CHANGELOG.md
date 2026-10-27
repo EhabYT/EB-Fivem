@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The settings-folder button opens Explorer again, and the frame flowchart caught up (rows 196-197)
+- "Open settings folder" passed lpFile = NULL with "/select,..." in lpParameters whenever
+  settings.ini existed.  ShellExecute needs an object to open, so the call failed in exactly the
+  normal returning-user case and every click answered with the warn toast - "Explorer could not be
+  started" - instead of opening anything.  The highlight route now launches explorer.exe with a
+  quoted /select, command line (DLL folders with spaces work); the first-start fallback keeps
+  verb "explore" on the folder itself, unchanged.
+- The README hkPresent flowchart predated several shipped rows: the InitImGui node omitted the
+  DPI sample / Settings::Load / ApplyScale order, the per-frame node omitted the live DPI
+  re-sample (row 187), the toggle node omitted the capture and text-input suppressions
+  (rows 155/164), and the DETACH chain omitted the Settings::Save flush.  All four mermaid nodes
+  now mirror the shipped code.
+- No UI surface changed in its default state; all eight previews stay byte-identical.
+
 ## A dead toggle key can no longer brick the overlay, and a failed session no longer overwrites the ini (rows 194-195)
 - A hand-edited settings.ini could carry a VK that never fires on any keyboard (mouse buttons,
   unassigned codes).  The load clamp only range-checked 1..254, so the toggle stayed dead, the

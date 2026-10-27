@@ -441,9 +441,18 @@ namespace Config
 				? std::string(".") : ini.substr(0, slash);
 			const bool haveIni =
 				GetFileAttributesA(ini.c_str()) != INVALID_FILE_ATTRIBUTES;
-			const intptr_t r = (intptr_t)ShellExecuteA(NULL, "explore",
-				haveIni ? NULL : dir.c_str(),
-				haveIni ? ("/select," + ini).c_str() : NULL,
+			// UI: row 197 - the highlight route passed lpFile = NULL and put
+			// "/select,..." in lpParameters: ShellExecute needs an object to
+			// open, so the call failed whenever the ini existed - the normal
+			// case - and every click answered with the warn toast instead of
+			// Explorer.  /select, is a command line for explorer.exe, quoted for
+			// DLL folders with spaces; the folder fallback keeps verb "explore".
+			const std::string params = haveIni
+				? "/select,\"" + ini + "\"" : std::string();
+			const intptr_t r = (intptr_t)ShellExecuteA(NULL,
+				haveIni ? "open" : "explore",
+				haveIni ? "explorer.exe" : dir.c_str(),
+				haveIni ? params.c_str() : NULL,
 				NULL, SW_SHOWNORMAL);
 			if (r > 32)
 				Activity::Push("Opened the settings folder in Explorer.");
