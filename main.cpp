@@ -382,6 +382,24 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 		}
 	}
 
+	// UI: row 187 - DPI was sampled once at init: dragging the host window to
+	// a monitor with a different DPI left fonts and every DPI-folded metric
+	// at the old factor until re-inject.  Re-sample per frame (one cheap
+	// call) before NewFrame and re-run ApplyScale only when the factor
+	// actually changed; the font rebake, the WindowMinSize change and the
+	// row-186 metric ratio then ride the existing scale-change paths, and the
+	// shell's reachability re-clamp keys off WindowMinSize anyway.
+	if (window != NULL)
+	{
+		const UINT dpiNow = GetDpiForWindow(window);
+		const float dpiF = dpiNow > 0 ? (float)dpiNow / 96.0f : 1.0f;
+		if (dpiF != Settings::DpiScale)
+		{
+			Settings::DpiScale = dpiF;
+			Settings::ApplyScale();
+		}
+	}
+
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();

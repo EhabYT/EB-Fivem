@@ -168,6 +168,25 @@ namespace Settings
 		style.ScrollbarRounding = 8.0f * k;
 		style.GrabRounding     = 6.0f * k;
 		style.FramePadding     = ImVec2(8.0f * k, 6.0f * k);
+
+		// UI: row 186 - WindowPadding, ItemSpacing, IndentSpacing, ScrollbarSize
+		// and GrabMinSize keep ImGui's compiled defaults; ApplyStyle never sets
+		// them, so the compiled-base rescale above cannot cover them, and at
+		// k != 1 they stayed at 100% size - cramped rhythm around doubled text,
+		// a hairline scrollbar under a 2x frame.  Scale them by the ratio
+		// between the previous and the new factor: no knowledge of the defaults
+		// needed, idempotent, and a no-op whenever k does not change.
+		float& lastK = StyleMetricK();
+		if (k != lastK)
+		{
+			const float r = k / lastK;
+			style.WindowPadding = ImVec2(style.WindowPadding.x * r, style.WindowPadding.y * r);
+			style.ItemSpacing   = ImVec2(style.ItemSpacing.x * r, style.ItemSpacing.y * r);
+			style.IndentSpacing *= r;
+			style.ScrollbarSize *= r;
+			style.GrabMinSize   *= r;
+			lastK = k;
+		}
 	}
 
 	void SaveWindowPos(float x, float y)

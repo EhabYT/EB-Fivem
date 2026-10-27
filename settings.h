@@ -36,6 +36,16 @@ namespace Settings
 	// derived, so it is not part of the persisted Prefs.
 	extern float DpiScale;
 
+	// UI: row 186 - ratio tracking for the style metrics this project never
+	// sets explicitly (WindowPadding, ItemSpacing, IndentSpacing, scrollbar
+	// and grab size): ApplyScale scales them by the change ratio, and
+	// ApplyStyle() - which restores ImGui's defaults - publishes k = 1 here.
+	inline float& StyleMetricK()
+	{
+		static float k = 1.0f;
+		return k;
+	}
+
 	void Load();
 	void Save();
 	void SaveWindowPos(float x, float y);

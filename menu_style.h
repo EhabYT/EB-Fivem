@@ -19,6 +19,9 @@ inline void ApplyStyle()
 	ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
 
 	ImGuiStyle& style = ImGui::GetStyle();
+	// UI: row 186 - this restores ImGui's default metrics; tell the ratio
+	// tracking in Settings::ApplyScale() that the bases are back at k = 1.
+	Settings::StyleMetricK() = 1.0f;
 
 	// Base shell size at 100% interface scale.  Settings::ApplyScale() rescales
 	// WindowMinSize from the same base, and InitImGui() runs it *after* this, so

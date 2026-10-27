@@ -9,6 +9,23 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Scale-consistent defaults and live DPI (rows 186-187)
+- WindowPadding, ItemSpacing, IndentSpacing, ScrollbarSize and GrabMinSize keep ImGui's compiled
+  defaults - ApplyStyle never sets them, so the row-185 compiled-base rescale could not cover
+  them, and at any scale other than 100% they stayed at 100% size: cramped rhythm around doubled
+  text, a hairline scrollbar under a doubled frame.  ApplyScale now scales exactly those five by
+  the ratio between the previous and the new ScaleFactor (a no-op while k is unchanged, so calls
+  stay idempotent), and ApplyStyle publishes k = 1 through Settings::StyleMetricK() so the
+  tracking survives a restyle.
+- The host DPI was sampled once at init, so dragging the game window to a monitor with a
+  different DPI left fonts and every DPI-folded metric at the old factor until re-inject.
+  hkPresent re-samples GetDpiForWindow per frame (one cheap call) before NewFrame and re-runs
+  ApplyScale only when the factor actually changed; the font rebake, the WindowMinSize change and
+  the row-186 metric ratio ride the existing scale-change paths, and the shell's reachability
+  re-clamp keys off WindowMinSize anyway.
+- Renders run at 100% interface scale and DPI 1, where both changes are no-ops, so all eight
+  previews stay byte-identical.
+
 ## Key scene in the renderer docstring, scale-safe style metrics (rows 184-185)
 - The render_preview.py docstring never mentioned the row-155 key scene: neither the opening
   paragraph nor the usage block listed --key / preview_key.png, and the constants list skipped
