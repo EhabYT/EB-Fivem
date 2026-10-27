@@ -519,6 +519,11 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 
 		Sleep(500);
 	}
+	// UI: row 190 - the loop also ends when an unload arrives mid-retry; that
+	// is not a failure, and logging "gave up" for it would put a lie in the
+	// trace.  The gave-up line belongs to a full 120-attempt exhaustion only.
+	if (g_unloading)
+		return FALSE;
 	LogHookLine("hook failed: attach gave up after 120 attempts");
 	return FALSE;
 }

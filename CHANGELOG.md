@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Trace honesty on unload, and a retireable save-failure flag (rows 190-191)
+- The hook retry loop also ends when an unload arrives mid-retry, and that path fell through to
+  the "gave up after 120 attempts" log line - a lie in the trace for what was a clean shutdown.
+  The unload exit now returns before the gave-up line, which belongs to a full 120-attempt
+  exhaustion only.
+- The settings save-failure flag latched for the whole session: a one-off folder lock (scanner,
+  sync client) kept the About block reporting "settings not writable - changes are lost on
+  restart" long after the next save had succeeded.  A successful write now retires the flag, with
+  an activity line naming the recovery, so the permanent About warning matches reality again.
+- No UI surface changed in its default state; all eight previews stay byte-identical.
+
 ## Hook outcomes leave a trace, and the trace stays bounded (rows 188-189)
 - A failed hook attach was a silent no-op: the inject looked like "did nothing", with no trace
   anywhere to tell "not a D3D11 host" from "present bind refused" from "gave up after 120

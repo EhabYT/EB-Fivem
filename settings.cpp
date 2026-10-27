@@ -114,6 +114,15 @@ namespace Settings
 				+ " - is the folder writable?");
 			Toasts::Push(Toasts::Warn, "Settings could not be saved - is the DLL folder writable?");
 		}
+		// UI: row 191 - the flag latched for the whole session: a one-off lock
+		// (scanner, sync client) kept the About block reporting "settings not
+		// writable" long after the next save had succeeded.  A successful write
+		// retires it, named, so the report matches reality again.
+		else if (ok && g_saveFailed)
+		{
+			g_saveFailed = false;
+			Activity::Push("Settings writable again - the warning line is gone.");
+		}
 	}
 
 	bool SaveFailed() { return g_saveFailed; }
