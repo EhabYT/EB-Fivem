@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Key scene in the renderer docstring, scale-safe style metrics (rows 184-185)
+- The render_preview.py docstring never mentioned the row-155 key scene: neither the opening
+  paragraph nor the usage block listed --key / preview_key.png, and the constants list skipped
+  the key card.  All three now carry it alongside the other seven scenes.
+- Roundings and FramePadding are absolute style values, not font-derived: FontScaleMain doubles
+  text and frame heights while a 6px radius on a doubled frame reads as a bevel and 8x6 padding
+  squeezes 40px text - and since ApplyStyle's bases carry no DPI, a 144% DPI host showed the same
+  squeeze at 100% interface scale.  Settings::ApplyScale() now rescales the ApplyStyle bases
+  (WindowRounding, ChildRounding, FrameRounding, PopupRounding, TabRounding, ScrollbarRounding,
+  GrabRounding, FramePadding) with the same ScaleFactor() the rest of the shell uses; recomputed
+  from the compiled constants on every call, so it stays idempotent, and at k == 1 it reproduces
+  ApplyStyle exactly - which is why every preview (rendered at 100%, DPI 1) stays byte-identical.
+
 ## README key-render placement and open-header hover feedback (rows 182-183)
 - The row-155 README sentence about the key render sat inside the HUD paragraph - directly above
   the HUD image - and called --key the seventh render, although the landing tab is numbered

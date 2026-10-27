@@ -150,6 +150,24 @@ namespace Settings
 		// ApplyStyle() resets it to the 100% base, hence the call order in
 		// InitImGui(): ApplyStyle() -> Load() -> ApplyScale().
 		style.WindowMinSize = ImVec2(900.0f * ScaleFactor(), 540.0f * ScaleFactor());
+
+		// UI: row 185 - roundings and frame padding are absolute style values,
+		// not font-derived: FontScaleMain doubles text and frame heights, but a
+		// 6px radius on a doubled frame reads as a bevel and 8x6 padding
+		// squeezes 40px text (the same squeeze a 144% DPI host produced at
+		// 100% interface scale, since ApplyStyle's bases carry no DPI).  Rescale
+		// the ApplyStyle bases with the same factor the rest of the shell uses;
+		// recomputed from the compiled constants, so calls stay idempotent and
+		// k == 1 reproduces ApplyStyle exactly.
+		const float k = ScaleFactor();
+		style.WindowRounding   = 10.0f * k;
+		style.ChildRounding    = 6.0f * k;
+		style.FrameRounding    = 6.0f * k;
+		style.PopupRounding    = 8.0f * k;
+		style.TabRounding      = 6.0f * k;
+		style.ScrollbarRounding = 8.0f * k;
+		style.GrabRounding     = 6.0f * k;
+		style.FramePadding     = ImVec2(8.0f * k, 6.0f * k);
 	}
 
 	void SaveWindowPos(float x, float y)

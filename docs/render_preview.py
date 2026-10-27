@@ -4,7 +4,8 @@ tab open (docs/preview.png), the Config tab (docs/preview_config.png), the
 Resources tab (docs/preview_resources.png) or the Menus tab
 (docs/preview_menus.png) - plus the first-open start card on its own
 (docs/preview_splash.png, --splash) and the FPS HUD plate over a scene
-stand-in (docs/preview_hud.png, --hud).
+stand-in (docs/preview_hud.png, --hud), and the session key card on its
+own (docs/preview_key.png, --key).
 
 Self-contained on purpose: it needs only Pillow and the repository itself. The
 sidebar/button glyphs come from the project's *own* embedded Font Awesome font
@@ -33,6 +34,8 @@ invented:
   default.cpp      landing layout: graph height Px(60), the Copy 50x20 /
                    Clear 60x20 pair sharing a line with the heading, log
                    newest first - used by the --default branch only
+  menu.cpp         key card (row 155): 460x232 card, password field 280 wide,
+                   Unlock 140x30, muted gate hint - used by the --key branch
 
 Two things CANNOT be faithful and are substituted, exactly as the README caption
 says: Bahnschrift.ttf is a Windows-only font (a horizontally condensed DejaVu
@@ -47,6 +50,7 @@ Usage:  python docs/render_preview.py             -> docs/preview.png          (
         python docs/render_preview.py --default   -> docs/preview_default.png  (landing tab)
         python docs/render_preview.py --splash    -> docs/preview_splash.png
         python docs/render_preview.py --hud       -> docs/preview_hud.png
+        python docs/render_preview.py --key       -> docs/preview_key.png    (key card)
         (requires Pillow)
 """
 import math
