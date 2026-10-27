@@ -9,6 +9,21 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## A dead toggle key can no longer brick the overlay, and a failed session no longer overwrites the ini (rows 194-195)
+- A hand-edited settings.ini could carry a VK that never fires on any keyboard (mouse buttons,
+  unassigned codes).  The load clamp only range-checked 1..254, so the toggle stayed dead, the
+  menu could not open, and Config's one-time invalid-key reset - which needs an open menu - never
+  ran: the overlay was bricked with no way back short of hand-editing the file.  Load() now
+  validates with the same predicate Config uses, exported from config.h as
+  Config::ValidToggleKey.  Printable bindings stay allowed at load: the present loop already
+  guards them while a text widget consumes input (row 164) and Config retires them on first visit
+  (row 142).  An unassignable key resets to INSERT with an activity line naming the dead key.
+- DllMain DETACH flushes settings unconditionally.  When the hook never attached (non-D3D11 host,
+  bind refused, gave up after retries), Load() had never run and Current still held the compiled
+  defaults - unloading then overwrote a perfectly good settings.ini with them.  Save() refuses to
+  write before Load() has run; a failed session leaves the file exactly as it found it.
+- No UI surface involved; all eight previews stay byte-identical.
+
 ## The trace log documents itself - and closes its sessions (rows 192-193)
 - README documented settings.ini in three places but never mentioned EBengin.log, the trace file
   row 188 put next to it, and the startup / DETACH flowcharts predated the trace lines.  The

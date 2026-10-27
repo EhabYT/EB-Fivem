@@ -1,5 +1,6 @@
 #include "settings.h"
 #include "assets.h"
+#include "config.h"     // UI: row 194 - ValidToggleKey() for the load clamp
 #include "activity.h"
 #include "toasts.h"
 
@@ -14,6 +15,9 @@ namespace Settings
 	float DpiScale = 1.0f;
 	static bool g_saveFailed = false;
 	static bool g_firstStart = false;
+	// UI: row 195 - true once Load() has run; Save() refuses to write before
+	// that (see Save() below for why).
+	static bool g_loaded = false;
 
 	std::string IniPath()
 	{
@@ -62,8 +66,25 @@ namespace Settings
 		// cannot use; clamp both back to their defaults.
 		if (Current.Tab < 0 || Current.Tab > 4)
 			Current.Tab = 0;
-		if (Current.ToggleKey <= 0 || Current.ToggleKey > 254)
-			Current.ToggleKey = 0x2D;
+		// UI: row 194 - the old range check (1..254) still let through VKs that
+		// can never fire on any keyboard (mouse buttons, unassigned codes): the
+		// toggle stayed dead, the menu could not open, and Config's one-time
+		// reset - which needs an open menu - never ran.  A hand-edited ini
+		// bricked the overlay with no way back.  Validate with the same
+		// predicate Config uses; printable bindings stay allowed here because
+		// the present loop guards them while text input is focused (row 164)
+		// and Config retires them on first visit (row 142).
+		{
+			const int vk = Current.ToggleKey;
+			const bool printable = (vk >= 'A' && vk <= 'Z')
+				|| (vk >= '0' && vk <= '9') || vk == VK_SPACE;
+			if (!printable && !Config::ValidToggleKey(vk))
+			{
+				Activity::Push(std::string("Stored toggle key ") + KeyName(vk)
+					+ " can never fire; reset to INSERT.");
+				Current.ToggleKey = 0x2D;
+			}
+		}
 		if (Current.HudCorner < 0 || Current.HudCorner > 3)
 			Current.HudCorner = 0;
 		if (Current.ResourceTab < 0 || Current.ResourceTab > 3)
@@ -72,6 +93,8 @@ namespace Settings
 		// screen; a hand-edited ini falls back to the compiled default.
 		if (Current.ScalePercent < 70 || Current.ScalePercent > 200)
 			Current.ScalePercent = 100;
+
+		g_loaded = true;   // UI: row 195 - Save() may write from here on
 	}
 
 	static bool WriteInt(const char* section, const char* key, int value)
@@ -88,6 +111,14 @@ namespace Settings
 
 	void Save()
 	{
+		// UI: row 195 - DllMain's DETACH flushes settings unconditionally.  When
+		// the hook never attached (non-D3D11 host, bind refused, gave up),
+		// Load() never ran and Current still held the compiled defaults -
+		// unloading then overwrote a perfectly good settings.ini with them.
+		// Refuse to write before Load(): a failed session leaves the file as it
+		// found it.
+		if (!g_loaded)
+			return;
 		// A DLL folder without write permission (program files, read-only media)
 		// used to fail silently here: every preference looked saved and nothing
 		// survived a re-inject.  Report the first failure once, loudly.

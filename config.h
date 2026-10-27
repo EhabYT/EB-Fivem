@@ -22,6 +22,10 @@ namespace Config
 	extern bool ShBypass;
 
 	void Render();
+	// UI: row 194 - the toggle-key predicate, exported so Settings::Load()
+	// can reject ini keys that can never fire before the menu (and this tab)
+	// is reachable at all.
+	bool ValidToggleKey(int vk);
 	// UI: row 164 - true while the toggle-key capture is armed; the present
 	// loop suppresses the toggle flip while it is.
 	bool IsCapturing();

@@ -22,7 +22,9 @@ namespace Config
 	// The toggle poll runs in the present loop, outside any widget focus, so a
 	// letter, digit or modifier bound as toggle key flips the overlay every
 	// time the user types it.  Only keys nobody types are bindable.
-	static bool ValidToggleKey(int vk)
+	// UI: row 194 - no longer static: Settings::Load() validates with the same
+	// predicate (declared in config.h).
+	bool ValidToggleKey(int vk)
 	{
 		return (vk >= VK_F1 && vk <= VK_F24)
 			|| vk == VK_INSERT || vk == VK_DELETE || vk == VK_HOME || vk == VK_END
