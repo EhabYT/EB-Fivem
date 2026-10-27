@@ -551,6 +551,11 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		Settings::Save();
 		CleanupImGui();
 		kiero::shutdown();
+		// UI: row 193 - the trace log (row 188) records the attach and every
+		// failure outcome, but never a clean end: a report could not tell an
+		// orderly unload from a crash or a task kill.  One line closes the
+		// session - present in the log only when DETACH actually ran.
+		LogHookLine("session ended (clean unload)");
 		break;
 	}
 	return TRUE;

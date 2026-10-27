@@ -85,7 +85,7 @@ field:
 
 | Path | What it is |
 |---|---|
-| [`main.cpp`](main.cpp) | `DllMain`, Present hook, ImGui init/teardown, texture + font loading, input routing |
+| [`main.cpp`](main.cpp) | `DllMain`, Present hook, ImGui init/teardown, texture + font loading, input routing, hook trace log (`EBengin.log`) |
 | [`includes.h`](includes.h) | Windows / D3D11 / DXGI / Kiero / ImGui includes, hook typedefs, `HK_CALL` |
 | [`assets.h`](assets.h) | `ResolveAssetPath()` — finds files next to the DLL |
 | [`menu.h`](menu.h) · [`menu.cpp`](menu.cpp) | Menu **shell**: the window, the 2-column `ImGui::Table`, the sidebar, `Menu::TabId` |
@@ -140,11 +140,11 @@ flowchart TD
     C --> D{"kiero::init D3D11<br/>== Success?"}
     D -- "no: UnknownError" --> D1["Sleep 500 ms"] --> D2{"120 attempts<br/>or unloading?"}
     D2 -- "keep retrying" --> D
-    D2 -- "give up" --> D3(["thread exits FALSE"])
+    D2 -- "give up" --> D3(["trace line to EBengin.log,<br/>thread exits FALSE"])
     D -- "no: NotSupported /<br/>ModuleNotFound" --> D3
     D -- "yes" --> E{"kiero::bind index 8<br/>IDXGISwapChain::Present"}
     E -- "failed" --> E1["kiero::shutdown"] --> D3
-    E -- "ok" --> F(["hook live, oPresent saved"])
+    E -- "ok" --> F(["hook live, oPresent saved,<br/>attach line in EBengin.log"])
 
     F --> G["hkPresent runs every frame"]
     G --> H{"g_unloading or<br/>pSwapChain == NULL?"}
@@ -185,7 +185,7 @@ flowchart TD
         W2 -- "no" --> W4(["CallWindowProc → game"])
     end
 
-    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"]
+    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"] --> U4["session-ended line<br/>in EBengin.log"]
 ```
 
 The two details that are easy to get wrong in a Present hook, and are therefore explicit in the
@@ -465,7 +465,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   and the overlay toggle key (Config → "Toggle key", click-to-capture, ESC cancels). The sidebar
   footer carries a live FPS / frame-time readout, and the landing tab lists a timestamped session
   log of loads, dumps, copies and stop/run requests — the actions whose only other feedback is a
-  message box. All of it is in `settings.cpp` / `activity.cpp`.
+  message box. All of it is in `settings.cpp` / `activity.cpp`. Hook-level outcomes go to a
+  second, separate file: `<DLL folder>\EBengin.log` keeps one timestamped line per inject —
+  attach, the failure that stopped it, or the clean unload — capped at 64 KB (`main.cpp`).
 * **The interface gives non-blocking feedback:** success/info paths (loads, dumps, copies,
   run/execute requests, key captures) raise a toast card in the window's bottom-right corner
   instead of a focus-stealing message box; critical errors keep theirs. The window opens with a

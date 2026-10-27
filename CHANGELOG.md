@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The trace log documents itself - and closes its sessions (rows 192-193)
+- README documented settings.ini in three places but never mentioned EBengin.log, the trace file
+  row 188 put next to it, and the startup / DETACH flowcharts predated the trace lines.  The
+  main.cpp table row, the give-up and hook-live flowchart nodes, the DETACH chain and the
+  persistence bullet now name the log: one timestamped line per inject - attach, the failure that
+  stopped it, or the clean unload - capped at 64 KB.
+- The trace recorded the attach and every failure outcome but never a clean end, so a report
+  could not tell an orderly unload from a crash or a task kill.  DllMain DETACH now closes the
+  session with a "session ended (clean unload)" line after kiero::shutdown - present in the log
+  only when DETACH actually ran, which is exactly the distinction the line exists to draw.
+- No UI surface involved; all eight previews stay byte-identical.
+
 ## Trace honesty on unload, and a retireable save-failure flag (rows 190-191)
 - The hook retry loop also ends when an unload arrives mid-retry, and that path fell through to
   the "gave up after 120 attempts" log line - a lie in the trace for what was a clean shutdown.

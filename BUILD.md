@@ -324,6 +324,8 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 189 | The hook trace log survives injects and would grow without bound on a session-heavy machine | LogHookLine caps the file at 64 KB: past that it starts over instead of appending forever |
 | 190 | The hook retry loop also ends when an unload arrives mid-retry, and that path fell through to the "gave up after 120 attempts" log line - a lie in the trace for what was a clean shutdown | The unload exit returns before the gave-up line, which now belongs to a full 120-attempt exhaustion only |
 | 191 | The settings save-failure flag latched for the whole session: a one-off folder lock (scanner, sync client) kept the About block reporting "settings not writable - changes are lost on restart" long after the next save had succeeded | A successful write retires the flag, with an activity line naming the recovery, so the permanent About warning matches reality again |
+| 192 | README documents settings.ini in three places but never mentions EBengin.log, the trace file row 188 put next to it; the startup and DETACH flowcharts also predate the trace lines | main.cpp table row, give-up/hook-live flowchart nodes, DETACH chain and the persistence bullet now name EBengin.log (one line per inject: attach, failure, clean unload; 64 KB cap) |
+| 193 | The trace log records the attach and every failure outcome but never a clean end: a report could not tell an orderly unload from a crash or a task kill | DllMain DETACH closes the session with a "session ended (clean unload)" line after kiero::shutdown - present in the log only when DETACH actually ran |
 
 
 
