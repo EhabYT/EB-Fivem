@@ -4,6 +4,7 @@
 #include "settings.h"          // Menu::Render / IsMenuOpen / logo
 #include "menu_style.h"    // ApplyStyle()
 #include "assets.h"        // ResolveAssetPath()
+#include <fstream>         // row 188: the hook trace log
 #include "exec.h"          // Executor::Init()
 #include "config.h"         // Config::IsCapturing() (row 164)
 #include "resources.h"     // Resources::Init()
@@ -459,6 +460,31 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 }
 
 
+// UI: row 188 - a failed hook attach used to be a silent no-op: the inject
+// looked like "did nothing", with no trace anywhere to tell "not a D3D11
+// host" from "bind refused" from "gave up".  One line per outcome next to
+// the DLL, the same folder convention settings.ini uses, turns the silent
+// case into a diagnosable one.  UI: row 189 - the file survives injects, so
+// cap it: past 64 KB start over instead of appending forever.
+static void LogHookLine(const char* text)
+{
+	const std::string path = ResolveAssetPath("EBengin.log");
+	WIN32_FILE_ATTRIBUTE_DATA attr = { 0 };
+	if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr) != 0
+		&& attr.nFileSizeHigh == 0 && attr.nFileSizeLow > 64u * 1024u)
+		DeleteFileA(path.c_str());
+	std::ofstream log(path.c_str(), std::ios::app);
+	if (!log.is_open())
+		return;
+	SYSTEMTIME t;
+	GetLocalTime(&t);
+	char stamp[32];
+	snprintf(stamp, sizeof(stamp), "%04u-%02u-%02u %02u:%02u:%02u",
+		(unsigned)t.wYear, (unsigned)t.wMonth, (unsigned)t.wDay,
+		(unsigned)t.wHour, (unsigned)t.wMinute, (unsigned)t.wSecond);
+	log << stamp << " " << text << "\n";
+}
+
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
 	// The old version spun in a tight `do {} while (!init_hook)` loop with no
@@ -471,18 +497,29 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 		if (status == kiero::Status::Success)
 		{
 			if (kiero::bind(8, (void**)&oPresent, (void*)hkPresent) == kiero::Status::Success)
+			{
+				LogHookLine("hook attached (D3D11 present)");
 				return TRUE;
+			}
 
 			kiero::shutdown();
-			break;
+			LogHookLine("hook failed: present bind refused");
+			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
 		if (status == kiero::Status::NotSupportedError ||
 			status == kiero::Status::ModuleNotFoundError)
-			break;   // not a D3D11 renderer / no swap chain: retrying cannot help
+		{
+			// not a D3D11 renderer / no swap chain: retrying cannot help
+			LogHookLine(status == kiero::Status::NotSupportedError
+				? "hook failed: host is not a D3D11 renderer"
+				: "hook failed: swap chain module not found");
+			return FALSE;   // logged outcome; the gave-up line below stays for retries only
+		}
 
 		Sleep(500);
 	}
+	LogHookLine("hook failed: attach gave up after 120 attempts");
 	return FALSE;
 }
 

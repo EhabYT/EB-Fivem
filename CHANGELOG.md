@@ -9,6 +9,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Hook outcomes leave a trace, and the trace stays bounded (rows 188-189)
+- A failed hook attach was a silent no-op: the inject looked like "did nothing", with no trace
+  anywhere to tell "not a D3D11 host" from "present bind refused" from "gave up after 120
+  retries".  MainThread now writes one timestamped line per outcome - attach, bind refused, not a
+  D3D11 renderer, swap chain module missing, gave up - to EBengin.log next to the DLL, the same
+  folder convention settings.ini already uses.  Deterministic outcomes return straight after
+  logging, so the gave-up line belongs to the retry path alone.
+- The trace log survives injects, so it would grow without bound on a session-heavy machine.
+  LogHookLine caps it at 64 KB: past that it starts over instead of appending forever.
+- No UI surface is involved; all eight previews stay byte-identical.
+
 ## Scale-consistent defaults and live DPI (rows 186-187)
 - WindowPadding, ItemSpacing, IndentSpacing, ScrollbarSize and GrabMinSize keep ImGui's compiled
   defaults - ApplyStyle never sets them, so the row-185 compiled-base rescale could not cover
