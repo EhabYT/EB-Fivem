@@ -136,6 +136,14 @@ tables used to share the numbers 1-14, so "row 12" could land in either (row 238
 
 ---
 
+### Hygiene conventions (written down across rows 239-241)
+
+- Project sources, `.bat` and `.sln`: CRLF.  The `.sln` carries the MSVC UTF-8 BOM on purpose -
+  Visual Studio re-adds it on every save, so removing it would only create recurring diff noise.
+- Docs (`*.md`), `docs/render_preview.py`, `ci/build.yml`: LF.
+- Vendored trees (`imgui/`, `kiero/`, `stb_image.h`, `TextEditor.*`): upstream endings, untouched.
+- Every text file ends with exactly one newline; no trailing whitespace at line ends.
+
 ## 5. Runtime / correctness fixes that were applied
 
 Separate from the build fixes above: these are bugs that compiled fine but misbehaved.
@@ -382,6 +390,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 238 | BUILD.md numbered its build-fix table (section 4) 1-14 while the runtime/correctness table (section 5) numbers 1-237 - and every bare "row N" cross-reference in code comments, CHANGELOG, README and the vcxproj points at section 5, so for 1-14 a reference could land in either table | Section 4 is renumbered B1-B14 and carries a note saying why; bare "row N" is unambiguous again |
 | 239 | The HUD plate credited "MADE BY EB" (row 124) while the owner-set UI credit wording is "Remade : by EB" (rows 94/103: splash card, sidebar footer, Config About) - the plate was the one UI surface deviating from the standing credit directive; menu.cpp also carried 95 bare-LF lines left by earlier patches in an otherwise CRLF file | The plate second line, the renderer hud-scene constant and every current-description sentence (menu.h comment, README, BUILD architecture row) carry "Remade : by EB" now; plate metrics unchanged (width is the max of both lines, the FPS line is longer); menu.cpp is normalized to CRLF; past row/changelog entries keep their historical wording |
 | 240 | The row-239 endings census over the whole tree found one more project-owned outlier: clipboard.h was entirely LF while every other project source, the .bat files and the .sln are CRLF (docs, renderer and ci/build.yml are LF by convention; the vendored trees - stb_image.h with 7988 LF lines, imgui/, kiero/ - keep their upstream endings on purpose) | clipboard.h is normalized to CRLF; the census result and the vendored exception are recorded here so the convention has a written definition |
+| 241 | The hygiene sweep (BOM / EOF newline / trailing whitespace over every project-owned file) found font_awesome.h ending without a final newline, and the endings convention from rows 239-240 plus the deliberate .sln BOM exception had no written home | font_awesome.h ends with exactly one newline now, and BUILD.md section 4 carries a short "Hygiene conventions" subsection: CRLF for sources/.bat/.sln (BOM kept on purpose), LF for docs/renderer/yml, vendored trees untouched, one EOF newline and no trailing whitespace anywhere |
 
 
 

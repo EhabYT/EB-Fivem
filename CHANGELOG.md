@@ -11,6 +11,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Hygiene sweep finished, conventions written down (row 241)
+- The sweep (BOM, EOF newline, trailing whitespace over every project-owned file) found one defect:
+  font_awesome.h ended without a final newline.  The .sln UTF-8 BOM is MSVC's own convention and stays -
+  Visual Studio re-adds it on every save, so removing it would only create diff noise.
+- font_awesome.h ends with exactly one newline now, and BUILD.md section 4 carries the written hygiene
+  conventions: CRLF for sources/.bat/.sln (BOM kept on purpose), LF for docs/renderer/yml, vendored trees
+  untouched, one EOF newline and no trailing whitespace anywhere.
+
 ## Endings census finished: clipboard.h joins the CRLF convention (row 240)
 - The row-239 census over the whole tree found one more project-owned outlier: clipboard.h was entirely
   LF while every other project source, the .bat files and the .sln are CRLF.  Docs, renderer and
