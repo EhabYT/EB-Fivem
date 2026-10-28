@@ -11,6 +11,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The reset dialog names everything it destroys (row 231)
+- "Restore the compiled defaults?" listed four of the six things the whole-struct assignment
+  resets: the stored window position and the last tab go back to defaults as well - and main.cpp
+  opens the next session on the stored tab (`Menu::Tab = Settings::Current.Tab`), so the loss is
+  real.  The tooltip and toast mentioned the window position; no UI text mentioned the tab.
+- The confirm modal, the button tooltip and the success toast now state the complete scope: key
+  bind, scale, switches and HUD corner are overwritten at once; the stored window position and
+  last tab reset and apply on the next start.  Wording only - the reset behaviour itself
+  (including Recent / ResourceName survival, row 153) is unchanged.
+
 ## The Resources tab names its own provenance (row 230)
 - The browser, stopper and Executor combo operate on a compiled-in sample list (exec.cpp), but
   nothing in the UI said so: names like `_cfx_internal` or `esx_mafia` read as live server
