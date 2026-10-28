@@ -11,6 +11,28 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Single-instance guard, Present re-entrancy guard, and PID/TID/base logging (row 246)
+- Applied the fixes from the `EBengin.log` / `settings.ini` analysis (two `hook attached` lines with
+  no `session ended` line between them).
+- `LogHookLine` (`main.cpp`): every line in `EBengin.log` now carries
+  `[pid=<pid> tid=<tid> base=0x<g_hModule>]`.  Two attach lines immediately distinguish Scenario A
+  (double injection into the same process: identical `pid=`) from Scenario B (crash or kill followed
+  by restart: new `pid=`), and `base=0x...` lets any row-243 SEH fault address (`at 0x...`) be
+  converted to an RVA (`addr - base`) under `/DYNAMICBASE`.
+- Single-instance mutex (`main.cpp`): `MainThread` acquires `Local\EBengin_SingleInstance_<pid>`
+  before calling `kiero::init` (outside `DllMain`, keeping row 236's loader-lock rule intact).  If
+  `ERROR_ALREADY_EXISTS` is returned, it closes the duplicate handle, logs
+  `hook skipped: instance already active in this process`, and returns `FALSE` without stacking a
+  second `Present` hook or second ImGui context.  `g_ownsSession` gates `DLL_PROCESS_DETACH` so
+  unloading a rejected duplicate never tears down the active session, and failed attach paths release
+  the mutex so retries are not blocked.
+- Hook re-entrancy and fault fast-path (`main.cpp`): `hkPresent` checks
+  `if (InterlockedIncrement(&g_presentDepth) > 1)` and passes straight through to `oPresent` instead
+  of re-entering `PresentBody` / `ImGui::NewFrame()`; `WndProc` now checks `g_hookFaulted` alongside
+  `g_unloading`.
+- Docs (`BUILD.md`): added the double-attach vs. crash-restart case study after the crash-capture
+  section.
+
 ## Fallback sidebar wordmark hit-target and reset-toast wording fix (row 245)
 - `menu.cpp` (`RenderSidebar`): when `EBengin.png` is missing next to the DLL (`!LogoLoaded`),
   `ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)))` ran immediately after

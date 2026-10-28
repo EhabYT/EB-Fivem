@@ -395,6 +395,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 243 | The crash guide's second half (advanced debugging) found two applicable gaps: the SEH fault line logged a static string - guide 6.3 asks for the exception code and faulting address so a report can be triaged from EBengin.log alone - and the isolation workflow (minimal probe DLL, page heap, ProcMon load-image tracing, exception-code table, validation checklist) had no written home | hkPresent's __except now formats code 0x........ and address from GetExceptionInformation() into the FaultDisable line; tools/dll_probe/probe.cpp is a standalone minimal attach probe (logs to %TEMP%\dll_probe.log from a worker thread - no loader-lock MessageBox, unlike the guide snippet); BUILD.md documents gflags page heap, ProcMon filters, the isolation order, the code table and the final checklist. Guide items 9/11 (detection mechanics as a work list, manual mapping, DLL proxying, external memory access) stay out of scope per README |
 | 244 | Removing the `else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)` branch in `exec.cpp` (row 229) also dropped the trailing `else`, leaving a bare `{ ... }` block after `if (resources.empty())`: if every resource had been removed in the Stopper tab, clicking Execute showed `"No resource selected."` and then fell through into `resources[selectedResource]` on an empty vector (out-of-bounds read) | Restored `else` before the report-only Execute block in `exec.cpp`; verified via a full-repo AST/brace scan that no other `if (...) { ... }` is followed by an unattached `{ ... }` block |
 | 245 | Two audit findings from a full `IsItem*` and string-literal sweep: (1) in `menu.cpp` (`RenderSidebar`), when `EBengin.png` is absent (`!LogoLoaded`), `ImGui::Dummy(76, 68)` ran after `ImGui::TextColored("EBengin")` and before `IsItemHovered()`/`IsItemClicked()` - `Dummy` calls `ItemAdd`, overwriting `LastItemData` with the blank spacer below `"EBengin"` (at `x = 0..76`), so hovering/clicking the visible fallback wordmark did nothing while the empty space below it acted as the home button; (2) in `config.cpp`, the reset toast concatenated `"…and last"` `"tab apply…"` into `"lasttab"` | Moved `if (!LogoLoaded) ImGui::Dummy(...)` to after the `IsItemHovered()`/`IsItemClicked()` checks in `menu.cpp` so the visible `"EBengin"` wordmark is the home-button hit target while keeping the sidebar height unchanged; restored the space in `config.cpp` (`"last "` `"tab"`) |
+| 246 | Analyzing the user's attached `EBengin.log` (two `hook attached` lines 3.5 min apart with no `session ended` between them) exposed three gaps: (1) log lines lacked `pid`, `tid` and module `base`, so double-injection into the same process could not be told apart from a crash+restart, and row-243 fault addresses had no module base for RVA math under `/DYNAMICBASE`; (2) nothing stopped a second injection into the same process from stacking a second `Present` hook / ImGui state; (3) `hkPresent` did not short-circuit recursive re-entry (`g_presentDepth > 1`), and `WndProc` checked `g_unloading` but not `g_hookFaulted` | `LogHookLine` now prefixes every line with `[pid=%lu tid=%lu base=0x%016llX]`; `MainThread` acquires a per-process named mutex (`Local\EBengin_SingleInstance_<pid>`, released on failure or `DLL_PROCESS_DETACH`) and logs `hook skipped: instance already active in this process` on a duplicate attach while `g_ownsSession` prevents a rejected duplicate's `DETACH` from tearing down the live session; `hkPresent` passes straight through to `oPresent` when `InterlockedIncrement(&g_presentDepth) > 1`, and `WndProc` checks `g_hookFaulted`; documented the case study in `BUILD.md` |
 
 
 
@@ -777,3 +778,18 @@ scope note: no bypasses, no cheat payloads); the supported paths are the game's 
 facilities where they exist, or not injecting at all.  Bypassing anti-cheat violates the terms of
 service of online titles and may be illegal - the detection facts in the guide are recorded here
 as the reason injection fails on protected processes, not as a work list.
+
+**Case study - two attach lines with no unload between them (row 246)**
+When `EBengin.log` shows two `hook attached (D3D11 present)` lines without a `session ended
+(clean unload)` line between them, two scenarios are possible:
+
+- **Scenario A (double injection into the same process):** `pid=` is identical on both lines.
+  From row 246 on, the second attach acquires `Local\EBengin_SingleInstance_<pid>`, sees
+  `ERROR_ALREADY_EXISTS`, logs `hook skipped: instance already active in this process`, and
+  exits before touching kiero or ImGui; `hkPresent` also guards against recursive entry via
+  `InterlockedIncrement(&g_presentDepth) > 1`.
+- **Scenario B (host crashed or was killed, then restarted):** `pid=` differs between the two
+  lines, and no `session ended (clean unload)` closed the first PID.  Any fault inside our
+  hooks leaves a row-243 fault line (`code 0x... at 0x...`), and `base=0x...` on the same line
+  gives the module RVA (`addr - base`) under `/DYNAMICBASE`; if no fault line precedes the PID
+  change, capture a crash dump (`procdump -e -ma`) and inspect `!analyze -v` in WinDbg.
