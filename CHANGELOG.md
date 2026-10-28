@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The scale row-log entries point at 1.93 and at real imgui.cpp lines (rows 218-219)
+- BUILD.md row 76 still described the interface scale as applied "through ImGui 1.92's
+  style.FontScaleMain" and "because 1.92 bakes a font" - present-tense mechanism claims about the
+  vendored copy, which is 1.93.0 (row 214 fixed the same drift in config.cpp, README and the
+  troubleshooting section but missed this row-log entry).  Both corrected to 1.93.
+- Its vendored line pointers had drifted with the upgrade: imgui.cpp:9104 and :9214 are blank lines
+  in 1.93.0.  Re-verified against the vendored file - FontSizeBase is initialised from
+  font->LegacySize at imgui.cpp:9218, and the FontScaleMain factor is applied at :9327.
+- Row 91's FontScaleDpi pointer (imgui.cpp:9215, also blank in 1.93.0) corrected to :9328, and the
+  README interface-scale bullet no longer contradicts itself across two lines ("1.93's
+  FontScaleMain" ... "1.93 bakes a font").
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The runtime files are named where readers look for them (rows 216-217)
 - BUILD.md's runtime-assets section listed only what the DLL reads (EBengin.png, Bahnschrift.ttf).
   The two files it writes next to itself were unnamed: settings.ini surfaced only in the toggle
