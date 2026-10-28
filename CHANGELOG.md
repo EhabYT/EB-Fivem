@@ -11,6 +11,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Endings census finished: clipboard.h joins the CRLF convention (row 240)
+- The row-239 census over the whole tree found one more project-owned outlier: clipboard.h was entirely
+  LF while every other project source, the .bat files and the .sln are CRLF.  Docs, renderer and
+  ci/build.yml stay LF by convention; the vendored trees (stb_image.h with 7988 LF lines, imgui/,
+  kiero/) keep their upstream endings on purpose.
+- clipboard.h is normalized to CRLF; BUILD.md records the census and the vendored exception, so the
+  convention now has a written definition.  A duplicate-`##id` sweep over every tab renderer found only
+  the intended OpenPopup/BeginPopup pair (exec.cpp recent-files popup).
+
 ## The HUD plate carries the owner-set credit wording (row 239)
 - Row 124 put "MADE BY EB" on the HUD plate; the standing credit directive sets the UI wording to
   "Remade : by EB" (splash card, sidebar footer, Config About - rows 94/103).  The plate was the one
