@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The session trace confirms before it dies, and the position save stops rewriting the ini (rows 204-205)
+- The session log is the only timestamped trace the session leaves - in memory only, and
+  unrecoverable once cleared - but its Clear button fired immediately, while every other loss of
+  the same family (editor Clear/Revert, resource stopper, interface reset) confirms first.  One
+  mis-click erased the trace without a word.  Clear now asks through the shared Gui::ModalBoxA
+  (YESNO + warning icon) and only clears on IDYES.
+- SaveWindowPos went through the full Save(): roughly twenty WritePrivateProfileStringA calls -
+  each its own open/write/close of the same file - for what is a two-integer update.  The
+  position saver throttles by time OR movement, so a fast drag or an Aero-Snap fling rewrote the
+  entire ini on nearly every frame.  It now writes just [window] x/y directly, keeping the
+  once-only save-failure latch that row 191 retires on the next successful Save.
+- No preview scene shows a dialog, and the landing scene is unchanged: all eight previews stay
+  byte-identical.
+
 ## The last pure-red surfaces join the ramp, and diagnostics name the trace log (rows 202-203)
 - Two shipped surfaces still used pure red (255,0,0) after rows 157/175/178 moved the project to
   the lighter ramp red: the warn toast kind bar - ~2.6:1 on the card navy, under the 3:1 WCAG AA

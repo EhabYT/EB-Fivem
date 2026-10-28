@@ -73,7 +73,16 @@ namespace Default
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Clear##activity", ImVec2(Settings::Px(60.0f), Settings::Px(20.0f))))
-				Activity::Clear();
+			{
+				// UI: row 204 - the session log is the only timestamped trace the
+				// session leaves (the Copy comment above says so), in memory only
+				// and unrecoverable once cleared - the same loss family the
+				// editor Clear/Revert, the stopper and the interface reset all
+				// confirm for.  One mis-click used to erase it without a word.
+				if (Gui::ModalBoxA("Clear the session log?\nThe trace of this session cannot be recovered.",
+						"EBengin", MB_YESNO | MB_ICONWARNING) == IDYES)
+					Activity::Clear();
+			}
 		}
 		if (entries.empty())
 		{

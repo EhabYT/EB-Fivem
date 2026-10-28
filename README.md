@@ -118,7 +118,7 @@ labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, cre
 | [`docs/preview_menus.png`](docs/preview_menus.png) | The same render with the Menus tab open (`--menus`) |
 | [`docs/preview_splash.png`](docs/preview_splash.png) | The first-open start card (`--splash`): logo, credit line, two honest hints, Continue |
 | [`docs/preview_hud.png`](docs/preview_hud.png) | The FPS HUD plate over the scene while the overlay is closed (`--hud`) |
-| [`docs/preview_default.png`](docs/preview_default.png) | The landing tab (`--default`): diagnostics sparkline, uptime line, session log with Copy/Clear |
+| [`docs/preview_default.png`](docs/preview_default.png) | The landing tab (`--default`): diagnostics sparkline, uptime line, session log with Copy and a confirming Clear |
 | [`CHANGELOG.md`](CHANGELOG.md) | One entry per batch on this branch, newest first - the condensed view of the fix table in BUILD.md |
 
 ## Architecture

@@ -233,7 +233,23 @@ namespace Settings
 	{
 		Current.WindowX = (int)x;
 		Current.WindowY = (int)y;
-		Save();
+		// UI: row 205 - used to go through Save(): ~20 WritePrivateProfileStringA
+		// calls - each its own open/write/close of the same file - for what is a
+		// two-integer update.  The position saver throttles by time OR movement,
+		// so a fast drag or an Aero-Snap fling re-wrote the entire ini on nearly
+		// every frame.  Write the two keys directly; failure keeps the once-only
+		// latch Save() established (row 191 retires it on the next success).
+		if (!g_loaded)
+			return;
+		const bool ok = WriteInt("window", "x", Current.WindowX)
+			&& WriteInt("window", "y", Current.WindowY);
+		if (!ok && !g_saveFailed)
+		{
+			g_saveFailed = true;
+			Activity::Push("Settings could not be written to " + IniPath()
+				+ " - is the folder writable?");
+			Toasts::Push(Toasts::Warn, "Settings could not be saved - is the DLL folder writable?");
+		}
 	}
 
 	const char* KeyName(int vk)
