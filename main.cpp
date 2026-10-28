@@ -86,6 +86,7 @@ static void FaultDisable(const char* reason)
 {
 	g_hookFaulted = 1;
 	init = false;
+	g_frameActive = false;
 	if (window != NULL && oWndProc != NULL)
 	{
 		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
@@ -334,6 +335,7 @@ void CleanupImGui()
 	if (!init)
 		return;
 	init = false;
+	g_frameActive = false;
 
 	// UI: row 234 - give the window proc back to the game first: a message that
 	// enters WndProc after DestroyContext() would call ImGui_ImplWin32_
@@ -344,6 +346,7 @@ void CleanupImGui()
 		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
 		oWndProc = NULL;
 	}
+	window = NULL;
 
 	if (ImGui::GetCurrentContext() != NULL)
 	{
@@ -360,7 +363,19 @@ void CleanupImGui()
 		logo = NULL;
 		LogoLoaded = false;
 	}
-
+	// UI: row 248 - release the cached device/context references here too so a
+	// dynamic unload (DLL_PROCESS_DETACH) drops them just like the device-reset
+	// path below.
+	if (pContext != NULL)
+	{
+		pContext->Release();
+		pContext = NULL;
+	}
+	if (pDevice != NULL)
+	{
+		pDevice->Release();
+		pDevice = NULL;
+	}
 }
 
 
@@ -368,7 +383,7 @@ void CleanupImGui()
 // so DETACH can wait for in-flight messages before the context they read dies.
 static LRESULT WndProcFrame(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (g_unloading)
+	if (g_unloading || g_hookFaulted || !init)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
 								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
 
@@ -436,7 +451,7 @@ static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (g_unloading || g_hookFaulted)
+	if (g_unloading || g_hookFaulted || !init)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
 								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
 
@@ -456,29 +471,49 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
 	if (!init)
 	{
+		if (pContext != NULL) { pContext->Release(); pContext = NULL; }
+		if (pDevice != NULL) { pDevice->Release(); pDevice = NULL; }
 		if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&pDevice)) || pDevice == NULL)
 			return oPresent(pSwapChain, SyncInterval, Flags);
 
 		pDevice->GetImmediateContext(&pContext);
 		if (pContext == NULL)
+		{
+			pDevice->Release();
+			pDevice = NULL;
 			return oPresent(pSwapChain, SyncInterval, Flags);
+		}
 
 		DXGI_SWAP_CHAIN_DESC sd;
 		if (FAILED(pSwapChain->GetDesc(&sd)) || sd.OutputWindow == NULL)
+		{
+			pContext->Release();
+			pContext = NULL;
+			pDevice->Release();
+			pDevice = NULL;
 			return oPresent(pSwapChain, SyncInterval, Flags);
+		}
 		window = sd.OutputWindow;
 
 		if (!CreateRenderTarget(pSwapChain))
+		{
+			window = NULL;
+			pContext->Release();
+			pContext = NULL;
+			pDevice->Release();
+			pDevice = NULL;
 			return oPresent(pSwapChain, SyncInterval, Flags);
+		}
 
-		// Subclass exactly once.  If CreateRenderTarget() above ever bails out and
-		// we come back next frame, a second SetWindowLongPtr would store *our own*
-		// WndProc as the "original" and build an endless call chain.
-		if (oWndProc == NULL)
-			oWndProc = (WNDPROC)SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)WndProc);
-
+		// UI: row 248 - finish InitImGui() (CreateContext, font bake, Win32/DX11
+		// backend init, settings load) BEFORE installing WndProc: on a host whose
+		// window thread is not the render thread (GTA V / FiveM), subclassing
+		// first let the window thread enter WndProc -> ImGui_ImplWin32_WndProcHandler
+		// while InitImGui() was still constructing the context on the render thread.
 		InitImGui();
 		init = true;
+		if (oWndProc == NULL)
+			oWndProc = (WNDPROC)SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)WndProc);
 	}
 	else
 	{
@@ -783,7 +818,10 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		if (hMutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS)
 		{
 			CloseHandle(hMutex);
+			if (g_hModule == NULL)
+				g_hModule = hMod;
 			OutputDebugStringA("EBengin: already injected, aborting second instance\n");
+			LogHookLine("hook skipped: instance already active in this process");
 			return FALSE;
 		}
 		g_hModule = hMod;

@@ -11,6 +11,24 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Fix first-frame WndProc vs. InitImGui race, COM ref leaks, and duplicate-attach log line (row 248)
+- `PresentFrame` / `WndProc` (`main.cpp`): `PresentFrame` (`!init`) previously called
+  `SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)WndProc)` *before* `InitImGui()`, and `WndProc`
+  did not check `!init`.  On any host whose window message pump runs on a different thread than the
+  D3D11 render thread (such as GTA V / FiveM), window messages entered `WndProc` ->
+  `ImGui_ImplWin32_WndProcHandler` while `InitImGui()` was still constructing the `ImGuiContext`,
+  baking fonts from disk, and initializing the Win32 backend on the render thread (mirror image of
+  the teardown race fixed in row 234).  `InitImGui()` and `init = true` now complete before
+  `SetWindowLongPtr` installs `WndProc`, and both `WndProc` and `WndProcFrame` guard on `!init`.
+- `CleanupImGui` / `FaultDisable` (`main.cpp`): both now reset `g_frameActive = false`, and
+  `CleanupImGui()` releases `pContext` and `pDevice` (and clears `window = NULL`) so dynamic
+  `DLL_PROCESS_DETACH` drops the D3D11 device/context references just like the device-reset path;
+  early-out paths inside `PresentFrame` (`!init`) also release `pContext` and `pDevice` instead of
+  leaking references across retry frames.
+- `DLL_PROCESS_ATTACH` (`main.cpp`): when `CreateMutexA` reports `ERROR_ALREADY_EXISTS`, the
+  duplicate branch now also writes `hook skipped: instance already active in this process` to
+  `EBengin.log` alongside `OutputDebugStringA` before returning `FALSE`.
+
 ## Harden attach/detach lifecycle: DllMain mutex gate, thread fence, and process-exit path (row 247)
 - `DLL_PROCESS_ATTACH` (`main.cpp`): moved the `Local\EBengin_SingleInstance_<pid>` `CreateMutexA`
   acquisition into `DLL_PROCESS_ATTACH` before `CreateThread` (matching guide 4.1).  A duplicate
