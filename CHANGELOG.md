@@ -9,6 +9,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Comments document their own functions, and tooltips stop printf-ing user paths (rows 212-213)
+- PushRecent had been inserted between ReadFileText's contract comment and ReadFileText itself,
+  so the "Returns 0 on success, 1 open failure, 2 empty, 3 oversized" block documented a function
+  with no return codes at all, while the actual shared read path - whose codes every caller
+  branches on - carried none.  Each comment sits on its own function again.
+- Three tooltips passed user-controlled file paths as the printf format string: the Save button's
+  "Save to <name> (Ctrl+S; ...)", the Revert button's "Revert to <name>", and the Recent popup's
+  "<full path>\nRight-click removes the entry."  A '%' in a filename is legal on Windows, making
+  each of them the same undefined-behaviour family runtime-fix #15 removed from the list texts -
+  reintroduced on rows added later.  All three now build the string first and pass it through
+  SetTooltip("%s", ...); a full sweep verified every remaining SetTooltip site is literal or
+  already "%s".
+- No UI surface changed in its default state; all eight previews stay byte-identical.
+
 ## The splash hint says exactly what the toggle does, and dialogs belong to the game window (rows 210-211)
 - The splash hint claimed "<key> toggles this overlay at any time." - overstating the one binding
   class the present loop deliberately suppresses: a printable key (possible only via hand-edited

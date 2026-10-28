@@ -44,11 +44,10 @@ namespace Executor
 		return i == std::string::npos ? path : path.substr(i + 1);
 	}
 
-	// Shared read path for Load-from-file and Revert: the size cap, the
-	// empty check and the UTF-8 BOM strip live in one place so the two
-	// cannot drift apart the way the old menu-list copies did.
-	// Returns 0 on success, 1 open failure, 2 empty, 3 oversized; on 0,
-	// out holds the file text after the BOM strip.
+	// UI: row 212 - PushRecent had been inserted between ReadFileText's
+	// contract comment and ReadFileText itself, so the "Returns 0 on success,
+	// 1 open failure, 2 empty, 3 oversized" block documented a function with
+	// no return codes at all.  Each comment sits on its own function again.
 	// Recent-files list: newest first, de-duplicated, capped at five, and
 	// persisted with the rest of the prefs ([recent] in settings.ini), so a
 	// re-inject still offers yesterday's script for one-click reload.
@@ -62,6 +61,11 @@ namespace Executor
 		Settings::Save();
 	}
 
+	// Shared read path for Load-from-file and Revert: the size cap, the
+	// empty check and the UTF-8 BOM strip live in one place so the two
+	// cannot drift apart the way the old menu-list copies did.
+	// Returns 0 on success, 1 open failure, 2 empty, 3 oversized; on 0,
+	// out holds the file text after the BOM strip.
 	static int ReadFileText(const char* file, std::string& out)
 	{
 		FILE* fp = NULL;
@@ -322,10 +326,20 @@ namespace Executor
 		};
 		if (ImGui::Button(ICON_FA_SAVE "##ed_save", ImVec2(tb, tb)))
 			saveBuffer();
+		// UI: row 213 - the dynamic path was the tooltip's printf format: a
+		// '%' in a filename (legal on Windows) is the same UB runtime-fix #15
+		// removed from the list texts.  Pass it as an argument instead.
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(g_lastFile.empty() ? "Save the buffer to a file (Ctrl+S)"
-				: ("Save to " + BaseName(g_lastFile)
-					+ " (Ctrl+S; Shift+click or Ctrl+Shift+S: save as...)").c_str());
+		{
+			if (g_lastFile.empty())
+				ImGui::SetTooltip("Save the buffer to a file (Ctrl+S)");
+			else
+			{
+				const std::string tip = "Save to " + BaseName(g_lastFile)
+					+ " (Ctrl+S; Shift+click or Ctrl+Shift+S: save as...)";
+				ImGui::SetTooltip("%s", tip.c_str());
+			}
+		}
 		// Ctrl+S: the editor owns Ctrl+Z/Y/C/V but not S or O, so both shortcuts
 		// are free here.  Repeat off, and tab-local because the checks live in
 		// this tab.  Ctrl+Shift+S falls out of saveBuffer's KeyShift read.
@@ -376,9 +390,16 @@ namespace Executor
 		}
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-			ImGui::SetTooltip(g_lastFile.empty()
-				? "Nothing to revert to - no file behind the buffer"
-				: ("Revert to " + BaseName(g_lastFile)).c_str());
+		{
+			// UI: row 213 - same format-string family as the Save tooltip.
+			if (g_lastFile.empty())
+				ImGui::SetTooltip("Nothing to revert to - no file behind the buffer");
+			else
+			{
+				const std::string tip = "Revert to " + BaseName(g_lastFile);
+				ImGui::SetTooltip("%s", tip.c_str());
+			}
+		}
 		ImGui::SameLine();
 		if (Gui::Toggle("Whitespace##ed_ws", &Settings::Current.ShowWhitespace))
 		{
@@ -623,7 +644,11 @@ namespace Executor
 					break;   // indices shifted; the next frame redraws the popup
 				}
 				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip((r + "\nRight-click removes the entry.").c_str());
+				{
+					// UI: row 213 - same format-string family: r is a full user path.
+					const std::string tip = r + "\nRight-click removes the entry.";
+					ImGui::SetTooltip("%s", tip.c_str());
+				}
 			}
 			ImGui::EndPopup();
 		}
