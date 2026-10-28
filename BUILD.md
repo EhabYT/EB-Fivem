@@ -392,6 +392,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 240 | The row-239 endings census over the whole tree found one more project-owned outlier: clipboard.h was entirely LF while every other project source, the .bat files and the .sln are CRLF (docs, renderer and ci/build.yml are LF by convention; the vendored trees - stb_image.h with 7988 LF lines, imgui/, kiero/ - keep their upstream endings on purpose) | clipboard.h is normalized to CRLF; the census result and the vendored exception are recorded here so the convention has a written definition |
 | 241 | The hygiene sweep (BOM / EOF newline / trailing whitespace over every project-owned file) found font_awesome.h ending without a final newline, and the endings convention from rows 239-240 plus the deliberate .sln BOM exception had no written home | font_awesome.h ends with exactly one newline now, and BUILD.md section 4 carries a short "Hygiene conventions" subsection: CRLF for sources/.bat/.sln (BOM kept on purpose), LF for docs/renderer/yml, vendored trees untouched, one EOF newline and no trailing whitespace anywhere |
 | 242 | TextEditor::SetText replaced the buffer but kept cursor and selection: after loading a shorter file, mState pointed past the new last line, and the next Copy/GetSelectedText ran GetText's reserve loop over mLines out of bounds (GetCharacterIndex answers -1 for vanished lines, which the copy loop took as line[-1]; DeleteRange even erased at begin()-1) - reachable in four clicks: big file, SelectAll, load small file, Copy | SetText resets cursor and selection to the top of the new buffer; GetText clamps stale or hand-built ranges into the buffer; DeleteRange refuses impossible indices. Vendored file, not frozen - marked with row comments |
+| 243 | The crash guide's second half (advanced debugging) found two applicable gaps: the SEH fault line logged a static string - guide 6.3 asks for the exception code and faulting address so a report can be triaged from EBengin.log alone - and the isolation workflow (minimal probe DLL, page heap, ProcMon load-image tracing, exception-code table, validation checklist) had no written home | hkPresent's __except now formats code 0x........ and address from GetExceptionInformation() into the FaultDisable line; tools/dll_probe/probe.cpp is a standalone minimal attach probe (logs to %TEMP%\dll_probe.log from a worker thread - no loader-lock MessageBox, unlike the guide snippet); BUILD.md documents gflags page heap, ProcMon filters, the isolation order, the code table and the final checklist. Guide items 9/11 (detection mechanics as a work list, manual mapping, DLL proxying, external memory access) stay out of scope per README |
 
 
 
@@ -708,3 +709,69 @@ tooling as administrator while testing; inject 5-10 s after the game reaches its
 an x64 process; treat HVCI / Exploit Protection as diagnostic switches, not permanent settings.  On
 anti-cheat protected online titles a crash after injection can be a deliberate block - this project
 ships no bypass of any kind (see README).
+
+**Advanced capture - page heap and image-load tracing (row 243, guide 6.1-6.2)**
+If `!analyze -v` points at heap corruption (`0xC0000374`, or access violations inside `ntdll`
+heap code), enable full page heap for the game process so the invalid access traps at the exact
+moment instead of corrupting silently (GFlags ships with the Windows SDK debugging tools):
+
+    gflags /p /enable <game>.exe /full
+
+Reproduce, capture the dump, then switch it off again (`gflags /p /disable <game>.exe`) - page
+heap costs real memory and speed, it is a diagnostic, not a setting.
+If the DLL seemingly never loads, Process Monitor answers whether it was mapped at all and
+whether a dependency failed: filter `Operation` is `Load Image`, `Path` contains
+`EBengin UI.dll`, `Result` is not `SUCCESS` - and inspect the entries just before the failed
+load for `NAME NOT FOUND` on dependency DLLs.
+
+**Isolation order (row 243, guide 7 + 6.4)**
+Work outside-in; every step removes one variable:
+
+1. Minimal probe first - `tools/dll_probe/probe.cpp` builds a standalone `dll_probe.dll` that
+   only appends one line to `%TEMP%\dll_probe.log` on attach (build line in the file header).
+   Log line appears: injection works, any crash lives in the full DLL.  No line: the injection
+   method, its timing, or protection software is the problem - not this repository's code.
+2. Inject 5-10 s after the game reaches its menu (injector-side setting; this repo ships no
+   injector).
+3. Test where no anti-cheat is running, to remove that variable.
+4. HVCI / CFG / Exploit Protection: diagnostic switches during testing, never permanent edits.
+5. Then test EBengin UI.dll itself - `EBengin.log` records every attach outcome (row 188),
+   fault lines carry exception code and address (row 243), and kiero binds exactly one hook
+   (Present), so "hooks one at a time" is already the shape of this DLL.
+6. Last resort: a clean VM rules out overlays, antivirus and driver conflicts.
+
+**Exception codes (row 243, guide 8)**
+What the code from `!analyze -v` (or from a row-243 fault line) means, and the first check here:
+
+| Code | Meaning | First check |
+|---|---|---|
+| `0xC0000005` | access violation | fault line code+address in `EBengin.log`; faulting module in `!analyze -v` |
+| `0xC0000409` | stack buffer overrun / fast fail | `/GS` is on (row 236) - a hit is a real local-buffer overflow; capture the dump |
+| `0xC0000374` | heap corruption | page heap (above); CRT mismatch already ruled out by `/MD` (row 236) |
+| `0xC000001D` | illegal instruction | wrong-arch DLL (x64 into x64 only) or corrupted build - full Rebuild |
+| `0xC0000135` | dependency not found | ProcMon `Load Image` filter; VC++ runtime present |
+| `0xC0000142` | DLL init failed | DllMain crashed or returned FALSE; the probe DLL isolates exactly this |
+
+(`0xE0434352`, .NET exceptions, cannot occur - this DLL is native code.)
+
+**Validation checklist (row 243, guide 10)**
+Before calling a crash fixed:
+
+- [ ] the game runs at least 5 minutes after injection
+- [ ] the DLL loads windowed and fullscreen (row 235 covers resize identity)
+- [ ] it survives a level change / map reload
+- [ ] no leaks under Application Verifier or page heap
+- [ ] the hook survives at least 1000 frames (row 234 depth counters make frame races visible)
+- [ ] eject leaves the "session ended (clean unload)" line (row 193)
+- [ ] the same DLL works on a second clean machine / VM
+- [ ] any remaining intermittent crash: dump captured, `!analyze -v` output attached to the report
+
+**When to stop (row 243, guide 9 + 11)**
+If every diagnostic says the DLL is healthy and the host still dies at inject time, the injection
+method itself is incompatible with the target - stop debugging and reconsider the approach.  The
+guide's alternatives that involve manual mapping (with CFG handling), DLL proxying, or external
+game-memory access are out of scope for this project and will not be implemented here (README
+scope note: no bypasses, no cheat payloads); the supported paths are the game's official mod
+facilities where they exist, or not injecting at all.  Bypassing anti-cheat violates the terms of
+service of online titles and may be illegal - the detection facts in the guide are recorded here
+as the reason injection fails on protected processes, not as a work list.

@@ -610,7 +610,24 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		FaultDisable("hook faulted inside a frame - overlay disabled, game continues");
+		// UI: row 243 - guide 6.3: a fault line without the exception code and
+		// faulting address cannot be triaged from EBengin.log alone.  Both come
+		// from GetExceptionInformation(), valid only inside the handler; the reads
+		// stay raw Win32/POD like everything else on this path (no C++ objects in
+		// hkPresent, so __try stays legal).
+		DWORD code = 0;
+		void* addr = NULL;
+		PEXCEPTION_POINTERS xps = GetExceptionInformation();
+		if (xps != NULL && xps->ExceptionRecord != NULL)
+		{
+			code = xps->ExceptionRecord->ExceptionCode;
+			addr = xps->ExceptionRecord->ExceptionAddress;
+		}
+		char detail[160];
+		snprintf(detail, sizeof(detail),
+			"hook faulted inside a frame (code 0x%08lX at 0x%016llX) - overlay disabled, game continues",
+			(unsigned long)code, (unsigned long long)(uintptr_t)addr);
+		FaultDisable(detail);
 		hr = S_OK;   // this frame's draw is lost; the next Present passes through
 	}
 	InterlockedDecrement(&g_presentDepth);

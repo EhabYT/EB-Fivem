@@ -11,6 +11,28 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Fault lines carry code and address; probe DLL and advanced-debugging docs (row 243)
+- Applied the second half of the user-supplied crash guide (advanced debugging, testing methodology,
+  exception codes, validation checklist) within the standing scope rules.
+- Code: hkPresent's SEH handler logged a static reason - guide 6.3 asks for the exception code and
+  faulting address.  The handler now reads GetExceptionInformation() and FaultDisable receives
+  "code 0x........ at 0x................", so an EBengin.log paste alone can name the fault class
+  (access violation vs /GS hit vs heap corruption) before any dump is opened.
+- New tool: tools/dll_probe/probe.cpp - the guide's minimal test DLL (6.4), built standalone, not
+  part of EBengin UI.sln.  Deviation from the guide on purpose: no MessageBoxA inside DllMain
+  (loader-lock deadlock risk, and row 236's minimal-DllMain rule); the probe logs one line to
+  %TEMP%\dll_probe.log from a worker thread instead.  Inject it with the same method as the real
+  DLL: log line = injection works, crash lives in the full DLL; no line = method/timing/protection.
+- Docs (BUILD.md): gflags page-heap enable/disable around heap-corruption dumps (6.1), ProcMon
+  Load-Image filters for "DLL never appeared" (6.2), the outside-in isolation order (7), the
+  exception-code table with the first check per code (8, native-only - the .NET row is marked
+  impossible), and the final validation checklist (10).
+- Out of scope, recorded as such (9 + 11): no detection-mechanics work list, no manual mapping or
+  CFG handling, no DLL proxying, no external game-memory access - the README scope note stands;
+  the documented exit is official mod support where it exists, or not injecting.
+- Validation: renders 8/8 unchanged (no UI surface touched), probe.cpp balanced and standalone
+  (nothing includes it), api_sweep clean, main.cpp balance delta 0 vs HEAD.
+
 ## Stale editor coordinates after SetText can no longer read past the buffer (row 242)
 - TextEditor::SetText replaced the lines but kept cursor and selection: load a 100-line file, SelectAll,
   load a 5-line file, press Copy - and GetText's reserve loop read mLines[5..99] out of bounds
