@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Present-tense version tags say 1.93.0, and the Docs & render row is whole again (rows 214-215)
+- Three present-tense texts still named ImGui 1.92/1.92.9 while the vendored tree is 1.93.0: the
+  config.cpp interface-scale comment, the README interface-scale bullet, and the BUILD
+  troubleshooting answer to a stale-imgui.h compile error ("make sure the vendored tree really is
+  1.92.9" - advice that would fail against the shipped tree).  All three now say 1.93/1.93.0; the
+  migration-history mentions ("upgraded from 1.75 via 1.92.9") are correct history and stay.
+- The BUILD "Docs & render" row listed seven previews (preview_key.png, added in row 182, was
+  missing), fused two sentences into one ungrammatical run ("The Triggers pane is never depicted
+  README include graph regenerated..."), and carried a stale "(35 nodes, 63 edges)" count three
+  regenerations behind the actual 79.  The row lists all eight previews, the sentence is split,
+  and the count matches the graph it describes.
+- No UI surface involved; all eight previews stay byte-identical.
+
 ## Comments document their own functions, and tooltips stop printf-ing user paths (rows 212-213)
 - PushRecent had been inserted between ReadFileText's contract comment and ReadFileText itself,
   so the "Returns 0 on success, 1 open failure, 2 empty, 3 oversized" block documented a function

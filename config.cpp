@@ -238,12 +238,14 @@ namespace Config
 			ImGui::SetTooltip("Which screen corner the FPS HUD plate sits in\nwhile the overlay is closed.");
 		ImGui::EndDisabled();
 
-		// Interface scale, 70..200%.  Applied through ImGui 1.92's global font
+		// UI: row 214 - was "1.92's": the vendored tree is 1.93.0 (imgui.h),
+		// and this comment describes the running code, not the migration history.
+		// Interface scale, 70..200%.  Applied through ImGui 1.93's global font
 		// scale factor (style.FontScaleMain), so the whole shell - fonts, frames,
 		// sidebar, window size - grows together instead of text overflowing fixed
 		// widgets.  Persisted as [ui] scale.
 		//
-		// Applied on release rather than while dragging: 1.92 bakes the font for
+		// Applied on release rather than while dragging: 1.93 bakes the font for
 		// every distinct size it sees, so a live drag from 70 to 200 would bake
 		// ~130 sizes into the atlas for nothing.
 		ImGui::Spacing();
