@@ -379,7 +379,29 @@ if TAB == "splash":
     # plus one centred, rounded card - no sidebar, no title bar.
     # ------------------------------------------------------------------
     MC, RADc = 28, 10
-    CWc, CHc = 460.0, 288.0
+    HINT1 = "Interface-level: no game state is read or written."
+    HINT2 = "INSERT toggles this overlay at any time."  # code formats
+    # KeyName(bound key); the preview depicts the default binding, INSERT.
+    # A printable binding (hand-edited ini only, row 210) gets the qualified
+    # variant "(not while typing in a text field)" instead.
+    def wrap(t, maxw):
+        lines, cur = [], ""
+        for w in t.split(" "):
+            test = (cur + " " + w).strip()
+            if cur and TW(test) > maxw:
+                lines.append(cur); cur = w
+            else:
+                cur = test
+        lines.append(cur)
+        return lines
+    HINT1L, HINT2L = wrap(HINT1, 460.0 - 16), wrap(HINT2, 460.0 - 16)
+    HINT2P = wrap("0 toggles this overlay (not while typing in a text field).",
+                  460.0 - 16)
+    ADV = FONT_SIZE + ITEM_SPACING_Y
+    CWc = 460.0
+    # UI: row 228 - the card grows by one line advance per wrapped hint line
+    CHc = 288.0 + (len(HINT1L) + len(HINT2L) - 2) * ADV
+    CHw = 288.0 + (len(HINT1L) + len(HINT2P) - 2) * ADV   # worst-case height
     FW, FH = W + 2 * MC, H + 2 * MC
     canvas = Image.new("RGBA", (FW * S, FH * S), (12, 18, 28, 255))
     OX, OY = (FW - CWc) / 2, (FH - CHc) / 2
@@ -401,14 +423,15 @@ if TAB == "splash":
                         radius=RADc * S, outline=C_BORDER, width=S)
 
     CREDIT = "Remade : by EB"
-    HINT1 = "Interface-level: no game state is read or written."
-    HINT2 = "INSERT toggles this overlay at any time."  # code formats
-    # KeyName(bound key); the preview depicts the default binding, INSERT.
-    # A printable binding (hand-edited ini only, row 210) gets the qualified
-    # variant "(not while typing in a text field)" instead - not depicted.
     BTN = "Continue"
-    for t in (CREDIT, HINT1, HINT2, BTN):
+    for t in (CREDIT, BTN):
         assert TW(t) <= CWc - 16, "splash line clipped: " + t
+    # UI: row 228 - the code wraps the hints at word boundaries, centres each
+    # line and grows the card per extra line; prove the worst case (qualified
+    # printable sentence) fits both the card width and the grown height.
+    for ln in HINT1L + HINT2L + HINT2P:
+        assert TW(ln) <= CWc - 16, "splash wrapped line clipped: " + ln
+    assert len(HINT2P) <= 2, "printable hint needs more than two lines"
 
     ly = OY + 18
     lg = Image.open(os.path.join(REPO, "EBengin.png")).convert("RGBA")
@@ -421,10 +444,16 @@ if TAB == "splash":
     R(OX + 8, ly, OX + CWc - 8, ly + 1, C_BORDER)     # Gui::Seperator
     ly += 1 + ITEM_SPACING_Y
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
-    T(OX + (CWc - TW(HINT1)) / 2, ly, HINT1, C_TEXT)
-    ly += FONT_SIZE + ITEM_SPACING_Y
-    T(OX + (CWc - TW(HINT2)) / 2, ly, HINT2, C_TEXT)
-    ly += FONT_SIZE + ITEM_SPACING_Y
+    for ln in HINT1L:
+        T(OX + (CWc - TW(ln)) / 2, ly, ln, C_TEXT)
+        ly += FONT_SIZE + ITEM_SPACING_Y
+    for ln in HINT2L:
+        T(OX + (CWc - TW(ln)) / 2, ly, ln, C_TEXT)
+        ly += FONT_SIZE + ITEM_SPACING_Y
+    # worst-case height budget: with the qualified variant wrapped to two
+    # lines the card grows to CHw, and the content must still end inside it
+    assert ly + (len(HINT2P) - len(HINT2L)) * ADV + ITEM_SPACING_Y + 30 \
+        <= OY + CHw - 8, "splash card too short for a wrapped hint"
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     bx, BW, BH = OX + (CWc - 140) / 2, 140.0, 30.0
     d.rounded_rectangle([bx * S, ly * S, (bx + BW) * S - 1, (ly + BH) * S - 1],
@@ -561,7 +590,7 @@ for i, (glyph, label) in enumerate(SIDEBAR):
 # footer: bottom-anchored, each line centred in the sidebar column
 FOOTER_TOP = H - WIN_PAD - 4 * LINE_ADV
 FOOTER = [("FPS 144  |  6.9 ms", C_ACCENT),
-          ("Licensed to #4278", C_TEXT),
+          ("No license check.", C_TEXT),
           ("Build Date: Oct 22 2026", C_TEXT),
           ("Remade : by EB", C_MUTED_BRAND)]
 for k, (line, col) in enumerate(FOOTER):
@@ -862,6 +891,11 @@ elif TAB == "resources":
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
+    # UI: row 230 - the tab's provenance line, muted brand token (row 147)
+    T(CX0, y + (LINE_H - FONT_SIZE) / 2,
+      "Compiled-in sample list - nothing here is read from a server.",
+      C_MUTED_BRAND)
+    y += LINE_ADV
 
     bw = (CX1 - CX0 - 2 * ITEM_SPACING_X) / 3.0        # resources.cpp buttonWidth
     SUBTABS = [("\uf07c", " File Browser"), ("\uf00e", " Triggers"), ("\uf02c", " Stopper")]
@@ -964,6 +998,11 @@ elif TAB == "menus":
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
+    # UI: row 232 - the tab's provenance line, muted brand token (row 147)
+    T(CX0, y + (LINE_H - FONT_SIZE) / 2,
+      "Compiled-in name list - nothing here is bundled or launched.",
+      C_MUTED_BRAND)
+    y += LINE_ADV
     y += LINE_ADV                                   # ImGui::NewLine()
 
     half = (CX1 - CX0) / 2.0

@@ -292,8 +292,15 @@ namespace Config
 			// One click overwrites a custom key bind, scale and switches - the same
 			// loss family Load/Clear/Revert confirm for, so the reset confirms too.
 			// Cancel keeps everything, including the ini, exactly as it was.
+			// UI: row 231 - the dialog named four of the six things the whole-struct
+			// assignment below resets: WindowX/Y and Tab go back to defaults too, and
+			// main.cpp opens the next session on the stored tab (Menu::Tab =
+			// Settings::Current.Tab).  Name the complete scope so "what will I lose?"
+			// has a full answer before OK.
 			if (Gui::ModalBoxA( "Restore the compiled defaults?\n"
-				"Custom key bind, scale, switches and HUD corner are overwritten.",
+				"Custom key bind, scale, switches and HUD corner are overwritten.\n"
+				"The stored window position and last tab reset too - both apply\n"
+				"on the next start.",
 				"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 			{
 				Activity::Push("Reset cancelled - settings kept.");
@@ -323,11 +330,15 @@ namespace Config
 				Settings::ApplyScale();
 				Executor::ApplyPrefs();
 				Activity::Push("Interface settings reset to defaults.");
-				Toasts::Push(Toasts::Info, "Interface settings reset; window position applies on next start.");
+				// UI: row 231 - the reset clears the stored tab as well; name it.
+				Toasts::Push(Toasts::Info, "Interface settings reset; window position and last"
+					"tab apply on next start.");
 			}
 		}
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Back to compiled defaults - asks first;\nwindow position applies on the next start.");
+			// UI: row 231 - same complete scope as the confirm dialog.
+			ImGui::SetTooltip("Back to compiled defaults - asks first;\n"
+				"window position and last tab apply on the next start.");
 
 		ImGui::EndChild();
 		ImGui::SameLine();

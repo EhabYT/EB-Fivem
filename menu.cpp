@@ -11,6 +11,7 @@
 #include <cstring>   // strcmp in the row-155 key gate
 #include <cmath>
 #include <string>
+#include <vector>   // UI: row 228 - WrapHint() returns the wrapped hint lines
 
 namespace Menu
 {
@@ -212,7 +213,10 @@ namespace Menu
 			fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
 		CenteredInSidebarColored(fpsLine, Accent);
 
-		CenteredInSidebar("Licensed to #4278");
+		// UI: row 233 - the plate claimed a license system that does not exist:
+		// nothing in this build issues, stores or checks a license; the holder id
+		// was a hardcoded constant.  The footer states the fact instead.
+		CenteredInSidebar("No license check.");
 		CenteredInSidebar(buildDate);
 
 		// Visible brand credit, same wording as the source comment.
@@ -248,6 +252,34 @@ namespace Menu
 	// Branded start card in front of the shell: shown on the first open after
 	// inject until the user presses Continue.  Pure presentation - logo, name,
 	// credit and two honest hints; it touches no state beyond g_splashDone.
+	// UI: row 228 - greedy word wrap for the splash hints: a long localised key
+	// name (German numpad: "0 (ZEHNERTASTATUR)") or the qualified printable
+	// sentence made a single centred line run past the card edge and clip
+	// mid-word in a real inject screenshot.  Wrap at word boundaries; each
+	// returned line is centred on its own, and the card grows per extra line.
+	static std::vector<std::string> WrapHint(const char* text, float maxW)
+	{
+		std::vector<std::string> out;
+		std::string line;
+		const char* p = text;
+		while (*p)
+		{
+			const char* sp = strchr(p, ' ');
+			const size_t len = sp ? (size_t)(sp - p) + 1 : strlen(p);
+			const std::string test = line + std::string(p, len);
+			if (!line.empty() && ImGui::CalcTextSize(test.c_str()).x > maxW)
+			{
+				out.push_back(line);
+				line.clear();
+			}
+			line.append(p, len);
+			p += len;
+		}
+		if (!line.empty())
+			out.push_back(line);
+		return out;
+	}
+
 	static void RenderSplash(float fade)
 	{
 		// UI: row 163 - the shell carries a soft three-rect drop shadow; the
@@ -268,7 +300,33 @@ namespace Menu
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
 
 		const ImVec2 disp = ImGui::GetIO().DisplaySize;
-		const ImVec2 card(Settings::Px(460.0f), Settings::Px(288.0f));
+		// The toggle key is user-bindable (Config -> Toggle key), so the hint
+		// names whatever is actually bound; KeyName is the same helper the
+		// Config button and the key-change toast use.
+		// UI: row 210 - "at any time" overstated the one binding class the
+		// present loop deliberately suppresses: a printable key (hand-edited
+		// ini only - the capture refuses them, row 166) does not flip the
+		// overlay while a text field consumes input (rows 155/164).  The hint
+		// names that qualifier for exactly that class and keeps the confident
+		// sentence for everything else.
+		char hint2[128];
+		const int hk = Settings::Current.ToggleKey;
+		const bool hkPrintable = (hk >= 'A' && hk <= 'Z')
+			|| (hk >= '0' && hk <= '9') || hk == VK_SPACE;
+		snprintf(hint2, sizeof(hint2), hkPrintable
+				? "%s toggles this overlay (not while typing in a text field)."
+				: "%s toggles this overlay at any time.",
+			Settings::KeyName(hk));
+		// UI: row 228 - wrap both hints before the card exists: a wrapped line
+		// needs vertical room, so the card grows by one line advance per extra
+		// line instead of letting the button hang off a fixed 288px card.
+		const float hintW = Settings::Px(460.0f) - Settings::Px(16.0f);
+		const std::vector<std::string> h1 = WrapHint(
+			"Interface-level: no game state is read or written.", hintW);
+		const std::vector<std::string> h2 = WrapHint(hint2, hintW);
+		const float lineAdv = ImGui::GetTextLineHeightWithSpacing();
+		const ImVec2 card(Settings::Px(460.0f),
+			Settings::Px(288.0f) + (float)(h1.size() + h2.size() - 2) * lineAdv);
 		// UI: row 220 - ApplyStyle()/ApplyScale() keep style.WindowMinSize at the
 		// shell's 900x540 (times scale), and ImGui clamps every window without
 		// AlwaysAutoResize to it (imgui.cpp CalcWindowMinSize): SetNextWindowSize
@@ -329,26 +387,11 @@ namespace Menu
 		Gui::Seperator("##splash_seperator");
 		ImGui::Spacing();
 
-		Centered("Interface-level: no game state is read or written.",
-			ImColor(255, 255, 255, 255));
-		// The toggle key is user-bindable (Config -> Toggle key), so the hint
-		// names whatever is actually bound; KeyName is the same helper the
-		// Config button and the key-change toast use.
-		// UI: row 210 - "at any time" overstated the one binding class the
-		// present loop deliberately suppresses: a printable key (hand-edited
-		// ini only - the capture refuses them, row 166) does not flip the
-		// overlay while a text field consumes input (rows 155/164).  The hint
-		// names that qualifier for exactly that class and keeps the confident
-		// sentence for everything else.
-		char hint2[128];
-		const int hk = Settings::Current.ToggleKey;
-		const bool hkPrintable = (hk >= 'A' && hk <= 'Z')
-			|| (hk >= '0' && hk <= '9') || hk == VK_SPACE;
-		snprintf(hint2, sizeof(hint2), hkPrintable
-				? "%s toggles this overlay (not while typing in a text field)."
-				: "%s toggles this overlay at any time.",
-			Settings::KeyName(hk));
-		Centered(hint2, ImColor(255, 255, 255, 255));
+		for (const std::string& ln : h1)
+			Centered(ln.c_str(), ImColor(255, 255, 255, 255));
+
+		for (const std::string& ln : h2)
+			Centered(ln.c_str(), ImColor(255, 255, 255, 255));
 
 		ImGui::Spacing();
 		const float bw = Settings::Px(140.0f);

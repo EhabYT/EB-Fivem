@@ -11,6 +11,71 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The sidebar license plate was a claim with nothing behind it (row 233)
+- "Licensed to #4278" was a hardcoded constant; no license mechanism exists in this build -
+  nothing issues, stores or checks a license.  The line asserted a fact the build cannot back
+  up, in the one place every open frame shows.
+- The footer states the true fact in its place: "No license check."  The README records the swap
+  beside the other honesty labels; the renderer's footer string follows, so - the sidebar draws
+  in every scene - all eight previews change by exactly that one string, committed deliberately.
+
+## The Menus tab joins the Resources provenance pattern (row 232)
+- FreeMenus/PremMenus (luamenus.cpp) are compile-time constants, but the only hint was the Run
+  button's hover tooltip ("not bundled"); until hovered, the lists read like an installed
+  catalogue - the same provenance gap row 230 closed for the Resources list.
+- The tab now opens with the same muted line - "Compiled-in name list - nothing here is bundled
+  or launched." - and the README names the menu lists' origin next to the resource list's.
+  docs/render_preview.py models the line, so preview_menus.png shifts by exactly one line; the
+  changed render is committed deliberately, the other seven stay byte-identical.
+
+## The reset dialog names everything it destroys (row 231)
+- "Restore the compiled defaults?" listed four of the six things the whole-struct assignment
+  resets: the stored window position and the last tab go back to defaults as well - and main.cpp
+  opens the next session on the stored tab (`Menu::Tab = Settings::Current.Tab`), so the loss is
+  real.  The tooltip and toast mentioned the window position; no UI text mentioned the tab.
+- The confirm modal, the button tooltip and the success toast now state the complete scope: key
+  bind, scale, switches and HUD corner are overwritten at once; the stored window position and
+  last tab reset and apply on the next start.  Wording only - the reset behaviour itself
+  (including Recent / ResourceName survival, row 153) is unchanged.
+
+## The Resources tab names its own provenance (row 230)
+- The browser, stopper and Executor combo operate on a compiled-in sample list (exec.cpp), but
+  nothing in the UI said so: names like `_cfx_internal` or `esx_mafia` read as live server
+  discovery.  The project's own honesty contract gives inert features visible labels in the tab
+  (the Safe Mode / ScriptHook Bypass pattern), so the Resources tab now opens with a muted line -
+  "Compiled-in sample list - nothing here is read from a server." - and the Executor combo repeats
+  it in a hover tooltip; the README names the list's origin.
+- docs/render_preview.py models the new line, so preview_resources.png shifts by exactly one line;
+  the changed render is committed deliberately, the other seven stay byte-identical.
+
+## The _cfx_internal error boxes were capability claims in refusal form (row 229)
+- Execute answered the internal FiveM context with a red error modal, "You can't execute in
+  _cfx_internal." - which implies execution works for every other resource.  It does not: this
+  build reports only, and the general path says so out loud ("Execution is not implemented in this
+  build", target and script size named).  A real click screenshot showed the misleading box.
+- The resource stopper refused the same entry with "You can't stop _cfx_internal", implying stopping
+  works elsewhere; the honest action is only the confirmed removal from the local list, which the
+  confirmation states ("This does not stop it on the server") - safe for every entry, since the
+  internal one is re-seeded on the next inject anyway.
+- Both special cases are removed; `_cfx_internal` now takes the same honest paths as every other
+  entry.  No handler signature changed and no payload was added - the refusals that implied
+  capabilities were the defect.
+
+## The splash hint wraps instead of clipping (row 228)
+- A real inject screenshot showed the second splash hint running off the right card edge, clipped
+  mid-word: a long localised key name (German numpad: "0 (ZEHNERTASTATUR)") or the qualified
+  printable sentence ("... (not while typing in a text field).") makes the line wider than the
+  460px card, and the old single centred TextColored only clamped the start cursor - the overflow
+  still drew past the edge.
+- RenderSplash now wraps the hints at word boundaries and centres each line; single-line strings
+  render exactly as before, so the default-binding preview is unchanged.
+- docs/render_preview.py models the same wrap and extends its asserts: beyond the depicted INSERT
+  binding it proves the worst case (qualified printable sentence, two lines) fits the card width -
+  and that assert caught a second defect on its first real run: the fixed 288px card was too short
+  for a two-line hint, which would have hung the Continue button off the card edge.  The card now
+  grows by one line advance per extra wrapped line, and the renderer's budget assert proves the
+  worst case ends inside the grown card.
+
 ## The Docs & render row counts the graph it describes (row 227)
 - Row 226's two new includes grew the regenerated README include graph from 79 to 81 edges (the
   generator rewrites the mermaid block itself, so the README moved in the same commit).  The BUILD

@@ -206,6 +206,13 @@ namespace Resources
 	void Render()
 	{
 		Gui::SectionTitle("Resources", "##resources_seperator_2");
+		// UI: row 230 - the browser and stopper operate on a compiled-in sample
+		// list (exec.cpp); nothing here is enumerated from a server.  The tab
+		// never said so, so names like _cfx_internal or esx_mafia read as live
+		// discovery - the same honesty contract the inert Config switches fulfil
+		// with visible labels, not just tooltips.
+		ImGui::TextColored(ColMuted, "%s",
+			"Compiled-in sample list - nothing here is read from a server.");
 
 		// GetWindowWidth()/4 is a quarter of the 900px *outer* window, so three of
 		// them plus two ItemSpacings (691px) did not fit the ~658px content cell
@@ -413,11 +420,12 @@ namespace Resources
 			const std::string stopLabel = std::string("Stop ") + resources[selectedResource];
 			if (ImGui::Button(stopLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(33.0f))))
 			{
-				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
-				{
-					Gui::ModalBoxA( "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
-				}
-				else
+				// UI: row 229 - the _cfx_internal special case refused with an error
+				// box that implied stopping works for other resources; the honest
+				// action here is only the confirmed removal from the LOCAL list
+				// ("This does not stop it on the server"), which is safe for every
+				// entry - the internal one is re-seeded on the next inject anyway
+				// (see the Init comment).  Same confirm path for all entries now.
 				{
 					const std::string stopped = resources[selectedResource];
 					// Erasing is the one visible state change among the stubs, and
