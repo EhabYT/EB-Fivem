@@ -287,7 +287,11 @@ namespace Resources
 						{
 							// Was TextColored(color, std::string.c_str()): the resource
 							// name is used as a printf format string.
-							ImGui::TextColored(ImColor(255, 0, 0, 255), "%s doesn't have any files.", resources[i]);
+							// UI: row 202 - pure red measured ~3.4:1 on the list navy, under
+							// WCAG AA for normal text; the ramp red from the row-157/175
+							// fixes holds ~5:1 and keeps one red in the project.  Last
+							// pure-red spot in shipped UI (demo.cpp is the unwired sheet).
+							ImGui::TextColored(ImColor(255, 107, 107, 255), "%s doesn't have any files.", resources[i]);
 						}
 						else
 						{

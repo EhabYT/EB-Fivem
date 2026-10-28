@@ -26,7 +26,12 @@ namespace Toasts
 			switch (kind)
 			{
 			case Success: return IM_COL32(93, 156, 214, a);   // #5D9CD6 accent
-			case Warn:    return IM_COL32(255, 0, 0, a);      // same red as the error texts
+			// UI: row 202 - was pure (255,0,0), the same defect row 178 fixed on
+			// the perf bars: ~2.6:1 against the card navy, under the 3:1 WCAG AA
+			// asks of non-text marks, and the comment claimed "same red as the
+			// error texts" while every error text in the project had already
+			// moved to the row-157/175 ramp red.  One red in the project.
+			case Warn:    return IM_COL32(255, 107, 107, a);  // ramp red, ~3.7:1 on the card
 			default:      return IM_COL32(55, 120, 181, a);   // #3778B5 hover blue
 			}
 		}

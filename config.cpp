@@ -5,6 +5,7 @@
 #include "toasts.h"
 #include "exec.h"      // Executor::ApplyPrefs() for the settings reset
 #include "clipboard.h"
+#include "assets.h"     // UI: row 203 - ResolveAssetPath() for the hook log line
 
 #include <Windows.h>
 #include <shellapi.h>
@@ -404,14 +405,24 @@ namespace Config
 #else
 			const char* cfg = "Release Win32";
 #endif
+			// UI: row 203 - the hook trace log (rows 188-193) is the primary
+			// artifact for "the menu never opened" reports, but the diagnostics
+			// snapshot - the thing a report from another machine carries - never
+			// mentioned it.  Name the path and whether it exists: "missing" means
+			// either an old build or a folder nobody can write to, both answers
+			// the report needs.
+			const std::string logPath = ResolveAssetPath("EBengin.log");
+			const bool haveLog =
+				GetFileAttributesA(logPath.c_str()) != INVALID_FILE_ATTRIBUTES;
 			char diag[640];
 			snprintf(diag, sizeof(diag),
-				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s",
+				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s | log: %s%s",
 				cfg, Settings::DpiScale, Settings::Current.ScalePercent,
 				(int)(900.0f * Settings::ScaleFactor()), (int)(540.0f * Settings::ScaleFactor()),
 				ImGui::GetVersion(), Settings::KeyName(Settings::Current.ToggleKey),
 				Settings::Current.Hud ? "on" : "off", Settings::IniPath().c_str(),
-				Settings::SaveFailed() ? " [NOT WRITABLE]" : "");
+				Settings::SaveFailed() ? " [NOT WRITABLE]" : "",
+				logPath.c_str(), haveLog ? "" : " [missing]");
 			if (CopyTextToClipboard(diag))
 			{
 				Activity::Push("Diagnostics copied to the clipboard.");

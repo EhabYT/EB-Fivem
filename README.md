@@ -197,7 +197,7 @@ context disappears under it.
 ### Include graph
 
 Rectangles are translation units, rounded boxes are headers, each subgraph is one `.cpp` plus the
-header it owns. **Generated from the actual `#include` lines** — 35 nodes, 78 edges (regenerate with `python docs/gen_include_graph.py`).
+header it owns. **Generated from the actual `#include` lines** — 35 nodes, 79 edges (regenerate with `python docs/gen_include_graph.py`).
 
 ```mermaid
 flowchart LR
@@ -274,6 +274,7 @@ flowchart LR
     n4 --> n11
     n4 --> n24
     n4 --> n28
+    n4 --> n29
     n4 --> n30
     n4 --> n33
     n5 --> n13

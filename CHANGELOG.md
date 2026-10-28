@@ -9,6 +9,22 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The last pure-red surfaces join the ramp, and diagnostics name the trace log (rows 202-203)
+- Two shipped surfaces still used pure red (255,0,0) after rows 157/175/178 moved the project to
+  the lighter ramp red: the warn toast kind bar - ~2.6:1 on the card navy, under the 3:1 WCAG AA
+  ask for non-text marks, with a comment claiming "same red as the error texts" while those had
+  already moved - and the resources "doesn't have any files." line, ~3.4:1 on the list navy,
+  under AA for normal text.  Both now use (255,107,107): one red ramp in the project.  The
+  preview renderer mirrors the constant, so preview_config.png changes with this row - the only
+  intended pixel change in the batch.  demo.cpp keeps its sample red on purpose: it is the
+  unwired widget cheat-sheet, not shipped UI.
+- The hook trace log (rows 188-193) is the primary artifact for "the menu never opened" reports,
+  but Copy diagnostics - the snapshot a report from another machine carries - never mentioned it.
+  The diagnostics line now ends with "log: <path>" plus " [missing]" when the file does not
+  exist: missing means either an old build or a folder nobody can write to, and both are answers
+  the report needs.  The include graph was regenerated for the new config.cpp -> assets.h edge
+  (78 to 79 edges).
+
 ## No stray imgui.ini in the game folder, and DETACH waits for open dialogs (rows 200-201)
 - io.IniFilename was never set, so ImGui's default context auto-saved its own window state to
   imgui.ini in the HOST process' working directory - a stray file in the game folder (silently

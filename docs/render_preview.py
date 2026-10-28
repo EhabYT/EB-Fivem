@@ -1094,7 +1094,8 @@ if TAB == "config":
     # Warn card (KindColor -> red bar): the honest answer to flipping one of the
     # two inert switches.  Safemode is drawn off above, because this is the frame
     # right after that flip.
-    draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 0, 0))
+    # row 202: the warn bar joined the project's ramp red (255,107,107).
+    draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 107, 107))
 elif TAB in ("resources", "menus", "default"):
     # No toast here: the frame shows the tab right after opening it, and a card
     # anchored 10px off the bottom-right would cover content these views exist
