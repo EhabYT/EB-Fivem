@@ -502,6 +502,11 @@ namespace Executor
 			// not, this build reports only (the modal below says so out loud).
 			// The internal context now takes the same honest report-only path
 			// as any other target - no capability claim, no payload, unchanged.
+			// UI: row 244 - removing the _cfx_internal branch in row 229 dropped
+			// the `else` keyword, so an empty `resources` vector showed "No
+			// resource selected." and then fell straight into the block below,
+			// reading `resources[selectedResource]` out of bounds.
+			else
 			{
 				// Not implemented in this build.  The button used to be silently dead,
 				// which reads as a crash/hang to the user.

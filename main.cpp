@@ -55,6 +55,21 @@ static volatile bool  g_frameActive = false;  // an ImGui frame has run; read by
 static volatile LONG g_presentDepth = 0;
 static volatile LONG g_wndprocDepth = 0;
 static volatile LONG g_hookFaulted = 0;    // UI: row 236 - overlay out of service
+// UI: row 246 - per-process single-instance guard ("Local\\EBengin_SingleInstance_<pid>").
+// Acquired in MainThread (never under the loader lock, preserving row 236) and
+// held for the session; a second injection into the same process sees
+// ERROR_ALREADY_EXISTS, logs the skip, and exits without stacking a second
+// Present hook or ImGui context.  g_ownsSession gates DLL_PROCESS_DETACH so
+// unloading a rejected duplicate never tears down the live first instance.
+static HANDLE g_instanceMutex = NULL;
+static volatile LONG g_ownsSession = 0;
+
+static void ReleaseInstanceMutex()
+{
+	HANDLE m = (HANDLE)InterlockedExchangePointer((PVOID*)&g_instanceMutex, NULL);
+	if (m != NULL)
+		CloseHandle(m);
+}
 
 // UI: row 236 - forward: LogHookLine is defined below the hooks, and both
 // fault paths need it.
@@ -419,7 +434,7 @@ static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (g_unloading)
+	if (g_unloading || g_hookFaulted)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
 								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
 
@@ -602,7 +617,15 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	if (g_unloading || g_hookFaulted || pSwapChain == NULL)
 		return oPresent(pSwapChain, SyncInterval, Flags);
 
-	InterlockedIncrement(&g_presentDepth);
+	// UI: row 246 - re-entrancy guard: if Present is ever re-entered while a
+	// frame is already inside PresentBody (stacked hook trampoline or recursive
+	// swap-chain call), pass straight through to oPresent instead of calling
+	// ImGui::NewFrame() inside an open frame.
+	if (InterlockedIncrement(&g_presentDepth) > 1)
+	{
+		InterlockedDecrement(&g_presentDepth);
+		return oPresent(pSwapChain, SyncInterval, Flags);
+	}
 	HRESULT hr;
 	__try
 	{
@@ -610,7 +633,24 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		FaultDisable("hook faulted inside a frame - overlay disabled, game continues");
+		// UI: row 243 - guide 6.3: a fault line without the exception code and
+		// faulting address cannot be triaged from EBengin.log alone.  Both come
+		// from GetExceptionInformation(), valid only inside the handler; the reads
+		// stay raw Win32/POD like everything else on this path (no C++ objects in
+		// hkPresent, so __try stays legal).
+		DWORD code = 0;
+		void* addr = NULL;
+		PEXCEPTION_POINTERS xps = GetExceptionInformation();
+		if (xps != NULL && xps->ExceptionRecord != NULL)
+		{
+			code = xps->ExceptionRecord->ExceptionCode;
+			addr = xps->ExceptionRecord->ExceptionAddress;
+		}
+		char detail[160];
+		snprintf(detail, sizeof(detail),
+			"hook faulted inside a frame (code 0x%08lX at 0x%016llX) - overlay disabled, game continues",
+			(unsigned long)code, (unsigned long long)(uintptr_t)addr);
+		FaultDisable(detail);
 		hr = S_OK;   // this frame's draw is lost; the next Present passes through
 	}
 	InterlockedDecrement(&g_presentDepth);
@@ -636,15 +676,38 @@ static void LogHookLine(const char* text)
 		return;
 	SYSTEMTIME t;
 	GetLocalTime(&t);
-	char stamp[32];
-	snprintf(stamp, sizeof(stamp), "%04u-%02u-%02u %02u:%02u:%02u",
+	// UI: row 246 - include pid, tid and module base on every line so two
+	// attach entries immediately separate double-injection (same pid) from a
+	// crash+restart (new pid), and so any row-243 fault address converts to an
+	// RVA (addr - base) under /DYNAMICBASE (row 236).
+	char stamp[96];
+	snprintf(stamp, sizeof(stamp),
+		"%04u-%02u-%02u %02u:%02u:%02u [pid=%lu tid=%lu base=0x%016llX]",
 		(unsigned)t.wYear, (unsigned)t.wMonth, (unsigned)t.wDay,
-		(unsigned)t.wHour, (unsigned)t.wMinute, (unsigned)t.wSecond);
+		(unsigned)t.wHour, (unsigned)t.wMinute, (unsigned)t.wSecond,
+		(unsigned long)GetCurrentProcessId(),
+		(unsigned long)GetCurrentThreadId(),
+		(unsigned long long)(uintptr_t)g_hModule);
 	log << stamp << " " << text << "\n";
 }
 
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
+	// UI: row 246 - per-process single-instance check: if this process already
+	// holds an active EBengin session, bail out before touching kiero or ImGui.
+	char mutexName[64];
+	snprintf(mutexName, sizeof(mutexName), "Local\\EBengin_SingleInstance_%lu",
+		(unsigned long)GetCurrentProcessId());
+	HANDLE hMutex = CreateMutexA(NULL, FALSE, mutexName);
+	if (hMutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS)
+	{
+		CloseHandle(hMutex);
+		LogHookLine("hook skipped: instance already active in this process");
+		return FALSE;
+	}
+	g_instanceMutex = hMutex;
+	g_ownsSession = 1;
+
 	// The old version spun in a tight `do {} while (!init_hook)` loop with no
 	// sleep and no exit condition, burning a core forever if the hook could
 	// never attach.  Retry on a timer and give up on a hard "not supported".
@@ -662,6 +725,8 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 
 			kiero::shutdown();
 			LogHookLine("hook failed: present bind refused");
+			g_ownsSession = 0;
+			ReleaseInstanceMutex();
 			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
@@ -672,6 +737,8 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 			LogHookLine(status == kiero::Status::NotSupportedError
 				? "hook failed: host is not a D3D11 renderer"
 				: "hook failed: swap chain module not found");
+			g_ownsSession = 0;
+			ReleaseInstanceMutex();
 			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
@@ -683,6 +750,8 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 	if (g_unloading)
 		return FALSE;
 	LogHookLine("hook failed: attach gave up after 120 attempts");
+	g_ownsSession = 0;
+	ReleaseInstanceMutex();
 	return FALSE;
 }
 
@@ -699,6 +768,10 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		break;
 
 	case DLL_PROCESS_DETACH:
+		// UI: row 246 - if this mapping was a rejected duplicate (or never started
+		// a session), do not touch settings, ImGui, kiero or the trace log.
+		if (!g_ownsSession)
+			break;
 		// Stop rendering before anything is torn down, otherwise the game can be
 		// sitting inside hkPresent while we destroy the ImGui context under it.
 		g_unloading = true;
@@ -723,6 +796,8 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		Settings::Save();
 		CleanupImGui();
 		kiero::shutdown();
+		ReleaseInstanceMutex();
+		g_ownsSession = 0;
 		// UI: row 193 - the trace log (row 188) records the attach and every
 		// failure outcome, but never a clean end: a report could not tell an
 		// orderly unload from a crash or a task kill.  One line closes the

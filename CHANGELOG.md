@@ -11,6 +11,76 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Single-instance guard, Present re-entrancy guard, and PID/TID/base logging (row 246)
+- Applied the fixes from the `EBengin.log` / `settings.ini` analysis (two `hook attached` lines with
+  no `session ended` line between them).
+- `LogHookLine` (`main.cpp`): every line in `EBengin.log` now carries
+  `[pid=<pid> tid=<tid> base=0x<g_hModule>]`.  Two attach lines immediately distinguish Scenario A
+  (double injection into the same process: identical `pid=`) from Scenario B (crash or kill followed
+  by restart: new `pid=`), and `base=0x...` lets any row-243 SEH fault address (`at 0x...`) be
+  converted to an RVA (`addr - base`) under `/DYNAMICBASE`.
+- Single-instance mutex (`main.cpp`): `MainThread` acquires `Local\EBengin_SingleInstance_<pid>`
+  before calling `kiero::init` (outside `DllMain`, keeping row 236's loader-lock rule intact).  If
+  `ERROR_ALREADY_EXISTS` is returned, it closes the duplicate handle, logs
+  `hook skipped: instance already active in this process`, and returns `FALSE` without stacking a
+  second `Present` hook or second ImGui context.  `g_ownsSession` gates `DLL_PROCESS_DETACH` so
+  unloading a rejected duplicate never tears down the active session, and failed attach paths release
+  the mutex so retries are not blocked.
+- Hook re-entrancy and fault fast-path (`main.cpp`): `hkPresent` checks
+  `if (InterlockedIncrement(&g_presentDepth) > 1)` and passes straight through to `oPresent` instead
+  of re-entering `PresentBody` / `ImGui::NewFrame()`; `WndProc` now checks `g_hookFaulted` alongside
+  `g_unloading`.
+- Docs (`BUILD.md`): added the double-attach vs. crash-restart case study after the crash-capture
+  section.
+
+## Fallback sidebar wordmark hit-target and reset-toast wording fix (row 245)
+- `menu.cpp` (`RenderSidebar`): when `EBengin.png` is missing next to the DLL (`!LogoLoaded`),
+  `ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)))` ran immediately after
+  `ImGui::TextColored(..., "EBengin")` and before `ImGui::IsItemHovered()` / `ImGui::IsItemClicked()`.
+  Because `ImGui::Dummy` calls `ItemAdd`, it overwrote `GImGui->LastItemData` with the blank spacer
+  rect below `"EBengin"` (and at `x = 0..76` after `TextColored`'s newline), leaving the visible
+  `"EBengin"` wordmark unresponsive while the empty space below it acted as the home button.  The
+  `Dummy` spacer now runs after the hover/click checks so `IsItem*` inspects the visible `"EBengin"`
+  wordmark while preserving the exact sidebar height.
+- `config.cpp`: adjacent string literals in the Reset Interface Settings toast (`"...and last"`
+  `"tab apply on next start."`, row 231) lacked a separating space and rendered `"lasttab"`.
+  Restored the space; a regex scan of all multi-line string literals across the repository confirmed
+  no other missing space.
+
+## Missing `else` in Execute after row 229 could read `resources[0]` on an empty list (row 244)
+- While checking the `Execute` handler (`exec.cpp`) referenced in the `_cfx_internal` verification
+  step, found that removing the `else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)`
+  branch in row 229 had also removed the trailing `else`, leaving a bare `{ ... }` block after
+  `if (resources.empty())`.
+- If all entries had been removed in the Stopper tab (`resources.empty() == true`), clicking
+  `Execute` opened `"No resource selected."` and then fell straight through into the report-only
+  block, indexing `resources[selectedResource]` on an empty `std::vector<const char*>` (out-of-bounds
+  read / crash).
+- Fix: restored `else` before the report-only block in `exec.cpp`.  Scanned every `.cpp`/`.h` file
+  for any other `}` followed by an unattached `{` block - `exec.cpp` was the only hit.
+
+## Fault lines carry code and address; probe DLL and advanced-debugging docs (row 243)
+- Applied the second half of the user-supplied crash guide (advanced debugging, testing methodology,
+  exception codes, validation checklist) within the standing scope rules.
+- Code: hkPresent's SEH handler logged a static reason - guide 6.3 asks for the exception code and
+  faulting address.  The handler now reads GetExceptionInformation() and FaultDisable receives
+  "code 0x........ at 0x................", so an EBengin.log paste alone can name the fault class
+  (access violation vs /GS hit vs heap corruption) before any dump is opened.
+- New tool: tools/dll_probe/probe.cpp - the guide's minimal test DLL (6.4), built standalone, not
+  part of EBengin UI.sln.  Deviation from the guide on purpose: no MessageBoxA inside DllMain
+  (loader-lock deadlock risk, and row 236's minimal-DllMain rule); the probe logs one line to
+  %TEMP%\dll_probe.log from a worker thread instead.  Inject it with the same method as the real
+  DLL: log line = injection works, crash lives in the full DLL; no line = method/timing/protection.
+- Docs (BUILD.md): gflags page-heap enable/disable around heap-corruption dumps (6.1), ProcMon
+  Load-Image filters for "DLL never appeared" (6.2), the outside-in isolation order (7), the
+  exception-code table with the first check per code (8, native-only - the .NET row is marked
+  impossible), and the final validation checklist (10).
+- Out of scope, recorded as such (9 + 11): no detection-mechanics work list, no manual mapping or
+  CFG handling, no DLL proxying, no external game-memory access - the README scope note stands;
+  the documented exit is official mod support where it exists, or not injecting.
+- Validation: renders 8/8 unchanged (no UI surface touched), probe.cpp balanced and standalone
+  (nothing includes it), api_sweep clean, main.cpp balance delta 0 vs HEAD.
+
 ## Stale editor coordinates after SetText can no longer read past the buffer (row 242)
 - TextEditor::SetText replaced the lines but kept cursor and selection: load a 100-line file, SelectAll,
   load a 5-line file, press Copy - and GetText's reserve loop read mLines[5..99] out of bounds
