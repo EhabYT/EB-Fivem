@@ -374,7 +374,7 @@ has no edges into the project's own headers.
 
 Full instructions, requirements and a troubleshooting table: **[BUILD.md](BUILD.md)**.
 
-Quick version — Windows 10/11, Visual Studio 2019 or 2022 with the
+Quick version — Windows 10 (1607+)/11, Visual Studio 2019 or 2022 with the
 *Desktop development with C++* workload (the legacy DirectX SDK is **not** required):
 
 ```bat

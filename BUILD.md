@@ -12,7 +12,7 @@ There is no CI or prebuilt binary in this repo — you compile it yourself with 
 
 | | |
 |---|---|
-| OS | Windows 10 / 11 x64 |
+| OS | Windows 10 (**1607+**) / 11 x64 - `GetDpiForWindow` (host-DPI sampling in `InitImGui`, re-sampled per frame in `hkPresent`; rows 154/187) exists in user32.dll only since 1607. On older builds the DLL fails to load with an entry-point error |
 | IDE / toolchain | Visual Studio **2019 (v142)** or **2022 (v143)** |
 | VS workload | **Desktop development with C++** |
 | Windows SDK | Any 10.0.x SDK that ships with VS (the project uses `WindowsTargetPlatformVersion = 10.0`, i.e. "latest installed") |
@@ -340,6 +340,8 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 205 | SaveWindowPos went through the full Save(): ~20 WritePrivateProfileStringA calls - each its own open/write/close of the same file - for a two-integer update, and the position saver throttles by time OR movement, so a fast drag or an Aero-Snap fling rewrote the entire ini on nearly every frame | SaveWindowPos writes just [window] x/y directly, keeping the once-only save-failure latch (which row 191 retires on the next successful Save) |
 | 206 | Two README architecture bullets contradicted main.cpp's actual includes: "points at exec.h and resources.h but at no tab body ... the includes it needs are includes.h, menu.h, menu_style.h and assets.h" (row 164 added config.h, row 188 <fstream>, row 201 gui.h) and "tabs.cpp ... is the only file that includes the five tab headers. main.cpp ... includes neither" | The main.cpp bullet lists the nine real project includes and what each reaches (Init calls, IsCapturing, ModalActive); the tabs bullet says tabs.cpp is the only file including ALL FIVE tab headers, with config.h named as main.cpp's one exception |
 | 207 | The header-edge bullet claimed "only three headers include anything" with a ten-name no-edge list that the regenerated graph directly refutes (five headers have outgoing project edges; gui.h and menu.h were listed as edgeless while the graph shows gui.h with three edges), and the obsolete-API bullet still excused demo.h for using Columns() although demo.cpp moved to BeginTable and no legacy call exists in any project file | The bullet now lists the five headers with their exact graph edges and points at gen_include_graph.py as the authority; the demo parenthetical records the migration instead of a stale exception |
+| 208 | The requirements table said "Windows 10 / 11 x64", but GetDpiForWindow - called in InitImGui (row 154) and per frame in hkPresent (row 187) - exists in user32.dll only since Windows 10 1607; on older builds the DLL fails to load with an entry-point error no doc mentioned | BUILD.md OS row names 1607+ with the reason; the README quick-version line follows |
+| 209 | The Troubleshooting entry "Builds fine but nothing appears in-game" predated the hook trace log and still claimed kiero::init "loops until it succeeds" - the retry has been bounded (~60 s) since the runtime-fix table's own row 8, and since rows 188-193 EBengin.log names the exact outcome of every inject | The entry now starts at the log and lists its five outcome lines, uses a missing log as the DLL-never-loaded signal (x64 / injector target), and drops the stale loops-forever wording |
 
 
 
@@ -607,9 +609,15 @@ The "Desktop development with C++" workload (and with it a Windows SDK) is not i
 Run the VS Installer and add it.
 
 **Builds fine but nothing appears in-game**
-Confirm you built **x64** — a Win32 DLL cannot be loaded by FiveM. Also check the injector
-targets the `FiveM.exe` / `FiveM_GTAProcess.exe` process that actually owns the D3D11
-swap chain; `kiero::init` loops until it succeeds, so a wrong target looks like a hang.
+First stop: `<DLL folder>\EBengin.log` (rows 188-193). Every inject leaves exactly one
+timestamped line naming the outcome - `hook attached (D3D11 present)`, `hook failed: host is
+not a D3D11 renderer`, `hook failed: swap chain module not found`, `hook failed: present bind
+refused`, or `hook failed: attach gave up after 120 attempts` (the retry is bounded, ~60 s -
+the old "loops until it succeeds" wording here predated that fix). A `session ended (clean
+unload)` line closes each orderly unload (row 193). **No log file at all** means the DLL
+never loaded: confirm you built **x64** (a Win32 DLL cannot be loaded by FiveM) and that the
+injector targets the `FiveM.exe` / `FiveM_GTAProcess.exe` process that actually owns the
+D3D11 swap chain.
 
 **Menu opens but has no icons (squares instead of Font Awesome glyphs)**
 The merged icon font failed to load; `main.cpp` falls back to `AddFontDefault()`, so this only

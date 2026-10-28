@@ -9,6 +9,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The OS floor is named, and "nothing appears in-game" starts at the trace log (rows 208-209)
+- The requirements table said "Windows 10 / 11 x64", but GetDpiForWindow - called in InitImGui
+  (row 154) and per frame in hkPresent (row 187) - exists in user32.dll only since Windows 10
+  1607.  On older builds the DLL fails to load with an entry-point error that no document
+  mentioned.  The BUILD.md OS row now names 1607+ with the reason; the README quick-version line
+  follows.
+- The Troubleshooting entry "Builds fine but nothing appears in-game" predated the hook trace log
+  and still claimed kiero::init "loops until it succeeds" - the retry has been bounded (~60 s)
+  since the runtime-fix table's own row 8.  The entry now starts at `<DLL folder>\EBengin.log`
+  and lists its five outcome lines, uses a missing log as the DLL-never-loaded signal (wrong
+  architecture / wrong injector target), and drops the stale wording.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The README architecture prose agrees with the regenerated graph (rows 206-207)
 - Two bullets contradicted main.cpp's actual includes: one listed four includes and "no tab body"
   while rows 164/188/201 had grown the list to nine project includes plus <fstream> - config.h
