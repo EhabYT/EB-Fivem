@@ -1,6 +1,17 @@
 #pragma once
 
 #include "imgui/imgui.h"
+// UI: row 226 - ApplyStyle() below writes Settings::StyleMetricK(); without this
+// include every translation unit that reached menu_style.h before settings.h
+// (gui.h included it one line earlier) failed with "Settings: is not a class or
+// namespace" / "StyleMetricK: identifier not found".
+#include "settings.h"
+
+// UI: AA contrast pass (row 147).  Secondary/muted ink used to be the brand
+// accent at 60% alpha (blend 64,109,154), which measures 2.8:1 on the canvas -
+// below WCAG AA.  This lighter tint of the accent holds >=4.9:1 on canvas,
+// rail and panel, so hierarchy stays visible without failing contrast.
+static const ImColor ColMuted(125, 175, 225, 255);   // #7DAFE1
 
 // Applies the EBengin colour scheme / metrics.
 //
@@ -13,6 +24,9 @@ inline void ApplyStyle()
 	ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
 
 	ImGuiStyle& style = ImGui::GetStyle();
+	// UI: row 186 - this restores ImGui's default metrics; tell the ratio
+	// tracking in Settings::ApplyScale() that the bases are back at k = 1.
+	Settings::StyleMetricK() = 1.0f;
 
 	// Base shell size at 100% interface scale.  Settings::ApplyScale() rescales
 	// WindowMinSize from the same base, and InitImGui() runs it *after* this, so
@@ -72,7 +86,13 @@ inline void ApplyStyle()
 	// half-transparent HeaderHovered and the brand-blue HeaderActive.
 	style.Colors[ImGuiCol_Header]				= ImColor(42, 74, 123, 255);		// for collapsing headers , etc
 	style.Colors[ImGuiCol_HeaderActive]			= ImColor(55, 120, 181);
-	style.Colors[ImGuiCol_HeaderHovered]		= ImColor(42, 74, 123, 100);
+	// UI: row 183 - an OPEN collapsing header rests on the solid Header colour,
+	// and a hover overlay of the same RGB at 100 alpha blended to exactly the
+	// colour underneath: zero hover feedback on open headers (the resources
+	// dump preview sits in one).  The hover ramp blue at the same alpha stays
+	// subtle on closed headers over the window background and reads clearly
+	// over the solid header.
+	style.Colors[ImGuiCol_HeaderHovered]		= ImColor(55, 120, 181, 100);
 
 	style.Colors[ImGuiCol_ResizeGrip]			= ImColor(42, 74, 123, 255);		// the resize grip thing bottom right
 	style.Colors[ImGuiCol_ResizeGripActive]		= ImColor(93, 156, 214);			// when you hold it / active
@@ -82,17 +102,27 @@ inline void ApplyStyle()
 	style.Colors[ImGuiCol_SliderGrabActive]		= ImColor(55, 120, 181, 255);
 
 	// Cohesion pass: everything ImGui would otherwise paint in stock grey or
-	// near-black is pulled into the two ramps.  TextDisabled is the muted accent
-	// (93,156,214 at 60% over the canvas), the scrollbar grab runs raised ->
-	// hover -> pressed like every other interactive surface, and popups sit on
-	// the canvas navy instead of the default black.
-	style.Colors[ImGuiCol_TextDisabled]		= ImColor(64, 109, 154, 255);
+	// near-black is pulled into the two ramps.  TextDisabled is the AA muted
+	// token (row 147 - the old 60% accent blend measured 2.8:1 on the canvas),
+	// the scrollbar grab runs raised -> hover -> pressed like every other
+	// interactive surface, and popups sit on the canvas navy instead of black.
+	style.Colors[ImGuiCol_TextDisabled]		= ImColor(125, 175, 225, 255);
 	style.Colors[ImGuiCol_TextSelectedBg]		= ImColor(93, 156, 214, 90);
 	style.Colors[ImGuiCol_PopupBg]			= ImColor(20, 38, 63, 245);
+	// UI: row 181 - the scroll groove (activity log, any overflowing child)
+	// kept ImGui's near-black default track under the themed grab; the rail
+	// navy reads as part of the same surface family instead.
+	style.Colors[ImGuiCol_ScrollbarBg]		= ImColor(16, 31, 52, 255);
 	style.Colors[ImGuiCol_ScrollbarGrab]		= ImColor(42, 74, 123, 255);
 	style.Colors[ImGuiCol_ScrollbarGrabHovered]	= ImColor(55, 120, 181, 255);
 	style.Colors[ImGuiCol_ScrollbarGrabActive]	= ImColor(29, 81, 136, 255);
 
+	// UI: row 180 - the shell's two-column divider is a table inner border,
+	// and table borders read TableBorderLight/Strong - neither was themed,
+	// so the one vertical rule in the project drew in ImGui's default grey
+	// instead of the navy every other rule uses (and the previews model).
+	style.Colors[ImGuiCol_TableBorderLight]	= ImColor(42, 74, 123, 255);
+	style.Colors[ImGuiCol_TableBorderStrong]	= ImColor(42, 74, 123, 255);
 	style.Colors[ImGuiCol_Border]				= ImColor(42, 74, 123);
 	style.Colors[ImGuiCol_Separator]			= ImColor(42, 74, 123);
 	style.Colors[ImGuiCol_SeparatorActive]		= ImColor(55, 120, 181);

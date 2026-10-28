@@ -4,7 +4,10 @@
 #include "settings.h"          // Menu::Render / IsMenuOpen / logo
 #include "menu_style.h"    // ApplyStyle()
 #include "assets.h"        // ResolveAssetPath()
+#include <fstream>         // row 188: the hook trace log
 #include "exec.h"          // Executor::Init()
+#include "config.h"         // Config::IsCapturing() (row 164)
+#include "gui.h"            // UI: row 201 - Gui::ModalActive() for the DETACH wait
 #include "resources.h"     // Resources::Init()
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -191,6 +194,12 @@ void InitImGui()
 {
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
+	// UI: row 200 - without this, ImGui's default context auto-saves its own
+	// window state to imgui.ini in the HOST process' working directory: a
+	// stray file in the game folder (silently failing on write-protected
+	// installs) duplicating what settings.ini next to the DLL already
+	// persists deliberately.
+	io.IniFilename = NULL;
 	static const ImWchar icons_ranges[] = { 0xf000, 0xf3ff, 0 }; //ICON_MIN_FA , ICON_MAX_FA
 	ImFontConfig icons_config;
 
@@ -381,6 +390,24 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 		}
 	}
 
+	// UI: row 187 - DPI was sampled once at init: dragging the host window to
+	// a monitor with a different DPI left fonts and every DPI-folded metric
+	// at the old factor until re-inject.  Re-sample per frame (one cheap
+	// call) before NewFrame and re-run ApplyScale only when the factor
+	// actually changed; the font rebake, the WindowMinSize change and the
+	// row-186 metric ratio then ride the existing scale-change paths, and the
+	// shell's reachability re-clamp keys off WindowMinSize anyway.
+	if (window != NULL)
+	{
+		const UINT dpiNow = GetDpiForWindow(window);
+		const float dpiF = dpiNow > 0 ? (float)dpiNow / 96.0f : 1.0f;
+		if (dpiF != Settings::DpiScale)
+		{
+			Settings::DpiScale = dpiF;
+			Settings::ApplyScale();
+		}
+	}
+
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
@@ -405,7 +432,12 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	const int toggleVk = Settings::Current.ToggleKey;
 	const bool printable = (toggleVk >= 'A' && toggleVk <= 'Z')
 		|| (toggleVk >= '0' && toggleVk <= '9') || toggleVk == VK_SPACE;
+	// UI: row 164 - while the Config capture is armed, every key press is a
+	// binding candidate; flipping the overlay shut on the toggle key would
+	// swallow the capture mid-press.  The poll still reads (and so drains)
+	// the edge, keeping capture and toggle from both acting on one press.
 	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantTextInput)
+		&& !Config::IsCapturing()
 		&& (GetAsyncKeyState(toggleVk) & 1))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 
@@ -435,6 +467,31 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 }
 
 
+// UI: row 188 - a failed hook attach used to be a silent no-op: the inject
+// looked like "did nothing", with no trace anywhere to tell "not a D3D11
+// host" from "bind refused" from "gave up".  One line per outcome next to
+// the DLL, the same folder convention settings.ini uses, turns the silent
+// case into a diagnosable one.  UI: row 189 - the file survives injects, so
+// cap it: past 64 KB start over instead of appending forever.
+static void LogHookLine(const char* text)
+{
+	const std::string path = ResolveAssetPath("EBengin.log");
+	WIN32_FILE_ATTRIBUTE_DATA attr = { 0 };
+	if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr) != 0
+		&& attr.nFileSizeHigh == 0 && attr.nFileSizeLow > 64u * 1024u)
+		DeleteFileA(path.c_str());
+	std::ofstream log(path.c_str(), std::ios::app);
+	if (!log.is_open())
+		return;
+	SYSTEMTIME t;
+	GetLocalTime(&t);
+	char stamp[32];
+	snprintf(stamp, sizeof(stamp), "%04u-%02u-%02u %02u:%02u:%02u",
+		(unsigned)t.wYear, (unsigned)t.wMonth, (unsigned)t.wDay,
+		(unsigned)t.wHour, (unsigned)t.wMinute, (unsigned)t.wSecond);
+	log << stamp << " " << text << "\n";
+}
+
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
 	// The old version spun in a tight `do {} while (!init_hook)` loop with no
@@ -447,18 +504,34 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 		if (status == kiero::Status::Success)
 		{
 			if (kiero::bind(8, (void**)&oPresent, (void*)hkPresent) == kiero::Status::Success)
+			{
+				LogHookLine("hook attached (D3D11 present)");
 				return TRUE;
+			}
 
 			kiero::shutdown();
-			break;
+			LogHookLine("hook failed: present bind refused");
+			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
 		if (status == kiero::Status::NotSupportedError ||
 			status == kiero::Status::ModuleNotFoundError)
-			break;   // not a D3D11 renderer / no swap chain: retrying cannot help
+		{
+			// not a D3D11 renderer / no swap chain: retrying cannot help
+			LogHookLine(status == kiero::Status::NotSupportedError
+				? "hook failed: host is not a D3D11 renderer"
+				: "hook failed: swap chain module not found");
+			return FALSE;   // logged outcome; the gave-up line below stays for retries only
+		}
 
 		Sleep(500);
 	}
+	// UI: row 190 - the loop also ends when an unload arrives mid-retry; that
+	// is not a failure, and logging "gave up" for it would put a lie in the
+	// trace.  The gave-up line belongs to a full 120-attempt exhaustion only.
+	if (g_unloading)
+		return FALSE;
+	LogHookLine("hook failed: attach gave up after 120 attempts");
 	return FALSE;
 }
 
@@ -478,6 +551,14 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		// Stop rendering before anything is torn down, otherwise the game can be
 		// sitting inside hkPresent while we destroy the ImGui context under it.
 		g_unloading = true;
+		// UI: row 201 - a modal dialog (Gui::ModalBoxA) blocks the render thread
+		// inside a frame for as long as the user leaves it open, and the fixed
+		// 50 ms below would then destroy the ImGui context under the live
+		// dialog: once it closed, the rest of the frame drew with no context.
+		// Wait for the dialog, capped at ~2 s so DETACH cannot stall the loader
+		// lock indefinitely - past the cap we proceed exactly as before.
+		for (int i = 0; i < 80 && Gui::ModalActive(); ++i)
+			Sleep(25);
 		Sleep(50);
 		// The position save in Menu::Render() is throttled to ~1/s; flush the
 		// final window position / tab / toggle key so the next start restores
@@ -485,6 +566,11 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		Settings::Save();
 		CleanupImGui();
 		kiero::shutdown();
+		// UI: row 193 - the trace log (row 188) records the attach and every
+		// failure outcome, but never a clean end: a report could not tell an
+		// orderly unload from a crash or a task kill.  One line closes the
+		// session - present in the log only when DETACH actually ran.
+		LogHookLine("session ended (clean unload)");
 		break;
 	}
 	return TRUE;

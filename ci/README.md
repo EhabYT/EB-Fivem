@@ -33,20 +33,24 @@ this PR was verified statically.
 2. GitHub opens `.github/workflows/main.yml` in the editor. Rename the file in the path box
    to `.github/workflows/build.yml`.
 3. Replace the whole content with the content of
-   [`ci/build.yml`](https://github.com/EhabYT/EB-Fivem/blob/arena/57915bfa-eb-fivem/ci/build.yml)
+   [`ci/build.yml`](https://github.com/EhabYT/EB-Fivem/blob/main/ci/build.yml)
    (open it in raw view and copy).
-4. **Commit changes** to `arena/57915bfa-eb-fivem`.
+4. **Commit changes** to the branch your checkout is on
+   (`git rev-parse --abbrev-ref HEAD` names it).
 5. The workflow has `workflow_dispatch`, so you can start the first run immediately from the
    Actions tab without pushing anything else.
 
 ### B. Local git
 
+`YOUR-BRANCH` = the branch of your checkout (`git rev-parse --abbrev-ref HEAD`);
+the old session branch these steps once named is merged and gone.
+
 ```bat
-git fetch origin arena/57915bfa-eb-fivem
-git checkout arena/57915bfa-eb-fivem
+git fetch origin
+git checkout YOUR-BRANCH
 ci\enable.bat
 git commit -m "ci: enable the Windows build workflow"
-git push origin arena/57915bfa-eb-fivem
+git push origin YOUR-BRANCH
 ```
 
 `enable.bat` only copies `ci\build.yml` to `.github\workflows\build.yml` and stages it with

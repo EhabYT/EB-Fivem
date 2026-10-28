@@ -1,6 +1,8 @@
 # Changelog
 
-All entries are work on this branch (`arena/57915bfa-eb-fivem`), newest first.
+All entries are work on this repository's session branches, newest first:
+PR #1's `arena/57915bfa-eb-fivem` (merged into `main` as `8d8ea8e`), then the
+current `arena/c5d3e349-eb-fivem`.
 Scope note: everything here is interface, tooling or documentation level. The
 payloads this menu's names suggest (script execution, resource stopping, menu
 launching, kernel access, ESP, aimbot) are deliberately **not** implemented and
@@ -8,6 +10,597 @@ say so in the UI - see README and PR #1.
 
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
+
+## The Docs & render row counts the graph it describes (row 227)
+- Row 226's two new includes grew the regenerated README include graph from 79 to 81 edges (the
+  generator rewrites the mermaid block itself, so the README moved in the same commit).  The BUILD
+  Docs & render row kept quoting 79 - the silent-stale-doc-row class row 215 had already repaired
+  once.  It now says 81, matching the README and a fresh generator run.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The project compiles again: three latent compile blockers fixed (row 226)
+- A real MSVC build reported what no static check here could see until it looked structurally:
+  (a) the row-164 capture block (`static bool g_capturing` + `IsCapturing()`) had been inserted
+  INSIDE `Config::Render()` - C2601 "local function definitions are illegal", plus "g_capturing:
+  undeclared identifier" inside IsCapturing; the block now sits at namespace scope between
+  ValidToggleKey() and Render().
+  (b) `menu_style.h` writes `Settings::StyleMetricK()` in ApplyStyle() but never included
+  settings.h, and gui.h includes menu_style.h one line before settings.h - so every translation
+  unit died with "Settings: is not a class or namespace" / "StyleMetricK: identifier not found".
+  menu_style.h now includes settings.h and is self-contained.
+  (c) menu.cpp's key gate pushes Activity::Push (rows 155/157) without including activity.h.
+- Verified without a Windows compiler: a brace-depth trace puts both capture symbols at namespace
+  depth with file depth 0, and a comment-stripped include-closure sweep reports zero translation
+  units using a project namespace without an include path to its header; settings.h includes
+  nothing local, so the new menu_style.h include creates no cycle.
+- The explorer.exe/Windhawk lines in the submitted log are the debugger session around a failed
+  build (the row-98 F5 scenario), not a second defect.
+
+## The docs tables render whole on GitHub again (rows 224-225)
+- Two rows of the README file-inventory table were wrapped over physical newlines (the config.cpp
+  row broke after "switches", the kiero row after "(vendored,").  GFM tables are one line per row,
+  so on GitHub the table ended mid-inventory and the continuation lines rendered as loose paragraph
+  text.  Both rows are single lines again.
+- Row 106's fix description quoted the diagnostics suffix as `| settings: <path>` - an unescaped
+  pipe inside a table cell splits it in GFM and shifted every later column of that row.  Escaped
+  now, like the other literal-pipe quotes in the log.
+- An escape-aware column-count sweep over every markdown table in README, BUILD, CHANGELOG and
+  ci/README reports zero mismatches after these two fixes.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The CI enable steps no longer send anyone to a merged branch (row 223)
+- Four instruction sites hard-coded the merged PR-#1 branch name as the push target: BUILD.md
+  section 7's bat block, ci/README.md step 4, its local-git bat block, and the echo inside
+  ci/enable.bat.  Following them would commit and push the workflow enablement to a branch that is
+  merged and gone.  All four are branch-agnostic now (YOUR-BRANCH / "the branch your checkout is
+  on", named via `git rev-parse --abbrev-ref HEAD`), and ci/README.md's blob link points at `main`,
+  which carries the merged file.
+- The CHANGELOG header (previous commit in this row) claimed every entry lives on the old branch;
+  it now names both session branches with the merge fact (PR #1 merged as 8d8ea8e, current since).
+- The verbatim quote of GitHub's `remote rejected` error keeps its original branch name on purpose:
+  it is a historical record of what the service answered, not an instruction.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The DETACH flowchart shows the modal wait row 201 added (row 222)
+- The README flowchart's DLL_PROCESS_DETACH node still read "g_unloading = true, Sleep 50 ms,
+  Settings::Save flush" - the pre-row-201 sequence.  Row 201 inserted a bounded wait for an open
+  modal dialog (80 x 25 ms, capped ~2 s) between g_unloading and the Sleep, because destroying the
+  ImGui context under a live dialog left the rest of that frame drawing with no context; the
+  flowchart never picked the step up.  The U1 node now lists it in code order.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The two cards are compact again, and supported bindings survive Config (rows 220-221)
+- A real inject screenshot showed the splash card filling the whole shell with ~300px of dead
+  canvas under its content: SetNextWindowSize(460x288) loses to style.WindowMinSize (900x540 times
+  scale) because ImGui clamps every window without AlwaysAutoResize in CalcWindowMinSize
+  (imgui.cpp:6899-6900).  The key gate card had the same clamp.  Both cards now push their own size
+  as ImGuiStyleVar_WindowMinSize around their Begin/End; the shell keeps the global minimum.  The
+  previews always modelled the compact cards, so this fix makes reality match them - all eight
+  renders stay byte-identical.
+- The row-142 stored-key reset used !ValidToggleKey() alone, which includes printable keys - but a
+  printable binding is a supported ini-only binding (rows 166/194/210).  Opening Config once
+  destroyed it, with a toast claiming it "flips while typing" that the row-164 input guard
+  disproves every frame.  The reset now uses Load's predicate (!printable && !ValidToggleKey), and
+  both sites name the two failure classes honestly: no scancode = can never fire, a real key
+  outside both allow-lists (numpad, modifiers) = flips while typing.
+
+## The scale row-log entries point at 1.93 and at real imgui.cpp lines (rows 218-219)
+- BUILD.md row 76 still described the interface scale as applied "through ImGui 1.92's
+  style.FontScaleMain" and "because 1.92 bakes a font" - present-tense mechanism claims about the
+  vendored copy, which is 1.93.0 (row 214 fixed the same drift in config.cpp, README and the
+  troubleshooting section but missed this row-log entry).  Both corrected to 1.93.
+- Its vendored line pointers had drifted with the upgrade: imgui.cpp:9104 and :9214 are blank lines
+  in 1.93.0.  Re-verified against the vendored file - FontSizeBase is initialised from
+  font->LegacySize at imgui.cpp:9218, and the FontScaleMain factor is applied at :9327.
+- Row 91's FontScaleDpi pointer (imgui.cpp:9215, also blank in 1.93.0) corrected to :9328, and the
+  README interface-scale bullet no longer contradicts itself across two lines ("1.93's
+  FontScaleMain" ... "1.93 bakes a font").
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The runtime files are named where readers look for them (rows 216-217)
+- BUILD.md's runtime-assets section listed only what the DLL reads (EBengin.png, Bahnschrift.ttf).
+  The two files it writes next to itself were unnamed: settings.ini surfaced only in the toggle
+  paragraph, and EBengin.log (rows 188-193) not at all - in the very document whose troubleshooting
+  entry (row 209) now sends readers to that log first.  Section 3 gains a written-at-runtime
+  paragraph naming both (one timestamped line per inject, 64 KB cap, safe to delete, neither needs
+  shipping), and section 9's Hook & lifetime row names the trace.
+- The README docs table listed seven previews; preview_key.png - embedded in the prose since
+  row 182 - never got its table row, so the file inventory and the prose disagreed about how many
+  previews exist.  The table lists all eight, with the key gate card described like its siblings.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## Present-tense version tags say 1.93.0, and the Docs & render row is whole again (rows 214-215)
+- Three present-tense texts still named ImGui 1.92/1.92.9 while the vendored tree is 1.93.0: the
+  config.cpp interface-scale comment, the README interface-scale bullet, and the BUILD
+  troubleshooting answer to a stale-imgui.h compile error ("make sure the vendored tree really is
+  1.92.9" - advice that would fail against the shipped tree).  All three now say 1.93/1.93.0; the
+  migration-history mentions ("upgraded from 1.75 via 1.92.9") are correct history and stay.
+- The BUILD "Docs & render" row listed seven previews (preview_key.png, added in row 182, was
+  missing), fused two sentences into one ungrammatical run ("The Triggers pane is never depicted
+  README include graph regenerated..."), and carried a stale "(35 nodes, 63 edges)" count three
+  regenerations behind the actual 79.  The row lists all eight previews, the sentence is split,
+  and the count matches the graph it describes.
+- No UI surface involved; all eight previews stay byte-identical.
+
+## Comments document their own functions, and tooltips stop printf-ing user paths (rows 212-213)
+- PushRecent had been inserted between ReadFileText's contract comment and ReadFileText itself,
+  so the "Returns 0 on success, 1 open failure, 2 empty, 3 oversized" block documented a function
+  with no return codes at all, while the actual shared read path - whose codes every caller
+  branches on - carried none.  Each comment sits on its own function again.
+- Three tooltips passed user-controlled file paths as the printf format string: the Save button's
+  "Save to <name> (Ctrl+S; ...)", the Revert button's "Revert to <name>", and the Recent popup's
+  "<full path>\nRight-click removes the entry."  A '%' in a filename is legal on Windows, making
+  each of them the same undefined-behaviour family runtime-fix #15 removed from the list texts -
+  reintroduced on rows added later.  All three now build the string first and pass it through
+  SetTooltip("%s", ...); a full sweep verified every remaining SetTooltip site is literal or
+  already "%s".
+- No UI surface changed in its default state; all eight previews stay byte-identical.
+
+## The splash hint says exactly what the toggle does, and dialogs belong to the game window (rows 210-211)
+- The splash hint claimed "<key> toggles this overlay at any time." - overstating the one binding
+  class the present loop deliberately suppresses: a printable key (possible only via hand-edited
+  ini; the capture refuses them since row 166) does not flip the overlay while a text field
+  consumes input (rows 155/164).  The hint keeps the confident sentence for non-printable
+  bindings and names the qualifier for printable ones.  The preview still depicts the default
+  INSERT binding, so preview_splash.png is byte-identical.
+- Every dialog the UI raised was unowned or title-guessed: Gui::ModalBoxA passed NULL to
+  MessageBoxA, and both file dialogs used FindWindowA(NULL, "FiveM").  A NULL answer - any host
+  window titled differently - or the wrong top-level window leaves the dialog BEHIND a fullscreen
+  game while the modal loop has already stalled the render thread: what the user sees is a hang
+  with no visible cause, the exact family the trace log (rows 188-193) exists to shorten.  All
+  dialogs are now owned by the real host window: main.cpp resolves it from the swap chain
+  (sd.OutputWindow) into its global `window`, gui.h declares it extern, and ModalBoxA plus both
+  ofn.hwndOwner assignments use it.  No title guess remains in the codebase.
+- All eight previews stay byte-identical (no scene depicts a dialog).
+
+## The OS floor is named, and "nothing appears in-game" starts at the trace log (rows 208-209)
+- The requirements table said "Windows 10 / 11 x64", but GetDpiForWindow - called in InitImGui
+  (row 154) and per frame in hkPresent (row 187) - exists in user32.dll only since Windows 10
+  1607.  On older builds the DLL fails to load with an entry-point error that no document
+  mentioned.  The BUILD.md OS row now names 1607+ with the reason; the README quick-version line
+  follows.
+- The Troubleshooting entry "Builds fine but nothing appears in-game" predated the hook trace log
+  and still claimed kiero::init "loops until it succeeds" - the retry has been bounded (~60 s)
+  since the runtime-fix table's own row 8.  The entry now starts at `<DLL folder>\EBengin.log`
+  and lists its five outcome lines, uses a missing log as the DLL-never-loaded signal (wrong
+  architecture / wrong injector target), and drops the stale wording.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The README architecture prose agrees with the regenerated graph (rows 206-207)
+- Two bullets contradicted main.cpp's actual includes: one listed four includes and "no tab body"
+  while rows 164/188/201 had grown the list to nine project includes plus <fstream> - config.h
+  among them - and one claimed tabs.cpp "is the only file that includes the five tab headers"
+  with main.cpp including "neither".  Both now name reality: the nine includes and what each
+  reaches (Init calls, Config::IsCapturing in the toggle poll, Gui::ModalActive in the DETACH
+  wait), and tabs.cpp as the only file including ALL FIVE tab headers, with config.h as
+  main.cpp's single named exception.
+- The header-edge bullet claimed "only three headers include anything" with a ten-name edgeless
+  list the graph right above refutes: five headers have outgoing project edges (config.h, exec.h,
+  gui.h, menu.h, resources.h), and gui.h - listed as edgeless - has three.  The bullet now lists
+  the five with their exact edges and names gen_include_graph.py as the authority.  The
+  obsolete-API bullet also still excused demo.h for using Columns(), although demo.cpp moved to
+  BeginTable and no Columns()/NextColumn()/SetColumnOffset() call exists in any project file; the
+  parenthetical records the migration instead.
+- Documentation-only batch; all eight previews stay byte-identical.
+
+## The session trace confirms before it dies, and the position save stops rewriting the ini (rows 204-205)
+- The session log is the only timestamped trace the session leaves - in memory only, and
+  unrecoverable once cleared - but its Clear button fired immediately, while every other loss of
+  the same family (editor Clear/Revert, resource stopper, interface reset) confirms first.  One
+  mis-click erased the trace without a word.  Clear now asks through the shared Gui::ModalBoxA
+  (YESNO + warning icon) and only clears on IDYES.
+- SaveWindowPos went through the full Save(): roughly twenty WritePrivateProfileStringA calls -
+  each its own open/write/close of the same file - for what is a two-integer update.  The
+  position saver throttles by time OR movement, so a fast drag or an Aero-Snap fling rewrote the
+  entire ini on nearly every frame.  It now writes just [window] x/y directly, keeping the
+  once-only save-failure latch that row 191 retires on the next successful Save.
+- No preview scene shows a dialog, and the landing scene is unchanged: all eight previews stay
+  byte-identical.
+
+## The last pure-red surfaces join the ramp, and diagnostics name the trace log (rows 202-203)
+- Two shipped surfaces still used pure red (255,0,0) after rows 157/175/178 moved the project to
+  the lighter ramp red: the warn toast kind bar - ~2.6:1 on the card navy, under the 3:1 WCAG AA
+  ask for non-text marks, with a comment claiming "same red as the error texts" while those had
+  already moved - and the resources "doesn't have any files." line, ~3.4:1 on the list navy,
+  under AA for normal text.  Both now use (255,107,107): one red ramp in the project.  The
+  preview renderer mirrors the constant, so preview_config.png changes with this row - the only
+  intended pixel change in the batch.  demo.cpp keeps its sample red on purpose: it is the
+  unwired widget cheat-sheet, not shipped UI.
+- The hook trace log (rows 188-193) is the primary artifact for "the menu never opened" reports,
+  but Copy diagnostics - the snapshot a report from another machine carries - never mentioned it.
+  The diagnostics line now ends with "log: <path>" plus " [missing]" when the file does not
+  exist: missing means either an old build or a folder nobody can write to, and both are answers
+  the report needs.  The include graph was regenerated for the new config.cpp -> assets.h edge
+  (78 to 79 edges).
+
+## No stray imgui.ini in the game folder, and DETACH waits for open dialogs (rows 200-201)
+- io.IniFilename was never set, so ImGui's default context auto-saved its own window state to
+  imgui.ini in the HOST process' working directory - a stray file in the game folder (silently
+  failing on write-protected installs) duplicating what settings.ini next to the DLL already
+  persists deliberately.  InitImGui now sets io.IniFilename = NULL; settings.ini stays the one
+  persistence route.
+- DllMain DETACH mitigated the unload race with a fixed Sleep(50), but a modal dialog
+  (Gui::ModalBoxA) blocks the render thread inside a frame for as long as the user leaves it
+  open.  Past 50 ms the ImGui context was destroyed under a live dialog, and once it closed the
+  rest of the frame drew with no context.  gui.h now exposes Gui::ModalActive() (an
+  inline-function static set around MessageBoxA), and DETACH waits for it in 25 ms ticks - capped
+  at ~2 s so the loader lock cannot stall indefinitely; past the cap it proceeds exactly as
+  before, honestly commented.
+- The include graph was regenerated for the new main.cpp -> gui.h edge (77 to 78 edges).
+- No UI surface involved; all eight previews stay byte-identical.
+
+## The include graph sees commented includes, and the uptime counter is named honestly (rows 198-199)
+- docs/gen_include_graph.py demanded end-of-line right after the closing include quote, so every
+  include carrying a trailing "// why" comment - the house style in main.cpp and six other files -
+  was invisible to it.  The graph was missing 14 edges, among them all six of main.cpp's commented
+  includes and the settings.cpp -> config.h edge row 194 added, while the README claimed the graph
+  was "generated from the actual #include lines".  INCLUDE_RE now accepts a trailing line comment;
+  re-running the script takes the graph from 63 to 77 edges and makes the claim true again.
+- README and the default.cpp comment sold the landing uptime counter as "session uptime", but
+  Perf::Sample() ticks only while the overlay renders - perf.h itself says "menu-open uptime" and
+  the card label says "Menu open".  Both README mentions and the comment now say menu-open uptime,
+  matching the header, the label and the actual behaviour.
+- No UI surface involved; all eight previews stay byte-identical.
+
+## The settings-folder button opens Explorer again, and the frame flowchart caught up (rows 196-197)
+- "Open settings folder" passed lpFile = NULL with "/select,..." in lpParameters whenever
+  settings.ini existed.  ShellExecute needs an object to open, so the call failed in exactly the
+  normal returning-user case and every click answered with the warn toast - "Explorer could not be
+  started" - instead of opening anything.  The highlight route now launches explorer.exe with a
+  quoted /select, command line (DLL folders with spaces work); the first-start fallback keeps
+  verb "explore" on the folder itself, unchanged.
+- The README hkPresent flowchart predated several shipped rows: the InitImGui node omitted the
+  DPI sample / Settings::Load / ApplyScale order, the per-frame node omitted the live DPI
+  re-sample (row 187), the toggle node omitted the capture and text-input suppressions
+  (rows 155/164), and the DETACH chain omitted the Settings::Save flush.  All four mermaid nodes
+  now mirror the shipped code.
+- No UI surface changed in its default state; all eight previews stay byte-identical.
+
+## A dead toggle key can no longer brick the overlay, and a failed session no longer overwrites the ini (rows 194-195)
+- A hand-edited settings.ini could carry a VK that never fires on any keyboard (mouse buttons,
+  unassigned codes).  The load clamp only range-checked 1..254, so the toggle stayed dead, the
+  menu could not open, and Config's one-time invalid-key reset - which needs an open menu - never
+  ran: the overlay was bricked with no way back short of hand-editing the file.  Load() now
+  validates with the same predicate Config uses, exported from config.h as
+  Config::ValidToggleKey.  Printable bindings stay allowed at load: the present loop already
+  guards them while a text widget consumes input (row 164) and Config retires them on first visit
+  (row 142).  An unassignable key resets to INSERT with an activity line naming the dead key.
+- DllMain DETACH flushes settings unconditionally.  When the hook never attached (non-D3D11 host,
+  bind refused, gave up after retries), Load() had never run and Current still held the compiled
+  defaults - unloading then overwrote a perfectly good settings.ini with them.  Save() refuses to
+  write before Load() has run; a failed session leaves the file exactly as it found it.
+- No UI surface involved; all eight previews stay byte-identical.
+
+## The trace log documents itself - and closes its sessions (rows 192-193)
+- README documented settings.ini in three places but never mentioned EBengin.log, the trace file
+  row 188 put next to it, and the startup / DETACH flowcharts predated the trace lines.  The
+  main.cpp table row, the give-up and hook-live flowchart nodes, the DETACH chain and the
+  persistence bullet now name the log: one timestamped line per inject - attach, the failure that
+  stopped it, or the clean unload - capped at 64 KB.
+- The trace recorded the attach and every failure outcome but never a clean end, so a report
+  could not tell an orderly unload from a crash or a task kill.  DllMain DETACH now closes the
+  session with a "session ended (clean unload)" line after kiero::shutdown - present in the log
+  only when DETACH actually ran, which is exactly the distinction the line exists to draw.
+- No UI surface involved; all eight previews stay byte-identical.
+
+## Trace honesty on unload, and a retireable save-failure flag (rows 190-191)
+- The hook retry loop also ends when an unload arrives mid-retry, and that path fell through to
+  the "gave up after 120 attempts" log line - a lie in the trace for what was a clean shutdown.
+  The unload exit now returns before the gave-up line, which belongs to a full 120-attempt
+  exhaustion only.
+- The settings save-failure flag latched for the whole session: a one-off folder lock (scanner,
+  sync client) kept the About block reporting "settings not writable - changes are lost on
+  restart" long after the next save had succeeded.  A successful write now retires the flag, with
+  an activity line naming the recovery, so the permanent About warning matches reality again.
+- No UI surface changed in its default state; all eight previews stay byte-identical.
+
+## Hook outcomes leave a trace, and the trace stays bounded (rows 188-189)
+- A failed hook attach was a silent no-op: the inject looked like "did nothing", with no trace
+  anywhere to tell "not a D3D11 host" from "present bind refused" from "gave up after 120
+  retries".  MainThread now writes one timestamped line per outcome - attach, bind refused, not a
+  D3D11 renderer, swap chain module missing, gave up - to EBengin.log next to the DLL, the same
+  folder convention settings.ini already uses.  Deterministic outcomes return straight after
+  logging, so the gave-up line belongs to the retry path alone.
+- The trace log survives injects, so it would grow without bound on a session-heavy machine.
+  LogHookLine caps it at 64 KB: past that it starts over instead of appending forever.
+- No UI surface is involved; all eight previews stay byte-identical.
+
+## Scale-consistent defaults and live DPI (rows 186-187)
+- WindowPadding, ItemSpacing, IndentSpacing, ScrollbarSize and GrabMinSize keep ImGui's compiled
+  defaults - ApplyStyle never sets them, so the row-185 compiled-base rescale could not cover
+  them, and at any scale other than 100% they stayed at 100% size: cramped rhythm around doubled
+  text, a hairline scrollbar under a doubled frame.  ApplyScale now scales exactly those five by
+  the ratio between the previous and the new ScaleFactor (a no-op while k is unchanged, so calls
+  stay idempotent), and ApplyStyle publishes k = 1 through Settings::StyleMetricK() so the
+  tracking survives a restyle.
+- The host DPI was sampled once at init, so dragging the game window to a monitor with a
+  different DPI left fonts and every DPI-folded metric at the old factor until re-inject.
+  hkPresent re-samples GetDpiForWindow per frame (one cheap call) before NewFrame and re-runs
+  ApplyScale only when the factor actually changed; the font rebake, the WindowMinSize change and
+  the row-186 metric ratio ride the existing scale-change paths, and the shell's reachability
+  re-clamp keys off WindowMinSize anyway.
+- Renders run at 100% interface scale and DPI 1, where both changes are no-ops, so all eight
+  previews stay byte-identical.
+
+## Key scene in the renderer docstring, scale-safe style metrics (rows 184-185)
+- The render_preview.py docstring never mentioned the row-155 key scene: neither the opening
+  paragraph nor the usage block listed --key / preview_key.png, and the constants list skipped
+  the key card.  All three now carry it alongside the other seven scenes.
+- Roundings and FramePadding are absolute style values, not font-derived: FontScaleMain doubles
+  text and frame heights while a 6px radius on a doubled frame reads as a bevel and 8x6 padding
+  squeezes 40px text - and since ApplyStyle's bases carry no DPI, a 144% DPI host showed the same
+  squeeze at 100% interface scale.  Settings::ApplyScale() now rescales the ApplyStyle bases
+  (WindowRounding, ChildRounding, FrameRounding, PopupRounding, TabRounding, ScrollbarRounding,
+  GrabRounding, FramePadding) with the same ScaleFactor() the rest of the shell uses; recomputed
+  from the compiled constants on every call, so it stays idempotent, and at k == 1 it reproduces
+  ApplyStyle exactly - which is why every preview (rendered at 100%, DPI 1) stays byte-identical.
+
+## README key-render placement and open-header hover feedback (rows 182-183)
+- The row-155 README sentence about the key render sat inside the HUD paragraph - directly above
+  the HUD image - and called --key the seventh render, although the landing tab is numbered
+  seventh and the key card is the eighth; the key image was never embedded either.  The sentence
+  moved into its own paragraph after the landing-tab render, renumbered eighth, with
+  docs/preview_key.png embedded like every other scene.
+- An open collapsing header rests on the solid Header colour, and ImGuiCol_HeaderHovered used the
+  same RGB at 100 alpha - the hover overlay blended to exactly the colour underneath, i.e. zero
+  hover feedback on open headers (the resources dump preview sits in one).  HeaderHovered now
+  uses the hover ramp blue (55,120,181) at the same alpha: subtle over the window background on
+  closed headers, clearly readable over the solid header.
+- No preview scene depicts a hover state, so all eight previews stay byte-identical.
+
+## Two unthemed tokens: table borders and the scroll groove (rows 180-181)
+- The shell's two-column divider is a table inner border, and table borders read
+  ImGuiCol_TableBorderLight/Strong - neither was themed, so the one vertical rule in the
+  project drew in ImGui's default grey instead of the navy every other rule uses (and the
+  preview renderer models).  Both tokens now carry the Border navy (42,74,123).
+- The scroll groove of any overflowing child - the activity log once it fills - kept ImGui's
+  near-black default track under the themed grab.  ImGuiCol_ScrollbarBg now uses the rail navy
+  (16,31,52), reading as part of the same surface family.
+- The renderer already drew the divider in navy and no preview scene shows a scrollbar, so all
+  eight previews stay byte-identical.
+
+## Perf graph: AA-readable bad frames, right-pinned now (rows 178-179)
+- The perf graph's bad-frame bars used pure red at 200 alpha on the navy canvas, which measures
+  ~2.6:1 - under the 3:1 WCAG AA asks of non-text marks.  They now use the lighter red
+  (255,107,107) of the row-157/175 ramp at the same alpha, ~3.7:1 on the canvas, keeping a single
+  red in the project.
+- While the frame-time history was shorter than the 120-slot ring, the bars grew from the left
+  edge, so "now" sat mid-canvas for the first two minutes of every session - and the hover
+  readout mapped to that left-pinned layout.  The newest bar is now pinned to the right edge
+  (offset by the missing slots), the way every ring-buffer graph reads, with the hover index
+  shifted by the same offset.
+- The preview renderer models the graph as layout only (no bars), so all eight previews stay
+  byte-identical.
+
+## Clipboard writer: bounded retry and a Unicode format (rows 176-177)
+- The shared clipboard writer (Config's "Copy diagnostics", the landing tab's session-log copy,
+  the trigger and dump-path copies) tried OpenClipboard exactly once, so a single transiently
+  busy viewer - Excel mid-copy, a clipboard manager syncing - produced a "clipboard busy" error
+  although the same copy a moment later would have succeeded.  It now retries up to five times at
+  15ms intervals before reporting failure; the whole budget stays far below anything a user
+  perceives as a stall.
+- The writer offered CF_TEXT only, i.e. ANSI: text outside the active code page (an umlaut in a
+  path, a non-ASCII Lua string) arrived mangled in Unicode-aware paste targets, which is most of
+  them.  It now also offers CF_UNICODETEXT via MultiByteToWideChar(CP_UTF8); the second global
+  follows the same free-on-refuse rule as the first, and either format being accepted counts as a
+  successful copy.
+- No visual surface is involved; all eight previews stay byte-identical.
+
+## Gate focus on every open, AA red in the About block (rows 174-175)
+- The key field focus was a one-shot static: it fired on the very first open only.  Close the
+  overlay while the gate is still locked and reopen it, and the window took focus but the field
+  did not - Enter did nothing until a click or Tab moved into the field.  The gate now consumes
+  the reopen flag (the sidebar, which normally clears it, never runs while gated) and drives
+  both handoffs from it, window and field; a successful unlock hands the flag on to the splash
+  so its Continue button keeps the keyboard handoff every other open path gives it.
+- The Config About block drew the "settings not writable - changes are lost on restart" line in
+  pure red, which measures ~3.7:1 on the pane and sat under WCAG AA for normal text - the same
+  defect family the row-157 wrong-key line had.  It now uses the lighter red (255,107,107,
+  ~5.2:1) established there, keeping one red ramp in the project.
+- Both are conditional states (a reopen, a save failure), so the default-state previews - all
+  eight - stay byte-identical.
+
+## Resources list consistency: one background, explained empty (rows 172-173)
+- The stopper list box used a brighter frame background (31,58,97) than the very same list
+  family on the other two Resources sub-tabs (20,38,63), so switching sub-tab visibly re-lit the
+  box for no reason.  It now uses the shared list background.
+- A resource filter that matched nothing left an empty list box with no explanation on both
+  filtered lists (file browser and stopper) - an empty box reads as a broken list, not as a
+  filter result.  Both lists now count their visible rows and draw a muted "No resource matches
+  the filter." line inside the list box when the count is zero; keeping the hint in-list means it
+  costs no layout height in a shell that has no scrollbar to give.  The genuinely empty case
+  ("No resources left to stop.") keeps its own distinct message.
+- The preview resources scene shows the file list with an empty filter, so all eight previews
+  stay byte-identical.
+
+## Toast preference consistency (rows 170-171)
+- The key card rendered its toast stack regardless of the "Toast notifications" preference,
+  while the shell gates its stack on exactly that pref; with the pref off, a wrong-key attempt
+  still popped a card over the gate.  The key card now gates RenderScreen() on
+  Settings::Current.Toasts, exactly like the shell gates Render().
+- With the pref off, nothing rendered and therefore nothing aged: pushes kept storing, and up
+  to four unseen cards burst onto the screen the moment the pref was switched back on.
+  Toasts::Push now discards entries while the pref is off - the activity log keeps the trace
+  either way, and Config's switch-off Clear() remains as the second guard.
+- Both are preference-path fixes; nothing visual changed in the default state, and all eight
+  previews stay byte-identical.
+
+## Modal dialogs no longer leak time or key edges (rows 168-169)
+- A modal dialog stops the frame loop for its whole lifetime, so both gap heuristics - the
+  shell's reopen fade and the row-167 capture retirement - read the dialog duration as idle
+  time: every confirmation dialog longer than half a second replayed the open fade and reset
+  the keyboard nav cursor when it closed, on top of a shell the user never left, and a reset
+  confirmation opened on the Config tab could retire an armed capture on its way out.
+  Gui::ModalBoxA now measures its wall-clock duration (GetTickCount64, because ImGui::GetTime
+  freezes with the frame loop) and publishes it through Gui::ModalSeconds(); both heuristics
+  subtract what is new since their last frame before applying the 0.5s test.
+- The row-165 drain covered only the toggle edge, but an armed key-capture scan reads every
+  key - so a press during a dialog survived as a stale edge and bound itself on the first frame
+  after the dialog closed.  The wrapper now drains the whole keyboard range (vk 7..254; 1..6 are
+  mouse buttons, which neither the capture scan nor the toggle poll reads) after every dialog.
+  Presses inside a dialog belong to the dialog.
+- Both are timing/input-path fixes; nothing visual changed, and all eight previews stay
+  byte-identical.
+
+## Capture behaviour: silent navigation, retired on leave (rows 166-167)
+- While a key capture was armed, every press that was neither ESC nor bindable hit the refuse
+  branch - including pure navigation keys (Tab, Enter, arrows, modifiers).  Keyboard users
+  moving around during a capture therefore collected a warn toast and an activity entry per
+  press.  The refuse branch now only answers printable keys (A-Z, 0-9, space), the ones a user
+  could plausibly expect to bind; everything else is navigation and is ignored silently, with
+  the capture staying armed.
+- An armed capture survived tab switches although its scan only runs while the Config tab
+  renders - and since row 164 the present loop suppresses the toggle flip while any capture is
+  armed, so on every other tab, with no capture UI visible, the toggle key simply looked dead.
+  Config::Render now retires the capture when more than half a second passes without a Config
+  frame (the same gap heuristic the shell uses for its reopen fade), which restores the toggle
+  key the moment the user leaves the tab.
+- Both are capture-path fixes; nothing visual changed, and all eight previews stay
+  byte-identical.
+
+## Toggle-edge hygiene: capture guard and modal drain (rows 164-165)
+- A toggle-key press while the Config key capture was armed flipped the overlay shut
+  mid-capture: the present-loop poll runs before Menu::Render() and consumed the key edge, so
+  the capture never saw the press and the menu just closed.  The capture flag moved from a
+  function-local static to namespace scope behind a Config::IsCapturing() accessor, and the
+  present loop suppresses the flip - while still draining the edge - whenever a capture is
+  armed, so one press can no longer both bind and close.
+- MessageBoxA spins a modal message loop, which stops the present loop and its toggle-edge poll
+  for as long as the dialog is open; a toggle press during any confirmation dialog therefore
+  survived as a pending edge and flipped the menu on the first frame after the dialog closed.
+  All 23 dialog sites in the project (exec, config, resources, luamenus) now route through a
+  Gui::ModalBoxA wrapper that drains the toggle edge on the way out.  Dialog texts, flags and
+  return handling are untouched.
+- Both are input-path fixes; nothing visual changed, and all eight previews stay byte-identical.
+
+## Toast anchor for small surfaces and card drop shadows (rows 162-163)
+- Toasts::Render() anchored the stack to the calling window's bottom-right corner, which is
+  right for the 900x540 shell but put the toast cards on top of the key card's own Unlock button
+  and hint line inside its 460x232 window.  The stack painter is a shared helper now: Render()
+  keeps the shell anchor, and the new RenderScreen() draws the same stack - same ageing, same
+  click-to-dismiss rules - anchored to the display's corner on the foreground draw list.  The
+  key card calls RenderScreen(); nothing else changes call sites.
+- The shell's soft three-rect drop shadow was missing on the two floating cards (splash, key),
+  which read as pasted onto bright game scenes.  Both cards draw the same recipe one frame late
+  on the background draw list, with the rect captured right after Begin where the fixed window
+  size is final.  The preview renderer already modelled both shadows, so all eight previews
+  remain byte-identical.
+
+## Key paste tolerance and a scale-safe sidebar logo (rows 160-161)
+- A pasted key carries invisible trailing whitespace - a space, tab or line end - and a
+  password field shows dots, so such an attempt failed the compare with no clue why.  The
+  compare now trims leading/trailing whitespace around the buffer (a small helper working on a
+  local copy); the buffer itself stays as typed and is zeroed on success, the wrong-key path is
+  untouched, and the check remains the local plaintext compare it was.
+- The sidebar logo was placed with the raw constants 74 (image) and 58 (text fallback) while the
+  sidebar width and the logo both scale with the interface scale, so at 70% or 200% the logo sat
+  visibly left of centre in the rail.  Both offsets are derived from the scaled widths now; at
+  100% the image offset becomes 74.5, i.e. exactly centred.  The renderer mirror moved with it,
+  so the five sidebar previews shifted one pixel (intentional), while HUD, splash and key card
+  stay byte-identical.
+
+## Key-card nudge and logo-click cursor handoff (rows 158-159)
+- Enter or Unlock on an empty password field used to produce the full wrong-key answer - red
+  verdict line, "Key refused." activity entry, warn toast - for something that was never an
+  attempt.  Empty submits now answer with a muted inline nudge in the verdict's line slot
+  ("Type the key first - then Enter or Unlock."); no verdict, no log entry, no toast, no card
+  height change, and the nudge retires on the next keystroke exactly like the verdict does.
+- The sidebar logo home button (row 150) switched to the landing tab but left the keyboard nav
+  cursor on whatever widget held it, so the next Tab/arrow jump started from the old tab - the
+  row-152 defect on the home path.  The logo is an image item rather than a widget, so a click
+  never moved the cursor by itself; it now sets the same handoff flag Ctrl+Tab uses, consumed
+  by the sidebar loop in the same frame (first entry, since the landing tab has no row).
+- Both are display/feedback-level; gate logic and tab persistence are untouched, and no
+  preview changes (the nudge is a conditional state like the verdict and the Caps hint).
+
+## Key-card feedback follow-ups (rows 156-157)
+- The row-155 key is lower-case and compared case-sensitively, so with Caps Lock on every
+  attempt failed looking exactly like a wrong key - nothing told the user why.  The card now
+  reads the Caps-Lock toggle state (GetKeyState; no entered text is inspected), grows by one
+  line while it is on and states "Caps Lock is on - the key is lower-case." in warn amber.
+- The wrong-key line inherited pure red, which measures ~3.7:1 on the card background and so
+  sat under WCAG AA for normal text; it now uses a lighter red at ~5.2:1.  It also answered the
+  previous attempt even while the field was already being edited again - a fresh keystroke now
+  clears the verdict (IsItemEdited, read directly after the input, before any later widget).
+- Both changes are display-only; the gate logic (plaintext local compare, unlock once per
+  inject) is untouched, and the default-state preview `docs/preview_key.png` is unchanged.
+
+## Session key gate in front of splash and shell (row 155)
+- The overlay opened straight into its splash and shell for anyone who could press the toggle
+  key; the owner wanted a key in front of it.  A centred key card now replaces both until the
+  key matches: password field (dots, keyboard-focused on first frame), Enter or the Unlock
+  button submit, a wrong key answers inline in red plus an Activity entry and a warn toast,
+  and success unlocks once per inject, zeroes the buffer and logs "Key accepted".
+- The key is the owner's "eb", compared in plaintext against a local constant: this build talks
+  to no server, so the card is an access gate for the overlay, not a security claim - and it
+  says exactly that ("Local gate - no server is contacted.").  Nothing game-affecting sits
+  behind it either; the gate is interface-level like everything else here.
+- New preview render `python docs/render_preview.py --key` depicts the card (empty password
+  field) as `docs/preview_key.png`; the seven existing previews are untouched by the change.
+
+## Reset scope and a persistent dump target (rows 153-154)
+- The settings reset assigned the whole Prefs struct, which silently dropped the recent-files
+  list - editor history, not an interface preference, and exactly the kind of thing the buffer
+  itself survives.  The reset now preserves Recent (and the dump-target name) across the
+  assignment, and its confirm text names the HUD corner among what gets overwritten.
+- The dump-target resource combo fell back to _cfx_internal on every inject, so anyone dumping
+  into the same resource re-picked it every session.  The selection now persists by name in
+  `[menu] resource` - by name, not index, because the stopper erases list entries and a stored
+  index could otherwise name a stranger.  Resources::Init restores it when the list still
+  carries it; combo click, list click and the stopper's erase all keep the stored name in step,
+  and a reset leaves it untouched.
+
+## Heading weight and Ctrl+Tab focus follow (rows 151-152)
+- Every string in the shell rendered in one weight - Bahnschrift 20 regular - so tab headings
+  carried hierarchy by colour alone.  A real bold instance of the variable font needs the
+  FreeType builder (not vendored), and a larger header font would have cost every pane four
+  pixels of vertical budget (the Config left pane runs at 530 of 532).  Gui::SectionTitle now
+  fakes the weight: a second draw-list pass of the same string, offset by a scale-aware 0.7px,
+  same font and colour - zero layout cost.  The five shell previews model the doubled draw.
+- Ctrl+Tab cycling left the keyboard-nav cursor on the old tab's widget, so the next Enter or
+  Space activated something the user could not see in the new tab.  The cycle handler now sets
+  the same one-shot flag the reopen path uses: the nav cursor lands on the new tab's sidebar
+  entry next frame.
+
+## A way home: logo button and Ctrl+Tab tab cycling (row 150)
+- The landing tab - diagnostics graph, uptime line, session activity - was a one-way street:
+  once a sidebar tab was open, nothing in the shell returned to Tab 0 for the rest of the
+  session.  The sidebar logo is now a home button: hover shows the hand cursor and a tooltip,
+  a click returns to the landing tab and persists it like any sidebar click; the text-logo
+  fallback (missing EBengin.png) works too, since its Dummy is an item as well.
+- Ctrl+Tab / Ctrl+Shift+Tab now cycle all five tabs, landing included, persisted the same way.
+  Safe while typing: the vendored TextEditor consumes plain Tab for indent but checks !ctrl,
+  so the chord reaches the shell untouched.  The Config nav hint grew the sentence
+  "Ctrl+Tab switches tabs." and wraps to two lines in the right pane; the renderer's
+  single-line assert was replaced with a wrap-width check, since TextWrapped wraps by design.
+
+## HUD plate corner setting and Recent-entry removal (rows 148-149)
+- The FPS HUD plate sat pinned top-left, the one corner game HUDs (minimap, score strips)
+  almost always own.  `[ui] hudcorner` (0=top left .. 3=bottom right, clamped on load) and a
+  "Corner" combo under the FPS HUD switch - greyed together with the HUD - now place the plate
+  in any screen corner; the plate math keeps the 10px margin and the AA backing from row 147.
+  The three-line keyboard-nav hint moved from the Interface pane to the bottom of the right
+  pane (one line at that width): the combo row exhausted the left pane's third-of-column
+  budget, and the preview renderer's fit-assert refused to render the overflow, so the layout
+  was fixed before any compiler saw it.  Label is "Corner", not "Plate corner" - at the shell's
+  20px font the longer label plus the widest value clip the pane; the tooltip says the rest.
+- Right-click removes an entry from the Recent popup: a renamed or moved file used to linger
+  in `[recent]` until picking it failed with the unreadable-file dialog.  Removal persists
+  immediately and lands in Activity plus an info toast; both tooltips name the interaction.
+
+## AA contrast pass: muted ink and the HUD plate (row 147)
+- Measured audit (WCAG relative luminance, not eyeballed): the muted secondary ink - brand
+  accent at 60% alpha, i.e. blend (64,109,154) - held 2.8:1 on the canvas and 3.1:1 on the rail,
+  below the 4.5:1 AA line, at 18 call sites plus ImGui's TextDisabled.  The HUD plate fared worse:
+  with backing alpha 160 a bright game scene washed the credit line out to ~1.0:1, and the accent
+  FPS line sat at 4.4:1 on the plate.
+- Phase 2 token: ColMuted #7DAFE1 (a lighter tint of the accent) in menu_style.h - 6.6:1 on canvas,
+  7.2:1 on rail, 5.0:1 on panel, so the visual hierarchy survives the fix.  It replaces all 18
+  hardcoded sites and TextDisabled; the HUD backing goes 160 to 220 and the FPS line accent to
+  white (12.7:1 worst case).  Accent #5D9CD6 stays reserved for the interactive ramp and surfaces
+  where it measures >=4.5:1.
+- Every change carries a `// UI:` marker per the upgrade prompt; the preview renderer models the
+  new token and backing, all seven previews re-rendered, HUD and shell visually checked.
 
 ## Recent files: one click back to the last scripts (row 146)
 - Nothing remembered which files the editor had used, so every session retreaded the file

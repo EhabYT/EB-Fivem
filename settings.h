@@ -19,10 +19,12 @@ namespace Settings
 		bool Animations = true;  // open fade, sliding tab marker, switch easing
 		bool Toasts     = true;  // non-blocking notifications (toasts.h)
 		bool Hud        = true;  // FPS/frame-time line over the scene, overlay closed
+		int  HudCorner  = 0;     // UI: row 148 - plate corner: 0 TL, 1 TR, 2 BL, 3 BR
 		bool ShowWhitespace = false;  // editor whitespace dots
 		int  ResourceTab    = 0;      // Resources sub-tab: 0 none, 1 browser, 2 triggers, 3 stopper
 		int  ScalePercent   = 100;    // interface scale 70..200 (%), applied as style.FontScaleMain
 		std::vector<std::string> Recent;  // last used editor files, newest first, cap 5
+		std::string ResourceName;         // UI: row 154 - persisted dump-target resource
 	};
 
 	extern Prefs Current;        // defined in settings.cpp
@@ -33,6 +35,16 @@ namespace Settings
 	// the compiled 900x540 layout would otherwise render small.  Environment-
 	// derived, so it is not part of the persisted Prefs.
 	extern float DpiScale;
+
+	// UI: row 186 - ratio tracking for the style metrics this project never
+	// sets explicitly (WindowPadding, ItemSpacing, IndentSpacing, scrollbar
+	// and grab size): ApplyScale scales them by the change ratio, and
+	// ApplyStyle() - which restores ImGui's defaults - publishes k = 1 here.
+	inline float& StyleMetricK()
+	{
+		static float k = 1.0f;
+		return k;
+	}
 
 	void Load();
 	void Save();

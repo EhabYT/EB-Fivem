@@ -18,7 +18,10 @@ namespace Default
 		ImGui::Text("No section has been selected. Click a button on the left navbar.");
 
 		// Diagnostics: the history behind the sidebar's instantaneous FPS line -
-		// 120 frames of frame time, session uptime and the action count.
+		// UI: row 199 - "session uptime" overstated the counter: Sample() ticks
+		// only while the overlay renders, so it is menu-open time, and the label
+		// below already says "Menu open".  Comment and README now agree with it.
+		// 120 frames of frame time, menu-open uptime and the action count.
 		ImGui::Spacing();
 		Gui::Seperator("##default_seperator_3");
 		ImGui::Text("Diagnostics");
@@ -26,7 +29,7 @@ namespace Default
 		char diag[128];
 		snprintf(diag, sizeof(diag), "Menu open %s  |  %u actions  |  %.0f FPS now",
 			Perf::UptimeString(), Activity::TotalCount(), ImGui::GetIO().Framerate);
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", diag);
+		ImGui::TextColored(ColMuted, "%s", diag);
 
 		// Session action log: actions whose only other feedback is a message box
 		// (loads, dumps, copies, stop/run requests) leave a timestamped trace
@@ -70,11 +73,20 @@ namespace Default
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Clear##activity", ImVec2(Settings::Px(60.0f), Settings::Px(20.0f))))
-				Activity::Clear();
+			{
+				// UI: row 204 - the session log is the only timestamped trace the
+				// session leaves (the Copy comment above says so), in memory only
+				// and unrecoverable once cleared - the same loss family the
+				// editor Clear/Revert, the stopper and the interface reset all
+				// confirm for.  One mis-click used to erase it without a word.
+				if (Gui::ModalBoxA("Clear the session log?\nThe trace of this session cannot be recovered.",
+						"EBengin", MB_YESNO | MB_ICONWARNING) == IDYES)
+					Activity::Clear();
+			}
 		}
 		if (entries.empty())
 		{
-			ImGui::TextColored(ImColor(93, 156, 214, 153), "Nothing yet this session.");
+			ImGui::TextColored(ColMuted, "Nothing yet this session.");
 		}
 		else
 		{

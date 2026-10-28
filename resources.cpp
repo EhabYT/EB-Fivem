@@ -1,4 +1,6 @@
 #include "resources.h"
+#include "settings.h"   // UI: row 154 persisted dump-target name
+#include "menu_style.h"   // ColMuted
 #include "clipboard.h"
 #include "assets.h"
 #include "activity.h"
@@ -98,6 +100,15 @@ namespace Resources
 
 	void Init()
 	{
+		// UI: row 154 - the dump-target selection used to fall back to
+		// _cfx_internal on every inject; restore the persisted name when the
+		// list still carries it (the stopper can have erased it meanwhile).
+		for (int i = 0; i < (int)resources.size(); ++i)
+			if (Settings::Current.ResourceName == resources[i])
+			{
+				selectedResource = i;
+				break;
+			}
 		dumper.SetShowWhitespaces(false);
 		dumper.SetReadOnly(true);
 		dumper.SetPalette(TextEditor::GetDarkPalette());
@@ -147,13 +158,13 @@ namespace Resources
 			// announced a dump that had not happened yet.
 			if (ok)
 			{
-				MessageBoxA(NULL, (std::string("Dump saved to:\n") + dir).c_str(), "EBengin", MB_OK | MB_ICONINFORMATION);
+				Gui::ModalBoxA( (std::string("Dump saved to:\n") + dir).c_str(), "EBengin", MB_OK | MB_ICONINFORMATION);
 				Activity::Push("Dump saved to " + dir);
 				Toasts::Push(Toasts::Success, "Dump saved to " + dir);
 			}
 			else
 			{
-				MessageBoxA(NULL, (std::string("Failed to write the dump to:\n") + dir +
+				Gui::ModalBoxA( (std::string("Failed to write the dump to:\n") + dir +
 					"\n\nIs the folder writable?").c_str(), "EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push("Dump FAILED for " + dir);
 			}
@@ -170,7 +181,7 @@ namespace Resources
 			const std::string dumpDir = GetDumpDirectory();
 			if (!CopyTextToClipboard(dumpDir.c_str()))
 			{
-				MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
+				Gui::ModalBoxA( "The clipboard is busy - nothing was copied.",
 					"EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push("Copy failed: clipboard busy");
 			}
@@ -256,10 +267,14 @@ namespace Resources
 				static int openRes = -1;
 				if (openRes >= (int)resources.size())
 					openRes = -1;   // the stopper erases entries
+				// UI: row 173 - a filter that matches nothing left an empty box
+				// with no explanation; the count drives the in-list hint below.
+				int shown = 0;
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
+					++shown;
 					ImGui::SetNextItemOpen(openRes == i);
 					const bool open = ImGui::CollapsingHeader(resources[i]);
 					if (open)
@@ -272,7 +287,11 @@ namespace Resources
 						{
 							// Was TextColored(color, std::string.c_str()): the resource
 							// name is used as a printf format string.
-							ImGui::TextColored(ImColor(255, 0, 0, 255), "%s doesn't have any files.", resources[i]);
+							// UI: row 202 - pure red measured ~3.4:1 on the list navy, under
+							// WCAG AA for normal text; the ramp red from the row-157/175
+							// fixes holds ~5:1 and keeps one red in the project.  Last
+							// pure-red spot in shipped UI (demo.cpp is the unwired sheet).
+							ImGui::TextColored(ImColor(255, 107, 107, 255), "%s doesn't have any files.", resources[i]);
 						}
 						else
 						{
@@ -292,6 +311,11 @@ namespace Resources
 						}
 					}
 				}
+				// UI: row 173 - inside the list box so the hint costs no layout
+				// height (the shell has no scrollbar to give); muted like the
+				// other empty states.
+				if (shown == 0 && !resources.empty())
+					ImGui::TextColored(ColMuted, "No resource matches the filter.");
 				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
@@ -319,7 +343,7 @@ namespace Resources
 						{
 							if (!CopyTextToClipboard(Triggers[i]))
 							{
-								MessageBoxA(NULL, "The clipboard is busy - nothing was copied.",
+								Gui::ModalBoxA( "The clipboard is busy - nothing was copied.",
 									"EBengin", MB_OK | MB_ICONERROR);
 								Activity::Push("Copy failed: clipboard busy");
 							}
@@ -333,7 +357,7 @@ namespace Resources
 							}
 						}
 						else
-							MessageBoxA(NULL, "Nothing to copy.", "EBengin", MB_OK | MB_ICONERROR);
+							Gui::ModalBoxA( "Nothing to copy.", "EBengin", MB_OK | MB_ICONERROR);
 					}
 					ImGui::PopID();
 				}
@@ -351,17 +375,29 @@ namespace Resources
 			// 42px, so the 48px reserve is the right one here.
 			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
 
-			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(31, 58, 97, 255));
+			// UI: row 172 - the stopper list used a brighter frame background
+			// (31,58,97) than the very same list family on the other two sub-tabs
+			// (20,38,63), so switching sub-tab visibly re-lit the box for no
+			// reason; one list family, one background.
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(20, 38, 63, 255));
 			if (ImGui::BeginListBox("##resourcestopperbox", listSize3))
 			{
+				int shown = 0;   // UI: row 173, same hint as the file list
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
+					++shown;
 					const bool is_selected = (selectedResource == i);
 					if (ImGui::Selectable(resources[i], is_selected))
+					{
 						selectedResource = i;
+						Settings::Current.ResourceName = resources[i];
+						Settings::Save();
+					}
 				}
+				if (shown == 0 && !resources.empty())
+					ImGui::TextColored(ColMuted, "No resource matches the filter.");
 				ImGui::EndListBox();
 			}
 			ImGui::PopStyleColor();
@@ -370,7 +406,7 @@ namespace Resources
 
 			if (resources.empty())
 			{
-				ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to stop.");
+				ImGui::TextColored(ColMuted, "No resources left to stop.");
 				return;
 			}
 
@@ -379,7 +415,7 @@ namespace Resources
 			{
 				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 				{
-					MessageBoxA(NULL, "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
+					Gui::ModalBoxA( "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
 				}
 				else
 				{
@@ -387,7 +423,7 @@ namespace Resources
 					// Erasing is the one visible state change among the stubs, and
 					// the entry stays gone until the next start - the same loss
 					// family as Clear and Reset, so it confirms first.
-					if (MessageBoxA(NULL, (std::string("Remove '") + stopped
+					if (Gui::ModalBoxA( (std::string("Remove '") + stopped
 						+ "' from the resource list?\nThis does not stop it on the server.").c_str(),
 						"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 					{
@@ -405,10 +441,15 @@ namespace Resources
 
 						if (selectedResource >= (int)resources.size())
 							selectedResource = resources.empty() ? 0 : (int)resources.size() - 1;
+						// UI: row 154 - keep the persisted name in step with the
+						// post-erase selection, so a restart restores what is shown.
+						Settings::Current.ResourceName = resources.empty()
+							? std::string() : resources[selectedResource];
+						Settings::Save();
 
 						// Still no actual stop logic in this build - but at least the list
 						// is consistent and the user is told the truth.
-						MessageBoxA(NULL,
+						Gui::ModalBoxA(
 							(std::string("'") + stopped + "' removed from the list.\n\n"
 								"Stopping the resource on the server is not implemented in this build.").c_str(),
 							"EBengin", MB_OK | MB_ICONINFORMATION);

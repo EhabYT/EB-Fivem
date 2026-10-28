@@ -26,7 +26,12 @@ namespace Toasts
 			switch (kind)
 			{
 			case Success: return IM_COL32(93, 156, 214, a);   // #5D9CD6 accent
-			case Warn:    return IM_COL32(255, 0, 0, a);      // same red as the error texts
+			// UI: row 202 - was pure (255,0,0), the same defect row 178 fixed on
+			// the perf bars: ~2.6:1 against the card navy, under the 3:1 WCAG AA
+			// asks of non-text marks, and the comment claimed "same red as the
+			// error texts" while every error text in the project had already
+			// moved to the row-157/175 ramp red.  One red in the project.
+			case Warn:    return IM_COL32(255, 107, 107, a);  // ramp red, ~3.7:1 on the card
 			default:      return IM_COL32(55, 120, 181, a);   // #3778B5 hover blue
 			}
 		}
@@ -34,6 +39,13 @@ namespace Toasts
 
 	void Push(Kind kind, const std::string& text)
 	{
+		// UI: row 171 - with the pref off nothing renders, and so nothing ages;
+		// storing anyway let up to four unseen cards burst onto the screen the
+		// moment the pref was switched back on.  Discard at push instead; the
+		// activity log keeps the trace either way, and Config's switch-off
+		// Clear() stays as the belt to these braces.
+		if (!Settings::Current.Toasts)
+			return;
 		const Entry e = { kind, text, ImGui::GetTime() };
 		g_entries.push_back(e);
 		if (g_entries.size() > kMax)
@@ -45,14 +57,11 @@ namespace Toasts
 		g_entries.clear();
 	}
 
-	void Render()
+	// UI: row 162 - shared stack painter.  The shell anchors the stack to its
+	// own bottom-right corner on the window draw list; surfaces smaller than
+	// the stack pass their own anchor instead (see RenderScreen below).
+	static void RenderStack(ImDrawList* dl, const ImVec2& wp, const ImVec2& ws)
 	{
-		if (g_entries.empty())
-			return;
-
-		ImDrawList* dl = ImGui::GetWindowDrawList();
-		const ImVec2 wp = ImGui::GetWindowPos();
-		const ImVec2 ws = ImGui::GetWindowSize();
 		const double now = ImGui::GetTime();
 
 		// Card metrics scale with the interface: at 200% a fixed 320px card
@@ -121,5 +130,25 @@ namespace Toasts
 
 			cursorY -= gap;
 		}
+	}
+
+	void Render()
+	{
+		if (g_entries.empty())
+			return;
+		RenderStack(ImGui::GetWindowDrawList(), ImGui::GetWindowPos(), ImGui::GetWindowSize());
+	}
+
+	// UI: row 162 - screen-anchored variant for surfaces smaller than the stack:
+	// the key card calls this instead of Render(), because a 460x232 window
+	// would put the toast cards on top of its own button and hint line.  Same
+	// stack, same ageing, same dismiss rules - anchored to the display and
+	// drawn on the foreground list, over every window instead of inside one.
+	void RenderScreen()
+	{
+		if (g_entries.empty())
+			return;
+		const ImVec2 disp = ImGui::GetIO().DisplaySize;
+		RenderStack(ImGui::GetForegroundDrawList(), ImVec2(0.0f, 0.0f), disp);
 	}
 }

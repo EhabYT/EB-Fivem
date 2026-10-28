@@ -24,7 +24,11 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 README = os.path.join(ROOT, "README.md")
 
-INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"/\\]+\.h)"\s*$')
+# UI: row 198 - the old pattern demanded end-of-line right after the closing
+# quote, so every include carrying a trailing "// why" comment - the house
+# style in main.cpp and friends - was invisible to the graph, and the README's
+# "generated from the actual #include lines" claim was quietly false.
+INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"/\\]+\.h)"(?:\s*//[^\n]*)?\s*$')
 
 
 def root_files(ext):

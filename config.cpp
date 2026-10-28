@@ -1,9 +1,11 @@
 #include "config.h"
+#include "menu_style.h"   // ColMuted
 #include "activity.h"
 #include "settings.h"
 #include "toasts.h"
 #include "exec.h"      // Executor::ApplyPrefs() for the settings reset
 #include "clipboard.h"
+#include "assets.h"     // UI: row 203 - ResolveAssetPath() for the hook log line
 
 #include <Windows.h>
 #include <shellapi.h>
@@ -21,7 +23,9 @@ namespace Config
 	// The toggle poll runs in the present loop, outside any widget focus, so a
 	// letter, digit or modifier bound as toggle key flips the overlay every
 	// time the user types it.  Only keys nobody types are bindable.
-	static bool ValidToggleKey(int vk)
+	// UI: row 194 - no longer static: Settings::Load() validates with the same
+	// predicate (declared in config.h).
+	bool ValidToggleKey(int vk)
 	{
 		return (vk >= VK_F1 && vk <= VK_F24)
 			|| vk == VK_INSERT || vk == VK_DELETE || vk == VK_HOME || vk == VK_END
@@ -29,8 +33,42 @@ namespace Config
 			|| vk == VK_PAUSE || vk == VK_SCROLL || vk == VK_NUMLOCK;
 	}
 
+	// UI: row 226 - until this row the block below sat INSIDE
+	// Render(): MSVC answers a function definition inside a function with C2601
+	// ("local function definitions are illegal"), and the file-local capture flag
+	// was invisible to IsCapturing() - the two errors every build opened with.
+	// UI: row 164 - the capture state used to be a function-local static, so
+	// nothing outside Config::Render() could see it.  The present loop needs
+	// it: a toggle-key press while a capture is armed used to flip the overlay
+	// shut mid-capture (the poll runs before Render), swallowing the binding.
+	static bool g_capturing = false;
+
+	bool IsCapturing()
+	{
+		return g_capturing;
+	}
+
 	void Render()
 	{
+		// UI: row 167 - an armed capture survives tab switches (the scan only
+		// runs while this tab renders), and while it survives the present loop
+		// suppresses the toggle flip (row 164) - on any other tab, with no
+		// visible capture UI, the toggle key just looks dead.  Half a second
+		// without a Config frame means the user left; retire the capture.  The
+		// same gap heuristic the shell uses for its reopen fade.
+		static double lastHere = -1.0;
+		const double hereNow = ImGui::GetTime();
+		// UI: row 168 - same modal subtraction as the shell fade: a dialog
+		// opened on this tab (the reset confirmation) must not retire an armed
+		// capture on its way out.
+		static double modalHere = 0.0;
+		const double mNow = Gui::ModalSeconds();
+		const double gapHere = (hereNow - lastHere) - (mNow - modalHere);
+		modalHere = mNow;
+		if (lastHere >= 0.0 && gapHere > 0.5)
+			g_capturing = false;
+		lastHere = hereNow;
+
 		Gui::SectionTitle("Config", "##config_seperator_0");
 
 		// GetWindowWidth()/GetWindowHeight() report the *outer* window (900x540),
@@ -96,39 +134,54 @@ namespace Config
 		ImGui::Text("Interface");
 		Gui::Seperator("##config_seperator_5");
 
-		static bool capturing = false;
 		// A settings.ini from before row 142 may carry a key that flips while
 		// typing; reset it once, named, instead of letting it misfire forever.
 		static bool keyChecked = false;
 		if (!keyChecked)
 		{
 			keyChecked = true;
-			if (!ValidToggleKey(Settings::Current.ToggleKey))
+			const int vk = Settings::Current.ToggleKey;
+			const bool printable = (vk >= 'A' && vk <= 'Z')
+				|| (vk >= '0' && vk <= '9') || vk == VK_SPACE;
+			// UI: row 221 - same predicate as Settings::Load() (row 194): a
+			// printable binding is a supported ini-only binding (rows 166/210),
+			// the present loop suppresses it while a text field consumes input
+			// and the splash hint names that qualifier.  The old predicate here
+			// reset exactly those keys to INSERT the first time this tab opened,
+			// with a toast claiming they flip while typing - which the row-164
+			// guard disproves every frame.
+			if (!printable && !ValidToggleKey(vk))
 			{
-				const std::string oldKey = Settings::KeyName(Settings::Current.ToggleKey);
+				const std::string oldKey = Settings::KeyName(vk);
+				// UI: row 221 - two failure classes, named honestly: no scancode
+				// means no physical key can produce the edge at all; a real key
+				// outside both allow-lists (numpad, modifiers) does fire - also
+				// while typing, which is the misfire row 142 exists for.
+				const bool dead = MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_VSC) == 0;
 				Settings::Current.ToggleKey = VK_INSERT;
 				Settings::Save();
 				Activity::Push("Stored toggle key " + oldKey
-					+ " flips while typing; reset to INSERT.");
+					+ (dead ? " can never fire; reset to INSERT."
+						: " flips while typing; reset to INSERT."));
 				Toasts::Push(Toasts::Warn, "Stored toggle key " + oldKey
 					+ " reset to INSERT.");
 			}
 		}
 
 		// "press any key...  (ESC cancels)" measured ~377px against a ~216px pane and
-		// was clipped at the edge - so while capturing, the button never actually
+		// was clipped at the edge - so while g_capturing, the button never actually
 		// told the user that ESC cancels, the one thing they need to know then.
 		// Shortened to fit; the full sentence moved into the tooltip.
-		const std::string label = capturing
+		const std::string label = g_capturing
 			? std::string("press any key... (ESC)")
 			: std::string("Toggle key:  ") + Settings::KeyName(Settings::Current.ToggleKey);
 		if (ImGui::Button(label.c_str(),
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(30.0f))))
-			capturing = !capturing;
-		if (capturing && ImGui::IsItemHovered())
+			g_capturing = !g_capturing;
+		if (g_capturing && ImGui::IsItemHovered())
 			ImGui::SetTooltip("Press the key you want to bind.\nESC cancels the capture.");
 
-		if (capturing)
+		if (g_capturing)
 		{
 			// vk 1..6 are the mouse buttons and reserved entries.  Binding one
 			// would flip the menu on every click - and the release edge of the
@@ -139,16 +192,26 @@ namespace Config
 				if (GetAsyncKeyState(vk) & 1)
 				{
 					if (vk == VK_ESCAPE)
-						capturing = false;   // cancel, keep the old key
+						g_capturing = false;   // cancel, keep the old key
 					else if (ValidToggleKey(vk))
 					{
 						Settings::Current.ToggleKey = vk;
 						Settings::Save();
 						Activity::Push(std::string("Toggle key set to ") + Settings::KeyName(vk));
 						Toasts::Push(Toasts::Success, std::string("Toggle key set to ") + Settings::KeyName(vk));
-						capturing = false;
+						g_capturing = false;
 					}
-					else
+					// UI: row 166 - the refuse branch used to catch every key that
+					// is neither ESC nor bindable, including pure navigation keys
+					// (Tab, Enter, arrows, modifiers): keyboard users moving
+					// around while a capture was armed were answered with a warn
+					// toast and an activity entry per press.  Only printable keys
+					// are binding candidates worth refusing out loud - they are
+					// the ones a user could plausibly expect to work, and the
+					// toast explains why they cannot.  Everything else is nav:
+					// stay in capture, say nothing.
+					else if ((vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9')
+						|| vk == VK_SPACE)
 					{
 						// Refuse, but stay in capture so the next press can still
 						// succeed; the toast cap keeps a slipped key from flooding.
@@ -181,13 +244,28 @@ namespace Config
 		// HUD keeps it over the scene while the overlay is closed.
 		if (Gui::Toggle("FPS HUD##ui_hud", &Settings::Current.Hud))
 			Settings::Save();
+		// UI: row 148 - where the plate sits while the overlay is closed; game
+		// HUDs often own the top-left corner.  Grey with the HUD itself.
+		ImGui::BeginDisabled(!Settings::Current.Hud);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		// "Corner" not "Plate corner": at 20px font the longer label plus the
+		// widest value ("Bottom right") overflow the third-of-column pane;
+		// the tooltip carries the full sentence.
+		if (ImGui::Combo("Corner##ui_hud_corner", &Settings::Current.HudCorner,
+			"Top left\0Top right\0Bottom left\0Bottom right\0"))
+			Settings::Save();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Which screen corner the FPS HUD plate sits in\nwhile the overlay is closed.");
+		ImGui::EndDisabled();
 
-		// Interface scale, 70..200%.  Applied through ImGui 1.92's global font
+		// UI: row 214 - was "1.92's": the vendored tree is 1.93.0 (imgui.h),
+		// and this comment describes the running code, not the migration history.
+		// Interface scale, 70..200%.  Applied through ImGui 1.93's global font
 		// scale factor (style.FontScaleMain), so the whole shell - fonts, frames,
 		// sidebar, window size - grows together instead of text overflowing fixed
 		// widgets.  Persisted as [ui] scale.
 		//
-		// Applied on release rather than while dragging: 1.92 bakes the font for
+		// Applied on release rather than while dragging: 1.93 bakes the font for
 		// every distinct size it sees, so a live drag from 70 to 200 would bake
 		// ~130 sizes into the atlas for nothing.
 		ImGui::Spacing();
@@ -208,24 +286,14 @@ namespace Config
 		}
 
 		ImGui::Spacing();
-		// TextColored does not wrap, and this hint is ~448px against a ~216px pane:
-		// it was clipped after "Tab/arrows".  There is no TextWrappedColored, so the
-		// colour goes through the style stack.  The cast is required - ImColor
-		// converts to both ImU32 and ImVec4, which PushStyleColor would find
-		// ambiguous.
-		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(93, 156, 214, 153));
-		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates.");
-		ImGui::PopStyleColor();
-
-		ImGui::Spacing();
 		if (Gui::PrimaryButton("Reset interface settings",
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(30.0f))))
 		{
 			// One click overwrites a custom key bind, scale and switches - the same
 			// loss family Load/Clear/Revert confirm for, so the reset confirms too.
 			// Cancel keeps everything, including the ini, exactly as it was.
-			if (MessageBoxA(NULL, "Restore the compiled defaults?\n"
-				"Custom key bind, scale and switches are overwritten.",
+			if (Gui::ModalBoxA( "Restore the compiled defaults?\n"
+				"Custom key bind, scale, switches and HUD corner are overwritten.",
 				"EBengin", MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 			{
 				Activity::Push("Reset cancelled - settings kept.");
@@ -237,7 +305,15 @@ namespace Config
 				// deleting settings.ini.  Window position and tab apply on the next
 				// start (the position is restored with ImGuiCond_Once); the key,
 				// the switches, the scale and the whitespace dot take effect at once.
+				// UI: row 153 - the recent-files list and the dump-target name
+				// are editor/workflow history, not interface preferences: like
+				// the buffer itself they survive the reset instead of being
+				// silently dropped by the whole-struct assignment.
+				const std::vector<std::string> recent = Settings::Current.Recent;
+				const std::string resName = Settings::Current.ResourceName;
 				Settings::Current = Settings::Prefs();
+				Settings::Current.Recent = recent;
+				Settings::Current.ResourceName = resName;
 				Settings::Save();
 				// Two of the prefs also live somewhere else at runtime - the scale in
 				// ImGui's style and the whitespace flag inside the TextEditor widget -
@@ -266,9 +342,9 @@ namespace Config
 		// mean reading game state, which is outside this menu by design.  The
 		// one server-facing artifact it does produce is the Dumps resource
 		// folder, so the pane names it and opens it: something that works.
-		ImGui::TextColored(ImColor(93, 156, 214, 153),
+		ImGui::TextColored(ColMuted,
 			"Connects to no server; reads no server IP.");
-		ImGui::TextColored(ImColor(93, 156, 214, 153),
+		ImGui::TextColored(ColMuted,
 			"The Dumps folder is its server artifact:");
 		if (ImGui::Button("Open dumps folder",
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
@@ -302,21 +378,21 @@ namespace Config
 		ImGui::Spacing();
 		Gui::Seperator("##about_seperator_1");
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Remade : by EB");
+		ImGui::TextColored(ColMuted, "Remade : by EB");
 		// GetVersion() reports the version the linked imgui.cpp was compiled
 		// with, so this line can never drift from the vendored sources.
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Interface: ImGui %s (ocornut)",
+		ImGui::TextColored(ColMuted, "Interface: ImGui %s (ocornut)",
 			ImGui::GetVersion());
 		// A Debug DLL behaves visibly differently in a host (asserts on, no
 		// optimisation), so the About block says which configuration this is.
 #if defined(_DEBUG) && defined(_WIN64)
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug x64 (asserts on, slower)");
+		ImGui::TextColored(ColMuted, "Build: Debug x64 (asserts on, slower)");
 #elif defined(_DEBUG)
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Debug Win32 (asserts on, slower)");
+		ImGui::TextColored(ColMuted, "Build: Debug Win32 (asserts on, slower)");
 #elif defined(_WIN64)
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release x64");
+		ImGui::TextColored(ColMuted, "Build: Release x64");
 #else
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "Build: Release Win32 (x86)");
+		ImGui::TextColored(ColMuted, "Build: Release Win32 (x86)");
 #endif
 		// Environment factors behind the shell size: host contents scale
 		// (GetDpiForWindow / 96) times the persisted interface scale - the two
@@ -324,12 +400,15 @@ namespace Config
 		char hostLine[96];
 		snprintf(hostLine, sizeof(hostLine), "Host: DPI %.2f, interface %d%%",
 			Settings::DpiScale, Settings::Current.ScalePercent);
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", hostLine);
+		ImGui::TextColored(ColMuted, "%s", hostLine);
 		// A failed settings.ini write answers once with a toast (settings.cpp),
 		// but a toast is gone in seconds and the consequence - every change
 		// lost on restart - deserves a permanent line while it is true.
 		if (Settings::SaveFailed())
-			ImGui::TextColored(ImColor(255, 0, 0, 255),
+			// UI: row 175 - pure red on the pane measured ~3.7:1, under WCAG AA
+			// for normal text; the lighter red from the row-157 wrong-key fix
+			// holds ~5.2:1 here too, and keeps one red ramp in the project.
+			ImGui::TextColored(ImColor(255, 107, 107, 255),
 				"Settings not writable - changes are lost on restart.");
 		Gui::Seperator("##about_seperator_2");
 
@@ -348,14 +427,24 @@ namespace Config
 #else
 			const char* cfg = "Release Win32";
 #endif
+			// UI: row 203 - the hook trace log (rows 188-193) is the primary
+			// artifact for "the menu never opened" reports, but the diagnostics
+			// snapshot - the thing a report from another machine carries - never
+			// mentioned it.  Name the path and whether it exists: "missing" means
+			// either an old build or a folder nobody can write to, both answers
+			// the report needs.
+			const std::string logPath = ResolveAssetPath("EBengin.log");
+			const bool haveLog =
+				GetFileAttributesA(logPath.c_str()) != INVALID_FILE_ATTRIBUTES;
 			char diag[640];
 			snprintf(diag, sizeof(diag),
-				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s",
+				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s | log: %s%s",
 				cfg, Settings::DpiScale, Settings::Current.ScalePercent,
 				(int)(900.0f * Settings::ScaleFactor()), (int)(540.0f * Settings::ScaleFactor()),
 				ImGui::GetVersion(), Settings::KeyName(Settings::Current.ToggleKey),
 				Settings::Current.Hud ? "on" : "off", Settings::IniPath().c_str(),
-				Settings::SaveFailed() ? " [NOT WRITABLE]" : "");
+				Settings::SaveFailed() ? " [NOT WRITABLE]" : "",
+				logPath.c_str(), haveLog ? "" : " [missing]");
 			if (CopyTextToClipboard(diag))
 			{
 				Activity::Push("Diagnostics copied to the clipboard.");
@@ -385,9 +474,18 @@ namespace Config
 				? std::string(".") : ini.substr(0, slash);
 			const bool haveIni =
 				GetFileAttributesA(ini.c_str()) != INVALID_FILE_ATTRIBUTES;
-			const intptr_t r = (intptr_t)ShellExecuteA(NULL, "explore",
-				haveIni ? NULL : dir.c_str(),
-				haveIni ? ("/select," + ini).c_str() : NULL,
+			// UI: row 197 - the highlight route passed lpFile = NULL and put
+			// "/select,..." in lpParameters: ShellExecute needs an object to
+			// open, so the call failed whenever the ini existed - the normal
+			// case - and every click answered with the warn toast instead of
+			// Explorer.  /select, is a command line for explorer.exe, quoted for
+			// DLL folders with spaces; the folder fallback keeps verb "explore".
+			const std::string params = haveIni
+				? "/select,\"" + ini + "\"" : std::string();
+			const intptr_t r = (intptr_t)ShellExecuteA(NULL,
+				haveIni ? "open" : "explore",
+				haveIni ? "explorer.exe" : dir.c_str(),
+				haveIni ? params.c_str() : NULL,
 				NULL, SW_SHOWNORMAL);
 			if (r > 32)
 				Activity::Push("Opened the settings folder in Explorer.");
@@ -400,6 +498,15 @@ namespace Config
 		}
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Opens the folder holding settings.ini in Explorer,\nwith the file highlighted once it exists.");
+
+		// UI: row 148 - the keyboard-nav hint moved here from the Interface
+		// pane: the plate-corner combo joined that pane, and the three wrapped
+		// hint lines no longer fit its third-of-column budget.  At this width
+		// the hint is a single line.  Same style-stack trick as before.
+		ImGui::Spacing();
+		ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ColMuted);
+		ImGui::TextWrapped("Tab/arrows move, Enter/Space activates. Ctrl+Tab switches tabs.");
+		ImGui::PopStyleColor();
 		ImGui::EndChild();
 	}
 }

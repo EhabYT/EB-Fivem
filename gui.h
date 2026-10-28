@@ -4,9 +4,17 @@
 #include "imgui/imgui_internal.h"
 
 #include "font_awesome.h"
+#include "menu_style.h"   // ColMuted token for every Gui consumer
 #include "settings.h"
 
 #include <Windows.h>
+
+// UI: row 211 - defined in main.cpp: the host window the hook resolved from
+// the swap chain (sd.OutputWindow).  Every dialog this UI raises belongs to
+// it - an unowned dialog can sit BEHIND a fullscreen game while the modal
+// loop has already stalled the render thread, which reads as a hang with
+// no visible cause.
+extern HWND window;
 #include <cstring>
 #include <string>
 #include <iostream>
@@ -14,6 +22,53 @@
 
 namespace Gui
 {
+	// UI: row 168 - wall-clock seconds spent inside modal dialogs since start.
+	// The frame loop (and ImGui::GetTime with it) freezes while a dialog is
+	// open, so the two gap heuristics - the shell's reopen fade and the
+	// capture retirement - would read the dialog duration as idle time and
+	// misfire on close.  They subtract what this counter newly reports.
+	// Adder-and-reader in one: the wrapper adds, consumers just read.
+	inline double ModalSeconds(double add = 0.0)
+	{
+		static double total = 0.0;
+		total += add;
+		return total;
+	}
+
+	// UI: row 165 - MessageBoxA spins a modal message loop: the present loop -
+	// and with it the toggle-edge poll - stops while the dialog is open, so a
+	// toggle press during the dialog survives as a pending edge and flips the
+	// menu on the first frame after it closes.  Every dialog in the project
+	// routes through this wrapper, which drains key edges on the way out.
+	// UI: row 169 - not just the toggle edge: an armed key-capture scan reads
+	// every key, so a press during the dialog (F5 out of habit, say) used to
+	// bind itself on the first frame after close.  Presses inside a dialog
+	// belong to the dialog; drain the whole keyboard range (vk 7+; 1..6 are
+	// mouse buttons, which neither the capture scan nor the toggle poll read).
+	// UI: row 201 - true while a modal dialog blocks the render thread.
+	// DllMain's DETACH waits (capped) for this before destroying the ImGui
+	// context; the inline-function static is one instance program-wide,
+	// same trick as ModalSeconds below.
+	inline bool& ModalActiveRef()
+	{
+		static bool s_active = false;
+		return s_active;
+	}
+	inline bool ModalActive() { return ModalActiveRef(); }
+
+	inline int ModalBoxA(const char* text, const char* title, UINT flags)
+	{
+		const ULONGLONG t0 = ::GetTickCount64();
+		ModalActiveRef() = true;
+		// UI: row 211 - was NULL: unowned boxes can open behind the game window.
+		const int r = ::MessageBoxA(window, text, title, flags);
+		ModalActiveRef() = false;
+		ModalSeconds((double)(::GetTickCount64() - t0) / 1000.0);
+		for (int vk = 7; vk < 255; ++vk)
+			(void)::GetAsyncKeyState(vk);
+		return r;
+	}
+
 	// Thin full-width rule used as a visual separator between menu sections.
 	//
 	// NOTE: BeginChild() returns false when the child is collapsed or fully
@@ -41,6 +96,19 @@ namespace Gui
 	inline void SectionTitle(const char* title, const char* separatorId)
 	{
 		ImGui::Text("%s", title);
+		// UI: row 151 - type hierarchy by weight.  The shell ships exactly one
+		// font (Bahnschrift 20; no bold instance is reachable without the
+		// FreeType builder), and a larger header font would cost every pane
+		// four pixels of budget - so the heading fakes its weight with a
+		// sub-pixel second pass over itself.  Zero layout cost, and the
+		// draw-list text rides the same font/scale as the first pass.
+		if (ImGui::IsItemVisible())
+		{
+			const ImVec2 mn = ImGui::GetItemRectMin();
+			ImGui::GetWindowDrawList()->AddText(
+				ImVec2(mn.x + Settings::Px(0.7f), mn.y),
+				ImGui::GetColorU32(ImGuiCol_Text), title);
+		}
 		Seperator(separatorId);
 	}
 

@@ -4,7 +4,8 @@ tab open (docs/preview.png), the Config tab (docs/preview_config.png), the
 Resources tab (docs/preview_resources.png) or the Menus tab
 (docs/preview_menus.png) - plus the first-open start card on its own
 (docs/preview_splash.png, --splash) and the FPS HUD plate over a scene
-stand-in (docs/preview_hud.png, --hud).
+stand-in (docs/preview_hud.png, --hud), and the session key card on its
+own (docs/preview_key.png, --key).
 
 Self-contained on purpose: it needs only Pillow and the repository itself. The
 sidebar/button glyphs come from the project's *own* embedded Font Awesome font
@@ -17,7 +18,7 @@ invented:
   menu_style.h   the two theme ramps and every ImGuiCol_* below
   menu.h         SidebarWidth (225), SidebarButtonHeight (46), ContentPadding (8), Accent
   menu.cpp       Begin(title###id, &IsMenuOpen, NoScrollbar|NoCollapse|NoResize), SidebarItems[]
-                 labels, logo 76x87 centred at CursorPosX(74), bottom-anchored footer
+                 labels, logo 76x87 centred at CursorPosX(74.5), bottom-anchored footer
   exec.cpp       editor size (avail.x-16, avail.y-52), Execute 116x30,
                  Load from File 180x30, toolbar save and revert icons,
                  resource combo,
@@ -33,6 +34,8 @@ invented:
   default.cpp      landing layout: graph height Px(60), the Copy 50x20 /
                    Clear 60x20 pair sharing a line with the heading, log
                    newest first - used by the --default branch only
+  menu.cpp         key card (row 155): 460x232 card, password field 280 wide,
+                   Unlock 140x30, muted gate hint - used by the --key branch
 
 Two things CANNOT be faithful and are substituted, exactly as the README caption
 says: Bahnschrift.ttf is a Windows-only font (a horizontally condensed DejaVu
@@ -47,6 +50,7 @@ Usage:  python docs/render_preview.py             -> docs/preview.png          (
         python docs/render_preview.py --default   -> docs/preview_default.png  (landing tab)
         python docs/render_preview.py --splash    -> docs/preview_splash.png
         python docs/render_preview.py --hud       -> docs/preview_hud.png
+        python docs/render_preview.py --key       -> docs/preview_key.png    (key card)
         (requires Pillow)
 """
 import math
@@ -75,6 +79,8 @@ elif "--hud" in sys.argv[1:]:
     TAB = "hud"
 elif "--default" in sys.argv[1:]:
     TAB = "default"
+elif "--key" in sys.argv[1:]:
+    TAB = "key"
 else:
     TAB = "executor"
 OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
@@ -83,7 +89,8 @@ OUT = os.path.join(REPO, "docs", {"executor": "preview.png",
                                   "menus": "preview_menus.png",
                                   "splash": "preview_splash.png",
                                   "hud": "preview_hud.png",
-                                  "default": "preview_default.png"}[TAB])
+                                  "default": "preview_default.png",
+                                  "key": "preview_key.png"}[TAB])
 
 S = 2  # DPI scale: ImGui would render the same at 2x
 
@@ -164,7 +171,7 @@ C_ACCENT     = RGBA(93, 156, 214)    # Menu::Accent / SliderGrab    #5D9CD6
 C_FRAME_BG   = RGBA(31, 58, 97)      # ImGuiCol_FrameBg             #1F3A61
 C_BORDER     = RGBA(42, 74, 123)     # ImGuiCol_Border / _Separator #2A4A7B
 C_TEXT       = RGBA(255, 255, 255)   # ImGuiCol_Text (default, not overridden)
-C_MUTED_BRAND = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
+C_MUTED_BRAND = RGBA(125, 175, 225)  # ColMuted token, row 147 (was accent@153)
 C_RAIL     = RGBA(16, 31, 52)      # sidebar CellBg: WindowBg darkened 18%
 C_SCROLL   = RGBA(42, 74, 123)     # ImGuiCol_ScrollbarGrab (raised navy)
 
@@ -353,13 +360,12 @@ if TAB == "hud":
     ImageDraw.Draw(plate).rounded_rectangle(
         [(pos[0] - pad) * S, (pos[1] - pad) * S,
          (pos[0] + ts_w + pad) * S - 1, (pos[1] + plate_h + pad) * S - 1],
-        radius=6 * S, fill=(12, 18, 28, 160))
+        radius=6 * S, fill=(12, 18, 28, 220))   # row 147: AA backing alpha
     canvas.alpha_composite(plate)
     d = ImageDraw.Draw(canvas)
-    T(pos[0], pos[1], HUD, C_ACCENT)
-    # credit ink: brand accent at alpha 153 over the plate-over-scene base
-    T(pos[0], pos[1] + adv, CREDIT,
-      blend((93, 156, 214, 153), blend((12, 18, 28, 160), SCENE)))
+    T(pos[0], pos[1], HUD, C_TEXT)             # row 147: FPS line white, not accent
+    # credit ink: opaque AA muted token (row 147)
+    T(pos[0], pos[1] + adv, CREDIT, (125, 175, 225))
 
     canvas.save(OUT, optimize=True)
     os.unlink(fa_path)
@@ -397,7 +403,9 @@ if TAB == "splash":
     CREDIT = "Remade : by EB"
     HINT1 = "Interface-level: no game state is read or written."
     HINT2 = "INSERT toggles this overlay at any time."  # code formats
-    # KeyName(bound key); the preview depicts the default binding, INSERT
+    # KeyName(bound key); the preview depicts the default binding, INSERT.
+    # A printable binding (hand-edited ini only, row 210) gets the qualified
+    # variant "(not while typing in a text field)" instead - not depicted.
     BTN = "Continue"
     for t in (CREDIT, HINT1, HINT2, BTN):
         assert TW(t) <= CWc - 16, "splash line clipped: " + t
@@ -433,6 +441,66 @@ if TAB == "splash":
     print("geschrieben:", OUT, "(splash)", os.path.getsize(OUT), "Bytes", canvas.size)
     sys.exit(0)
 
+# ------------------------------------------------------------------
+# menu.cpp RenderKey() (row 155): the session key card replaces splash
+# and shell until the key matches.  Standalone canvas, same recipe as
+# the splash card; the input is depicted empty (password field).
+# ------------------------------------------------------------------
+if TAB == "key":
+    MC, RADk = 28, 10
+    CWk, CHk = 460.0, 232.0
+    FW, FH = W + 2 * MC, H + 2 * MC
+    canvas = Image.new("RGBA", (FW * S, FH * S), (12, 18, 28, 255))
+    OX, OY = (FW - CWk) / 2, (FH - CHk) / 2
+
+    sh = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle(
+        [OX * S, OY * S, (OX + CWk) * S - 1, (OY + CHk) * S - 1],
+        radius=RADk * S, fill=(0, 0, 0, 150))
+    sh = sh.filter(ImageFilter.GaussianBlur(9 * S))
+    canvas.alpha_composite(sh, (0, int(12 * S)))
+
+    d = ImageDraw.Draw(canvas)
+    SURF = canvas
+    d.rounded_rectangle([OX * S, OY * S, (OX + CWk) * S - 1, (OY + CHk) * S - 1],
+                        radius=RADk * S, fill=C_WINDOW_BG)
+    d.rounded_rectangle([OX * S, OY * S, (OX + CWk) * S - 1, (OY + CHk) * S - 1],
+                        radius=RADk * S, outline=C_BORDER, width=S)
+
+    def C(text, col, cy):
+        T(OX + (CWk - TW(text)) / 2, cy, text, col)
+        return cy + LINE_ADV
+
+    y = OY + 16
+    y = C("EBengin", C_ACCENT, y)
+    y = C("This overlay is key-protected.", C_TEXT, y)
+    y += ITEM_SPACING_Y
+    R(OX + 8, y, OX + CWk - 8, y + 1, C_BORDER)      # Gui::Seperator
+    y += 1 + ITEM_SPACING_Y
+
+    iw, fh = 280.0, FONT_SIZE + FRAME_PAD_Y * 2
+    ix = OX + (CWk - iw) / 2
+    R(ix, y, ix + iw, y + fh, C_FRAME_BG)
+    d.rectangle([ix * S, y * S, (ix + iw) * S - 1, (y + fh) * S - 1],
+                outline=C_BORDER, width=S)
+    y += fh + ITEM_SPACING_Y
+
+    bw = 140.0
+    bx = OX + (CWk - bw) / 2
+    d.rounded_rectangle([bx * S, y * S, (bx + bw) * S - 1, (y + 30) * S - 1],
+                        radius=6 * S, fill=C_PRIMARY)
+    d.rounded_rectangle([(bx + 1) * S, (y + 1) * S, (bx + bw - 1) * S - 1, (y + 15) * S - 1],
+                        radius=6 * S, fill=blend((255, 255, 255, 26), C_PRIMARY))
+    T(bx + (bw - TW("Unlock")) / 2, y + (30 - FONT_SIZE) / 2, "Unlock", C_TEXT)
+    y += 30 + ITEM_SPACING_Y
+
+    C("Local gate - no server is contacted.", C_MUTED_BRAND, y)
+
+    canvas.save(OUT, optimize=True)
+    os.unlink(fa_path)
+    print("geschrieben:", OUT, "(key)", os.path.getsize(OUT), "Bytes", canvas.size)
+    sys.exit(0)
+
 # window + title bar (WindowTitleAlign 0,0.5; NoCollapse, p_open = &IsMenuOpen:
 # row 144 added the close button, row 145 the tab name in the title)
 R(0, 0, W, H, C_WINDOW_BG)
@@ -458,10 +526,10 @@ for _x in range(W):
 # 2-column table: BordersInnerV, SizingFixedFit, NoPadOuterX, CellPadding (0,0)
 R(SX1, CY0, SX1 + 1, CY1, C_BORDER)
 
-# sidebar: logo centred (74 == (225-76)/2) at CursorPosY + 9
+# sidebar: logo centred ((225-76)/2 = 74.5 since row 161) at CursorPosY + 9
 logo = Image.open(os.path.join(REPO, "EBengin.png")).convert("RGBA")
 logo = logo.resize((int(76*S), int(87*S)), Image.LANCZOS)
-img.alpha_composite(logo, (int((SX0+74)*S), int((CY0+9)*S)))
+img.alpha_composite(logo, (int((SX0+74.5)*S), int((CY0+9)*S)))
 
 SIDEBAR = [("\uf121", " Executor"), ("\uf019", " Resources"),
            ("\uf02d", " Menus"),    ("\uf085", " Config")]
@@ -503,6 +571,7 @@ for k, (line, col) in enumerate(FOOTER):
 if TAB == "executor":
     # content column: Executor::Render()
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Executor", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -569,7 +638,7 @@ if TAB == "executor":
     # code appends "| file: <name>" once a load or save happened and
     # "| modified" while the buffer holds unsaved edits; the preview
     # depicts a buffer with no file behind it and nothing unsaved
-    T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", blend((93, 156, 214, 153), C_WINDOW_BG))
+    T(CX0, ey1 + 2, "Ln 11, Col 42  |  11 lines  |  Lua", (125, 175, 225, 255))
 
     # button row: Execute 116x30, Load 180x30, Recent 90x30, combo fills rest
     y = ey1 + LINE_ADV + ITEM_SPACING_Y
@@ -613,10 +682,11 @@ elif TAB == "config":
     # ------------------------------------------------------------------
     TEXT_LH = FONT_SIZE
     C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
-    C_MUTED = blend((93, 156, 214, 153), C_WINDOW_BG)  # TextColored(93,156,214,153)
-    HINT = "Tab/arrows move, Enter/Space activates."
+    C_MUTED = RGBA(125, 175, 225)  # ColMuted token, row 147
+    HINT = "Tab/arrows move, Enter/Space activates. Ctrl+Tab switches tabs."
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Config", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)                 # Gui::Seperator under the title
     y += 1 + ITEM_SPACING_Y
@@ -694,14 +764,20 @@ elif TAB == "config":
     ly = toggle(lx0, ly, "Animations", True)
     ly = toggle(lx0, ly, "Toast notifications", True)
     ly = toggle(lx0, ly, "FPS HUD", True)          # Settings::Current.Hud
+    # UI: row 148 - plate corner combo, greyed only with the HUD itself;
+    # ImGui draws the label left of the frame on one row
+    fh_c = FONT_SIZE + FRAME_PAD_Y * 2
+    T(lx0, ly + (fh_c-FONT_SIZE)/2, "Corner", C_TEXT)
+    cbx = lx0 + TW("Corner") + ITEM_SPACING_X
+    R(cbx, ly, lx1, ly + fh_c, C_FRAME_BG)
+    d.rectangle([cbx*S, ly*S, lx1*S-1, (ly+fh_c)*S-1], outline=C_BORDER, width=S)
+    T(cbx + FRAME_PAD_X, ly + (fh_c-FONT_SIZE)/2, "Top left", C_TEXT)
+    aw, ax, ay = 9, lx1 - FRAME_PAD_X - 9, ly + fh_c / 2
+    d.polygon([(ax*S, (ay-3)*S), ((ax+aw)*S, (ay-3)*S), ((ax+aw/2)*S, (ay+3)*S)], fill=C_TEXT)
+    ly += fh_c + ITEM_SPACING_Y
     ly += ITEM_SPACING_Y
     ly = slider(lx0, ly, pane_w, "Interface scale 100%", (100 - 70) / 130.0)
     ly += ITEM_SPACING_Y
-    hint_lines = wrap_text(HINT, pane_w)              # TextWrapped: 3 lines at this width
-    for k, hl in enumerate(hint_lines):
-        T(lx0, ly + k * TEXT_LH, hl, C_MUTED)
-    ly += len(hint_lines) * TEXT_LH + ITEM_SPACING_Y
-    ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     ly = button(lx0, ly, pane_w, 30, "Reset interface settings", primary=True)
 
     # --- right pane ----------------------------------------------------
@@ -736,9 +812,18 @@ elif TAB == "config":
     ry = sep(rx0, rx1, ry)
     ry = button(rx0, ry, rx1 - rx0, 26, "Copy diagnostics")
     ry = button(rx0, ry, rx1 - rx0, 26, "Open settings folder")
+    ry += ITEM_SPACING_Y          # UI: row 148 - nav hint moved to this pane
+    _hl = wrap_text(HINT, rx1 - rx0)
+    for k, hl in enumerate(_hl):
+        T(rx0, ry + k * TEXT_LH, hl, C_MUTED)
+    ry += len(_hl) * TEXT_LH + ITEM_SPACING_Y
 
     # --- the pane is only a third of the column and ImGui::Text does not
     # wrap, so these asserts are what keeps a label from being clipped ---
+    # TextWrapped wraps at the region width, so width cannot clip; the
+    # vertical budget check below (ry <= bot) is what guards the hint.
+    assert all(TW(hl) <= rx1 - rx0 for hl in wrap_text(HINT, rx1 - rx0)),\
+        "nav hint wrap line clipped"
     for s in ("Safe Mode", "ScriptHook Bypass", "Interface"):
         assert TW(s) + TW("(?)") <= pane_w, "heading clipped: " + s
     for lab in ("Enabled (no effect)", "Animations", "Toast notifications", "FPS HUD"):
@@ -747,6 +832,8 @@ elif TAB == "config":
         assert TW(lab) + 2 * FRAME_PAD_X <= pane_w, "button label clipped: " + lab
     for lab in ("Reset interface settings", "Interface scale 100%"):
         assert TW(lab) <= pane_w, "label clipped: " + lab
+    assert (TW("Corner") + ITEM_SPACING_X + TW("Bottom right")
+            + 2 * FRAME_PAD_X + 12 <= pane_w), "corner combo row clipped"
     for s in ("Server related stuff", "Connects to no server; reads no server IP.",
               "The Dumps folder is its server artifact:", "Open dumps folder",
               "About", "EBengin", "Remade : by EB", "Interface: ImGui 1.93.0 (ocornut)",
@@ -771,6 +858,7 @@ elif TAB == "resources":
     # ------------------------------------------------------------------
     C_DIS = RGBA(64, 109, 154)                      # ImGuiCol_TextDisabled (muted accent)
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Resources", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Resources", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -872,6 +960,7 @@ elif TAB == "menus":
     row = FONT_SIZE + ITEM_SPACING_Y
     C_HEADER = RGBA(42, 74, 123)                    # ImGuiCol_Header since row 88
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Menus", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Menus", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -942,7 +1031,7 @@ if TAB == "default":
     # Landing tab (default.cpp): title, hint line, Diagnostics block (sparkline
     # panel plus the uptime/actions/FPS line), then Session activity with the
     # Copy/Clear pair and three log entries, newest first.
-    C_MUT = blend((93, 156, 214, 153), C_WINDOW_BG)
+    C_MUT = RGBA(125, 175, 225)  # ColMuted token, row 147
     TEXT_LH = FONT_SIZE          # ImGui::GetTextLineHeight(), as in config
 
     def dsep(x0, x1, sy):
@@ -950,6 +1039,7 @@ if TAB == "default":
         return sy + 1 + ITEM_SPACING_Y
 
     T(CX0, CY0 + (LINE_H - FONT_SIZE) / 2, "Default", C_TEXT)
+    T(CX0 + 0.7, CY0 + (LINE_H - FONT_SIZE) / 2, "Default", C_TEXT)  # row 151 faux bold
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
@@ -1006,7 +1096,8 @@ if TAB == "config":
     # Warn card (KindColor -> red bar): the honest answer to flipping one of the
     # two inert switches.  Safemode is drawn off above, because this is the frame
     # right after that flip.
-    draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 0, 0))
+    # row 202: the warn bar joined the project's ramp red (255,107,107).
+    draw_toast("Safe Mode is not implemented; the switch has no effect.", RGBA(255, 107, 107))
 elif TAB in ("resources", "menus", "default"):
     # No toast here: the frame shows the tab right after opening it, and a card
     # anchored 10px off the bottom-right would cover content these views exist

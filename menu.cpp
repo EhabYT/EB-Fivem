@@ -4,9 +4,11 @@
 #include "font_awesome.h"
 #include "settings.h"
 #include "toasts.h"
+#include "activity.h"   // UI: row 226 - key gate pushes Activity lines (rows 155/157)
 #include "perf.h"
 
 #include <cstdio>
+#include <cstring>   // strcmp in the row-155 key gate
 #include <cmath>
 #include <string>
 
@@ -27,6 +29,11 @@ namespace Menu
 	static bool g_justOpened = false;
 	// The branded start card shows on the first open after inject, once.
 	static bool g_splashDone = false;
+	// UI: row 155 - session key gate ("eb" by owner choice).  Plaintext local
+	// compare against a constant, no server, no persistence: an access gate
+	// for the overlay, unlocked once per inject - not a security claim.
+	static bool g_unlocked = false;
+	static char g_keyBuf[64] = { 0 };
 
 	static const SidebarItem SidebarItems[] =
 	{
@@ -66,7 +73,12 @@ namespace Menu
 		static float indX = 0.0f, indY = 0.0f, indH = 0.0f;
 		float tgtX = indX, tgtY = indY, tgtH = 0.0f;
 
-		ImGui::SetCursorPosX(74);
+		// UI: row 161 - 74 was the centred logo offset at 100% only: sidebar and
+		// logo both scale with the interface scale, the constant did not, so at
+		// 70%/200% the logo sat left of centre in the rail.  Derive the offset
+		// from the scaled widths; at 100% this is 74.5, i.e. half a pixel off
+		// the old constant and exactly centred.
+		ImGui::SetCursorPosX(ImMax(0.0f, (SidebarWidth() - Settings::Px(76.0f)) * 0.5f));
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 9);
 		if (LogoLoaded)
 		{
@@ -77,9 +89,35 @@ namespace Menu
 		else
 		{
 			// EBengin.png was not found next to the DLL: keep the sidebar the same height.
-			ImGui::SetCursorPosX(58);
+			// UI: row 161 - same defect as the image logo: centre the fallback
+			// wordmark from its measured width instead of a 100%-only constant.
+			ImGui::SetCursorPosX(ImMax(0.0f,
+				(SidebarWidth() - ImGui::CalcTextSize("EBengin").x) * 0.5f));
 			ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
 			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
+		}
+		// UI: row 150 - once a sidebar tab was open, the landing tab (diagnostics
+		// + session activity) had no way back for the whole session; the logo is
+		// the home button now.  Works for the text-logo fallback too, since the
+		// Dummy/Text above are items as well.
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+			ImGui::SetTooltip("Back to the landing tab.");
+		}
+		if (ImGui::IsItemClicked())
+		{
+			Tab = TabDefault;
+			Settings::Current.Tab = Tab;
+			Settings::Save();
+			// UI: row 159 - row 152 gave Ctrl+Tab cyclers the nav-cursor handoff,
+			// but the logo home button switched tabs while the keyboard cursor
+			// stayed on whatever widget held it, so the next Tab/arrow jump
+			// started from the old tab.  The logo is an image item, not a widget,
+			// so a click never moves the cursor by itself; the same flag places
+			// it on the first sidebar entry (the landing tab has no row of its
+			// own) and the loop below consumes the flag this very frame.
+			g_justOpened = true;
 		}
 		ImGui::NewLine();
 
@@ -178,7 +216,7 @@ namespace Menu
 		CenteredInSidebar(buildDate);
 
 		// Visible brand credit, same wording as the source comment.
-		CenteredInSidebarColored("Remade : by EB", ImColor(93, 156, 214, 153));
+		CenteredInSidebarColored("Remade : by EB", ColMuted);
 
 		// The old layout ended with
 		//     SetCursorPosY(GetWindowHeight() - 10); Text("");
@@ -212,10 +250,34 @@ namespace Menu
 	// credit and two honest hints; it touches no state beyond g_splashDone.
 	static void RenderSplash(float fade)
 	{
+		// UI: row 163 - the shell carries a soft three-rect drop shadow; the
+		// two floating cards did not, so on a bright game scene they read as
+		// pasted on.  Same recipe as the shell, one frame late like there.
+		static ImVec2 shMin, shMax;
+		if (shMax.x > shMin.x)
+		{
+			ImDrawList* bg = ImGui::GetBackgroundDrawList();
+			const float off[3] = { 5.0f, 11.0f, 19.0f };
+			const int   alp[3] = { (int)(70 * fade), (int)(46 * fade), (int)(26 * fade) };
+			for (int i = 0; i < 3; ++i)
+				bg->AddRectFilled(ImVec2(shMin.x - 2.0f, shMin.y + off[i] * 0.4f),
+					ImVec2(shMax.x + 2.0f, shMax.y + off[i]),
+					IM_COL32(0, 0, 0, alp[i]), 12.0f);
+		}
+
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
 
 		const ImVec2 disp = ImGui::GetIO().DisplaySize;
 		const ImVec2 card(Settings::Px(460.0f), Settings::Px(288.0f));
+		// UI: row 220 - ApplyStyle()/ApplyScale() keep style.WindowMinSize at the
+		// shell's 900x540 (times scale), and ImGui clamps every window without
+		// AlwaysAutoResize to it (imgui.cpp CalcWindowMinSize): SetNextWindowSize
+		// asked for 460x288 and got a shell-sized card back - content packed at
+		// the top, ~300px of dead canvas below, exactly what a real inject
+		// screenshot showed.  Pushing the card size as the minimum for this one
+		// window lets the clamp agree with the request; the previews always
+		// modelled the compact card, so they become truthful, not different.
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, card);
 		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
 			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -232,6 +294,11 @@ namespace Menu
 			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
 			ImGuiWindowFlags_NoSavedSettings);
+		// UI: row 163 - rect for next frame's shadow; SetNextWindowSize fixes
+		// the size, so the rect is final right after Begin.
+		shMin = ImGui::GetWindowPos();
+		shMax = ImVec2(shMin.x + ImGui::GetWindowSize().x,
+			shMin.y + ImGui::GetWindowSize().y);
 
 		auto Centered = [](const char* text, ImU32 col)
 		{
@@ -256,7 +323,7 @@ namespace Menu
 			Centered("EBengin", ImColor(93, 156, 214, 255));
 		}
 
-		Centered("Remade : by EB", ImColor(93, 156, 214, 153));
+		Centered("Remade : by EB", ColMuted);
 
 		ImGui::Spacing();
 		Gui::Seperator("##splash_seperator");
@@ -267,9 +334,20 @@ namespace Menu
 		// The toggle key is user-bindable (Config -> Toggle key), so the hint
 		// names whatever is actually bound; KeyName is the same helper the
 		// Config button and the key-change toast use.
-		char hint2[96];
-		snprintf(hint2, sizeof(hint2), "%s toggles this overlay at any time.",
-			Settings::KeyName(Settings::Current.ToggleKey));
+		// UI: row 210 - "at any time" overstated the one binding class the
+		// present loop deliberately suppresses: a printable key (hand-edited
+		// ini only - the capture refuses them, row 166) does not flip the
+		// overlay while a text field consumes input (rows 155/164).  The hint
+		// names that qualifier for exactly that class and keeps the confident
+		// sentence for everything else.
+		char hint2[128];
+		const int hk = Settings::Current.ToggleKey;
+		const bool hkPrintable = (hk >= 'A' && hk <= 'Z')
+			|| (hk >= '0' && hk <= '9') || hk == VK_SPACE;
+		snprintf(hint2, sizeof(hint2), hkPrintable
+				? "%s toggles this overlay (not while typing in a text field)."
+				: "%s toggles this overlay at any time.",
+			Settings::KeyName(hk));
 		Centered(hint2, ImColor(255, 255, 255, 255));
 
 		ImGui::Spacing();
@@ -281,6 +359,7 @@ namespace Menu
 
 		ImGui::End();
 		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();   // UI: row 220 - the WindowMinSize push above
 	}
 
 	// FPS / frame-time HUD over the game scene while the overlay is closed: the
@@ -306,15 +385,201 @@ namespace Menu
 		const float w = ts.x > cs.x ? ts.x : cs.x;
 		const float adv = ImGui::GetTextLineHeightWithSpacing();
 		const float pad = Settings::Px(6.0f);
-		const ImVec2 pos(Settings::Px(10.0f), Settings::Px(10.0f));
+		// UI: row 148 - the plate used to be pinned top-left, exactly where game
+		// HUDs (minimap, score strips) commonly sit; the corner is a setting now.
+		const ImVec2 disp = ImGui::GetIO().DisplaySize;
+		const float m = Settings::Px(10.0f);
+		ImVec2 pos(m, m);
+		switch (Settings::Current.HudCorner)
+		{
+		case 1: pos = ImVec2(disp.x - m - w, m); break;
+		case 2: pos = ImVec2(m, disp.y - m - adv - cs.y); break;
+		case 3: pos = ImVec2(disp.x - m - w, disp.y - m - adv - cs.y); break;
+		default: break;
+		}
 		ImDrawList* bg = ImGui::GetBackgroundDrawList();
 		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
 			ImVec2(pos.x + w + pad, pos.y + adv + cs.y + pad),
-			IM_COL32(12, 18, 28, 160), Settings::Px(6.0f));
+			// UI: row 147 - alpha 160 let a bright game scene wash the plate out
+			// (worst-case ~1.0:1 for the credit line); 220 keeps the scene visible
+			// behind it while both plate lines hold WCAG AA worst-case.
+			IM_COL32(12, 18, 28, 220), Settings::Px(6.0f));
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(), pos,
-			ImColor(93, 156, 214, 255), line);
+			// UI: row 147 - the FPS line was brand accent (4.4:1 on the plate);
+			// primary white gives 12.7:1 worst-case and keeps accent for the
+			// interactive ramp only.
+			ImColor(255, 255, 255, 255), line);
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
-			ImVec2(pos.x, pos.y + adv), ImColor(93, 156, 214, 153), credit);
+			ImVec2(pos.x, pos.y + adv), ColMuted, credit);
+	}
+
+	// UI: row 160 - a password field shows dots, so whitespace around a pasted
+	// key is invisible and used to fail the compare with no clue why.  The
+	// compare trims leading/trailing spaces, tabs and line ends; the buffer
+	// itself stays as typed (and is zeroed on success), so the display and
+	// the wrong-key path are untouched.  Local plaintext compare, as before.
+	static const char* TrimmedKey(const char* s)
+	{
+		static char buf[sizeof(g_keyBuf)];
+		const size_t n = std::strlen(s);
+		size_t b = 0, e = n;
+		while (b < e && (s[b] == ' ' || s[b] == '\t' || s[b] == '\r' || s[b] == '\n')) ++b;
+		while (e > b && (s[e - 1] == ' ' || s[e - 1] == '\t' || s[e - 1] == '\r' || s[e - 1] == '\n')) --e;
+		std::memcpy(buf, s + b, e - b);
+		buf[e - b] = '\0';
+		return buf;
+	}
+
+	// UI: row 155 - the key card replaces splash and shell until the key
+	// matches; Enter submits like the button, and a wrong key is answered
+	// inline plus in Activity/Toasts instead of silently.
+	static void RenderKey(float fade)
+	{
+		// UI: row 163 - same drop shadow as the shell and the splash card, one
+		// frame late; see RenderSplash for the recipe's rationale.
+		static ImVec2 shMin, shMax;
+		if (shMax.x > shMin.x)
+		{
+			ImDrawList* bg = ImGui::GetBackgroundDrawList();
+			const float off[3] = { 5.0f, 11.0f, 19.0f };
+			const int   alp[3] = { (int)(70 * fade), (int)(46 * fade), (int)(26 * fade) };
+			for (int i = 0; i < 3; ++i)
+				bg->AddRectFilled(ImVec2(shMin.x - 2.0f, shMin.y + off[i] * 0.4f),
+					ImVec2(shMax.x + 2.0f, shMax.y + off[i]),
+					IM_COL32(0, 0, 0, alp[i]), 12.0f);
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
+
+		const ImVec2 disp = ImGui::GetIO().DisplaySize;
+		// UI: row 156 - the key is lower-case and the compare is case-sensitive,
+		// so with Caps Lock on every attempt fails looking exactly like a wrong
+		// key.  The card grows by one line and says so instead of letting the
+		// user guess; GetKeyState reads the toggle state, no text is inspected.
+		const bool caps = (GetKeyState(VK_CAPITAL) & 1) != 0;
+		const ImVec2 card(Settings::Px(460.0f), Settings::Px(caps ? 256.0f : 232.0f));
+		// UI: row 220 - same WindowMinSize clamp as the splash: the gate card
+		// rendered shell-sized with its field and button stranded at the top.
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, card);
+		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
+		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
+			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+		// UI: row 174 - the field focus below used to be a one-shot static, so
+		// it fired on the very first open only: close the overlay while the
+		// gate is still locked and reopen it, and the window took focus but
+		// the field did not - Enter did nothing until a click or Tab.  The
+		// reopen flag drives both handoffs now, consumed here because the
+		// sidebar (which normally clears it) never runs while gated.
+		const bool fresh = g_justOpened;
+		g_justOpened = false;
+		if (fresh)
+			ImGui::SetNextWindowFocus();
+
+		ImGui::Begin("EBengin Key", NULL,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoSavedSettings);
+		// UI: row 163 - rect for next frame's shadow; SetNextWindowSize fixes
+		// the size, so the rect is final right after Begin.
+		shMin = ImGui::GetWindowPos();
+		shMax = ImVec2(shMin.x + ImGui::GetWindowSize().x,
+			shMin.y + ImGui::GetWindowSize().y);
+
+		auto Centered = [](const char* text, ImU32 col)
+		{
+			const float w = ImGui::CalcTextSize(text).x;
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+				ImMax(0.0f, (ImGui::GetContentRegionAvail().x - w) * 0.5f));
+			ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(col), "%s", text);
+		};
+
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + Settings::Px(16.0f));
+		Centered("EBengin", ImColor(93, 156, 214, 255));
+		Centered("This overlay is key-protected.", ImColor(255, 255, 255, 255));
+		ImGui::Spacing();
+		Gui::Seperator("##key_seperator");
+		ImGui::Spacing();
+
+		const float iw = Settings::Px(280.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - iw) * 0.5f));
+		ImGui::PushItemWidth(iw);
+		if (fresh)
+			ImGui::SetKeyboardFocusHere(0);   // UI: row 174, every open
+		const bool enter = ImGui::InputText("##key", g_keyBuf, sizeof(g_keyBuf),
+			ImGuiInputTextFlags_Password | ImGuiInputTextFlags_EnterReturnsTrue);
+		ImGui::PopItemWidth();
+		// UI: row 157 - the red line answers the previous attempt; once the field
+		// is edited again that verdict is stale, so a fresh keystroke clears it.
+		// IsItemEdited must be read here, before any later widget becomes the
+		// "last item"; the declaration moves up with the check.
+		static bool wrong = false;
+		// UI: row 158 - an empty field is not an attempt; the nudge answers it
+		// instead of the wrong-key verdict (see the submit block below).
+		static bool nudged = false;
+		if (ImGui::IsItemEdited())
+		{
+			wrong = false;
+			nudged = false;   // a fresh keystroke retires the nudge too
+		}
+
+		ImGui::Spacing();
+		const float bw = Settings::Px(140.0f);
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+			ImMax(0.0f, (ImGui::GetContentRegionAvail().x - bw) * 0.5f));
+		if (enter || Gui::PrimaryButton("Unlock", ImVec2(bw, Settings::Px(30.0f))))
+		{
+			// UI: row 158 - Enter or Unlock on an empty field used to produce the
+			// wrong-key verdict, a "Key refused." activity entry and a warn toast
+			// for something that was never an attempt.  Empty submits now answer
+			// with a muted inline nudge only - no verdict, no log, no toast.
+			if (g_keyBuf[0] == '\0')
+				nudged = true;
+			else if (std::strcmp(TrimmedKey(g_keyBuf), "eb") == 0)
+			{
+				g_unlocked = true;
+				wrong = false;
+				// UI: row 174 - hand the focus flag to the splash that follows,
+				// so its Continue button gets the same keyboard handoff every
+				// other open path gives it; the shell sidebar consumes it last.
+				g_justOpened = true;
+				SecureZeroMemory(g_keyBuf, sizeof(g_keyBuf));
+				Activity::Push("Key accepted - overlay unlocked.");
+				Toasts::Push(Toasts::Success, "Key accepted.");
+			}
+			else
+			{
+				wrong = true;
+				Activity::Push("Key refused.");
+				Toasts::Push(Toasts::Warn, "Wrong key.");
+			}
+		}
+		if (wrong)
+			// UI: row 157 - pure red on the card measured ~3.7:1, under WCAG AA
+			// for normal text; this lighter red holds ~5.2:1 on the card bg.
+			Centered("Wrong key - try again.", ImColor(255, 107, 107, 255));
+		else if (nudged)
+			// UI: row 158 - same line slot as the verdict, so the card height is
+			// untouched; muted brand colour, ~6.2:1 on the card.
+			Centered("Type the key first - then Enter or Unlock.", ColMuted);
+		else
+			ImGui::Spacing();
+		// UI: row 156 - only shown while Caps Lock is on; amber like the warn
+		// ramp (~8.8:1 on the card), and the card height above makes room.
+		if (caps)
+			Centered("Caps Lock is on - the key is lower-case.", ImColor(255, 193, 7, 255));
+		Centered("Local gate - no server is contacted.", ColMuted);
+
+		// UI: row 162 - inside this 460x232 window the window-anchored stack would
+		// sit on top of the card's own button and hint line; the screen-anchored
+		// variant puts it where the shell puts it, at the display's corner.
+		// UI: row 170 - the shell gates its stack on the same pref; the key card
+		// used to show toasts even with "Toast notifications" switched off.
+		if (Settings::Current.Toasts)
+			Toasts::RenderScreen();
+		ImGui::End();
+		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();   // UI: row 220 - the WindowMinSize push above
 	}
 
 	void Render()
@@ -339,9 +604,18 @@ namespace Menu
 		const double tNow = ImGui::GetTime();
 		static double lastRender = -1.0;
 		static double openT = -1.0;
+		// UI: row 168 - a confirmation dialog stops the frame loop for its whole
+		// lifetime; without this subtraction every dialog longer than 0.5s
+		// replayed the open fade and reset the nav cursor when it closed, on
+		// top of a shell the user never left.  The modal wrapper publishes its
+		// wall-clock duration; subtract what is new since the last frame.
+		static double modalSeen = 0.0;
+		const double modalNow = Gui::ModalSeconds();
+		const double gap = (tNow - lastRender) - (modalNow - modalSeen);
+		modalSeen = modalNow;
 		// 0.5s: far above any real frame hitch (which must not re-trigger the
 		// fade mid-session) and far below any human close/reopen.
-		if (lastRender < 0.0 || (tNow - lastRender) > 0.5)
+		if (lastRender < 0.0 || gap > 0.5)
 		{
 			openT = tNow;
 			g_justOpened = true;
@@ -370,6 +644,14 @@ namespace Menu
 		// which this skip bypasses - a warn toast queued at load (e.g. unwritable
 		// settings.ini) therefore waits behind the card at full lifetime instead
 		// of expiring unseen.  Do not "fix" that by ageing toasts here.
+		// UI: row 155 - the key gate sits in front of splash and shell: while
+		// the key is missing, nothing else in the overlay is reachable.
+		if (!g_unlocked)
+		{
+			RenderKey(fade);
+			return;
+		}
+
 		if (!g_splashDone)
 		{
 			RenderSplash(fade);
@@ -462,6 +744,22 @@ namespace Menu
 				ImVec2(wp.x + ww, wp.y + titleH + 2.0f),
 				IM_COL32(93, 156, 214, 255), IM_COL32(29, 81, 136, 255),
 				IM_COL32(29, 81, 136, 255), IM_COL32(93, 156, 214, 255));
+		}
+
+		// UI: row 150 - Ctrl+Tab / Ctrl+Shift+Tab cycle all five tabs, landing
+		// included.  The editor consumes plain Tab for indent but leaves the
+		// Ctrl chord alone (TextEditor checks !ctrl), so this stays safe while
+		// the editor has focus.
+		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Tab, false))
+		{
+			const int dir = ImGui::GetIO().KeyShift ? -1 : 1;
+			Tab = (Tab + dir + 5) % 5;
+			Settings::Current.Tab = Tab;
+			Settings::Save();
+			// UI: row 152 - keyboard users cycling tabs keep the nav cursor on
+			// the old tab's widget otherwise; the same flag the reopen path
+			// uses hands focus to the new tab's sidebar entry next frame.
+			g_justOpened = true;
 		}
 
 		// Two-column shell: fixed sidebar on the left, tab content on the right.

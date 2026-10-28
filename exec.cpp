@@ -44,11 +44,10 @@ namespace Executor
 		return i == std::string::npos ? path : path.substr(i + 1);
 	}
 
-	// Shared read path for Load-from-file and Revert: the size cap, the
-	// empty check and the UTF-8 BOM strip live in one place so the two
-	// cannot drift apart the way the old menu-list copies did.
-	// Returns 0 on success, 1 open failure, 2 empty, 3 oversized; on 0,
-	// out holds the file text after the BOM strip.
+	// UI: row 212 - PushRecent had been inserted between ReadFileText's
+	// contract comment and ReadFileText itself, so the "Returns 0 on success,
+	// 1 open failure, 2 empty, 3 oversized" block documented a function with
+	// no return codes at all.  Each comment sits on its own function again.
 	// Recent-files list: newest first, de-duplicated, capped at five, and
 	// persisted with the rest of the prefs ([recent] in settings.ini), so a
 	// re-inject still offers yesterday's script for one-click reload.
@@ -62,6 +61,11 @@ namespace Executor
 		Settings::Save();
 	}
 
+	// Shared read path for Load-from-file and Revert: the size cap, the
+	// empty check and the UTF-8 BOM strip live in one place so the two
+	// cannot drift apart the way the old menu-list copies did.
+	// Returns 0 on success, 1 open failure, 2 empty, 3 oversized; on 0,
+	// out holds the file text after the BOM strip.
 	static int ReadFileText(const char* file, std::string& out)
 	{
 		FILE* fp = NULL;
@@ -210,7 +214,7 @@ namespace Executor
 			// to lose, and drop the file reference with the text.
 			const std::string cur = editor.GetText();
 			const bool go = cur.empty()
-				|| MessageBoxA(NULL, (std::string("Discard the current buffer (")
+				|| Gui::ModalBoxA( (std::string("Discard the current buffer (")
 					+ std::to_string(cur.size())
 					+ " bytes)?\nThis cannot be undone.").c_str(),
 					"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
@@ -256,7 +260,11 @@ namespace Executor
 				OPENFILENAMEA ofn;
 				ZeroMemory(&ofn, sizeof(ofn));
 				ofn.lStructSize = sizeof(ofn);
-				ofn.hwndOwner = FindWindowA(NULL, "FiveM");
+				// UI: row 211 - was FindWindowA(NULL, "FiveM"): a title guess that
+				// answers NULL (unowned dialog behind a fullscreen game, reading
+				// as a hang) whenever the host titles its window differently.
+				// The hook resolved the real swap-chain window long ago.
+				ofn.hwndOwner = window;
 				ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
 				ofn.lpstrFile = file;
 				ofn.nMaxFile = MAX_PATH;
@@ -277,7 +285,7 @@ namespace Executor
 				if (FileMTime(target.c_str(), nowTime)
 					&& (nowTime.dwLowDateTime != g_fileTime.dwLowDateTime
 						|| nowTime.dwHighDateTime != g_fileTime.dwHighDateTime)
-					&& MessageBoxA(NULL, "The file changed on disk since it was loaded or saved.\n"
+					&& Gui::ModalBoxA( "The file changed on disk since it was loaded or saved.\n"
 						"Overwrite it with the buffer?", "EBengin",
 						MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
 				{
@@ -290,14 +298,14 @@ namespace Executor
 			const int rc = WriteFileText(target.c_str(), text, written);
 			if (rc == 1)
 			{
-				MessageBoxA(NULL, (std::string("Could not write:\n") + target).c_str(),
+				Gui::ModalBoxA( (std::string("Could not write:\n") + target).c_str(),
 					"EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push(std::string("Save failed: ") + target);
 				Toasts::Push(Toasts::Warn, std::string("Save failed: ") + target);
 			}
 			else if (rc == 2)
 			{
-				MessageBoxA(NULL, (std::string("Write stopped after "
+				Gui::ModalBoxA( (std::string("Write stopped after "
 					+ std::to_string(written) + " of "
 					+ std::to_string(text.size()) + " bytes:\n") + target).c_str(),
 					"EBengin", MB_OK | MB_ICONERROR);
@@ -318,10 +326,20 @@ namespace Executor
 		};
 		if (ImGui::Button(ICON_FA_SAVE "##ed_save", ImVec2(tb, tb)))
 			saveBuffer();
+		// UI: row 213 - the dynamic path was the tooltip's printf format: a
+		// '%' in a filename (legal on Windows) is the same UB runtime-fix #15
+		// removed from the list texts.  Pass it as an argument instead.
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(g_lastFile.empty() ? "Save the buffer to a file (Ctrl+S)"
-				: ("Save to " + BaseName(g_lastFile)
-					+ " (Ctrl+S; Shift+click or Ctrl+Shift+S: save as...)").c_str());
+		{
+			if (g_lastFile.empty())
+				ImGui::SetTooltip("Save the buffer to a file (Ctrl+S)");
+			else
+			{
+				const std::string tip = "Save to " + BaseName(g_lastFile)
+					+ " (Ctrl+S; Shift+click or Ctrl+Shift+S: save as...)";
+				ImGui::SetTooltip("%s", tip.c_str());
+			}
+		}
 		// Ctrl+S: the editor owns Ctrl+Z/Y/C/V but not S or O, so both shortcuts
 		// are free here.  Repeat off, and tab-local because the checks live in
 		// this tab.  Ctrl+Shift+S falls out of saveBuffer's KeyShift read.
@@ -339,7 +357,7 @@ namespace Executor
 			const int rc = ReadFileText(g_lastFile.c_str(), fileText);
 			if (rc != 0)
 			{
-				MessageBoxA(NULL, (std::string("Revert could not read:\n")
+				Gui::ModalBoxA( (std::string("Revert could not read:\n")
 					+ g_lastFile).c_str(), "EBengin", MB_OK | MB_ICONERROR);
 				Activity::Push(std::string("Revert failed: ") + g_lastFile);
 				Toasts::Push(Toasts::Warn, "Revert failed - file unreadable.");
@@ -353,7 +371,7 @@ namespace Executor
 			else
 			{
 				const bool go = !dirty
-					|| MessageBoxA(NULL, (std::string("Discard the current edits and revert to\n")
+					|| Gui::ModalBoxA( (std::string("Discard the current edits and revert to\n")
 						+ g_lastFile + "?").c_str(),
 						"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
 				if (go)
@@ -372,9 +390,16 @@ namespace Executor
 		}
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-			ImGui::SetTooltip(g_lastFile.empty()
-				? "Nothing to revert to - no file behind the buffer"
-				: ("Revert to " + BaseName(g_lastFile)).c_str());
+		{
+			// UI: row 213 - same format-string family as the Save tooltip.
+			if (g_lastFile.empty())
+				ImGui::SetTooltip("Nothing to revert to - no file behind the buffer");
+			else
+			{
+				const std::string tip = "Revert to " + BaseName(g_lastFile);
+				ImGui::SetTooltip("%s", tip.c_str());
+			}
+		}
 		ImGui::SameLine();
 		if (Gui::Toggle("Whitespace##ed_ws", &Settings::Current.ShowWhitespace))
 		{
@@ -461,7 +486,7 @@ namespace Executor
 			statusLine += "  |  modified";
 		if (editor.HasSelection())
 			statusLine += "  |  " + std::to_string(editor.GetSelectedText().size()) + " selected";
-		ImGui::TextColored(ImColor(93, 156, 214, 153), "%s", statusLine.c_str());
+		ImGui::TextColored(ColMuted, "%s", statusLine.c_str());
 		ImGui::Spacing();
 
 		if (Gui::PrimaryButton(ICON_FA_CODE " Execute",
@@ -469,18 +494,18 @@ namespace Executor
 		{
 			if (resources.empty())
 			{
-				MessageBoxA(NULL, "No resource selected.", "EBengin", MB_OK | MB_ICONERROR);
+				Gui::ModalBoxA( "No resource selected.", "EBengin", MB_OK | MB_ICONERROR);
 			}
 			else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
 			{
-				MessageBoxA(NULL, "You can't execute in _cfx_internal.", "EBengin", MB_OK | MB_ICONERROR);
+				Gui::ModalBoxA( "You can't execute in _cfx_internal.", "EBengin", MB_OK | MB_ICONERROR);
 			}
 			else
 			{
 				// Not implemented in this build.  The button used to be silently dead,
 				// which reads as a crash/hang to the user.
 				const std::string script = editor.GetText();
-				MessageBoxA(NULL,
+				Gui::ModalBoxA(
 					(std::string("Execution is not implemented in this build.\n\nTarget: ")
 						+ resources[selectedResource]
 						+ "\nScript: " + std::to_string(script.size()) + " bytes").c_str(),
@@ -512,7 +537,7 @@ namespace Executor
 			OPENFILENAMEA ofn;
 			ZeroMemory(&ofn, sizeof(ofn));
 			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = FindWindowA(NULL, "FiveM");
+			ofn.hwndOwner = window;   // UI: row 211 - real host window, not a title guess
 			ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
 			ofn.lpstrFile = file;
 			ofn.nMaxFile = MAX_PATH;
@@ -533,19 +558,19 @@ namespace Executor
 				const int rc = ReadFileText(file, text);
 				if (rc == 1)
 				{
-					MessageBoxA(NULL, (std::string("Could not open:\n") + file).c_str(),
+					Gui::ModalBoxA( (std::string("Could not open:\n") + file).c_str(),
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load failed: ") + file);
 				}
 				else if (rc == 2)
 				{
-					MessageBoxA(NULL, "The selected file is empty.",
+					Gui::ModalBoxA( "The selected file is empty.",
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load failed (empty): ") + file);
 				}
 				else if (rc == 3)
 				{
-					MessageBoxA(NULL, "The selected file is larger than 4 MB and was not loaded.",
+					Gui::ModalBoxA( "The selected file is larger than 4 MB and was not loaded.",
 						"EBengin", MB_OK | MB_ICONERROR);
 					Activity::Push(std::string("Load refused (>4 MB): ") + file);
 				}
@@ -555,7 +580,7 @@ namespace Executor
 					// a non-empty buffer throws away whatever was not saved.
 					const std::string curBuf = editor.GetText();
 					const bool replace = curBuf.empty()
-						|| MessageBoxA(NULL, (std::string("Replace the current buffer (")
+						|| Gui::ModalBoxA( (std::string("Replace the current buffer (")
 							+ std::to_string(curBuf.size()) + " bytes) with\n"
 							+ file + "?\nUnsaved changes cannot be undone.").c_str(),
 							"EBengin", MB_OKCANCEL | MB_ICONQUESTION) == IDOK;
@@ -599,16 +624,31 @@ namespace Executor
 		if (ImGui::Button(ICON_FA_LIST_UL " Recent", ImVec2(Settings::Px(90.0f), Settings::Px(30.0f))))
 			ImGui::OpenPopup("##ed_recent_popup");
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("The five last used files, newest first.");
+			ImGui::SetTooltip("The five last used files, newest first.\nRight-click an entry to remove it.");
 		ImGui::EndDisabled();
 		if (ImGui::BeginPopup("##ed_recent_popup"))
 		{
-			for (const std::string& r : Settings::Current.Recent)
+			for (int i = 0; i < (int)Settings::Current.Recent.size(); ++i)
 			{
+				const std::string& r = Settings::Current.Recent[i];
 				if (ImGui::MenuItem(BaseName(r).c_str()))
 					loadFile(r.c_str());
+				else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+				{
+					// UI: row 149 - a renamed or moved file used to sit in the list
+					// until it failed on use; right-click drops the entry now.
+					Settings::Current.Recent.erase(Settings::Current.Recent.begin() + i);
+					Settings::Save();
+					Activity::Push("Removed " + r + " from the recent list.");
+					Toasts::Push(Toasts::Info, "Removed from recent files.");
+					break;   // indices shifted; the next frame redraws the popup
+				}
 				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip(r.c_str());
+				{
+					// UI: row 213 - same format-string family: r is a full user path.
+					const std::string tip = r + "\nRight-click removes the entry.";
+					ImGui::SetTooltip("%s", tip.c_str());
+				}
 			}
 			ImGui::EndPopup();
 		}
@@ -617,11 +657,19 @@ namespace Executor
 		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
 		// items_count is an int: size_t has no implicit conversion (C2664).
 		if (!resources.empty())
-			ImGui::Combo("##resources", &selectedResource, resources.data(), (int)resources.size());
+		{
+			if (ImGui::Combo("##resources", &selectedResource, resources.data(), (int)resources.size()))
+			{
+				// UI: row 154 - persist by name, not index: the stopper erases
+				// entries, so an index from settings.ini could name a stranger.
+				Settings::Current.ResourceName = resources[selectedResource];
+				Settings::Save();
+			}
+		}
 		else
 			// The stopper can erase the last entry; without a fallback the row
 			// would just be empty where a selection used to be.
-			ImGui::TextColored(ImColor(93, 156, 214, 153), "No resources left to select.");
+			ImGui::TextColored(ColMuted, "No resources left to select.");
 		ImGui::PopItemWidth();
 	}
 }

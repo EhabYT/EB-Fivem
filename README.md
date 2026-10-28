@@ -15,7 +15,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > this branch (no MSVC, no Windows), so the image is drawn from the repository's own constants
 > instead of being captured from a running game: every colour from [`menu_style.h`](menu_style.h),
 > the 225 px sidebar and 46 px buttons from [`menu.h`](menu.h), the window title, logo placement,
-> tab labels and footer strings from [`menu.cpp`](menu.cpp), the editor palette and Lua token
+> tab labels and footer strings from [`menu.cpp`](menu.cpp), the editor palette, the AA muted token #7DAFE1 (row 147) and Lua token
 > colours from [`TextEditor.cpp`](TextEditor.cpp), and the sidebar/button glyphs from the project's
 > **own embedded Font Awesome font** (the stb-compressed blob in `font_awesome.cpp`, decompressed for
 > this render). Two things are substituted and cannot be faithful: the text face — `Bahnschrift.ttf`
@@ -28,7 +28,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 ![EBengin menu preview - Config tab](docs/preview_config.png)
 
 > The same render with the **Config tab** open (`python docs/render_preview.py --config`):
-> the Interface preferences - toggle-key capture, animations, toasts, FPS HUD, the persisted
+> the Interface preferences - toggle-key capture, animations, toasts, FPS HUD with plate corner, the persisted
 > 70-200 % scale slider, reset - and the two inert switches: greyed headings,
 > `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
 > answers every flip. The right pane's About block names brand, credit, build
@@ -63,7 +63,7 @@ name and the credit line, dismissed with Continue.  Fifth render
 ![EBengin splash card](docs/preview_splash.png)
 
 While the overlay is closed, the frame-rate line lives on as a small HUD plate over
-the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`).  Sixth render
+the scene, with the `MADE BY EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`; the plate corner is `Corner`, persisted as `[ui] hudcorner`).  Sixth render
 (`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
 
 ![EBengin FPS HUD](docs/preview_hud.png)
@@ -74,11 +74,18 @@ log with its Copy/Clear pair - is the seventh render
 
 ![EBengin landing tab](docs/preview_default.png)
 
+The session key gate in front of splash and shell (row 155: key `eb`, local
+plaintext compare, unlocked once per inject) is the eighth render
+(`python docs/render_preview.py --key`), depicted with its empty password
+field:
+
+![EBengin key card](docs/preview_key.png)
+
 ## Layout
 
 | Path | What it is |
 |---|---|
-| [`main.cpp`](main.cpp) | `DllMain`, Present hook, ImGui init/teardown, texture + font loading, input routing |
+| [`main.cpp`](main.cpp) | `DllMain`, Present hook, ImGui init/teardown, texture + font loading, input routing, hook trace log (`EBengin.log`) |
 | [`includes.h`](includes.h) | Windows / D3D11 / DXGI / Kiero / ImGui includes, hook typedefs, `HK_CALL` |
 | [`assets.h`](assets.h) | `ResolveAssetPath()` — finds files next to the DLL |
 | [`menu.h`](menu.h) · [`menu.cpp`](menu.cpp) | Menu **shell**: the window, the 2-column `ImGui::Table`, the sidebar, `Menu::TabId` |
@@ -88,19 +95,17 @@ log with its Copy/Clear pair - is the seventh render
 | [`settings.h`](settings.h) · [`settings.cpp`](settings.cpp) | Persisted interface prefs (`[ui]`, `[menu]`, `[window]`), host DPI scale, `ScaleFactor()`/`Px()`, save-failure flag, first-start notice |
 | [`toasts.h`](toasts.h) · [`toasts.cpp`](toasts.cpp) | Non-blocking feedback stack: four-second lifetime, click dismisses, capped, drawn above the tab content |
 | [`activity.h`](activity.h) · [`activity.cpp`](activity.cpp) | Timestamped in-memory session log (newest first, 32 kept, total counted) - the trace behind the landing tab |
-| [`perf.h`](perf.h) · [`perf.cpp`](perf.cpp) | Frame-time ring and session uptime: the sidebar FPS line and the landing sparkline |
+| [`perf.h`](perf.h) · [`perf.cpp`](perf.cpp) | Frame-time ring and menu-open uptime (Sample() ticks only while the overlay renders - the landing card labels it "Menu open"): the sidebar FPS line and the landing sparkline |
 | [`clipboard.h`](clipboard.h) | Header-only Win32 `CF_TEXT` writer shared by Config (diagnostics), the landing log and the Resources copy buttons |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor with toolbar (undo/redo/copy/paste/clear/save/revert, whitespace toggle), status line (cursor, lines, last file, modified mark), honest Execute stub, Load/Save dialogs with confirmations and shortcuts, Recent-files popup (five last used paths from settings.ini), right-click menu, empty-state hint, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
-| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, FPS HUD, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches
-labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, credit, ImGui version, build configuration, host scale, not-writable warning, Copy diagnostics, Open settings folder |
+| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, FPS HUD, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, credit, ImGui version, build configuration, host scale, not-writable warning, Copy diagnostics, Open settings folder |
 | [`luamenus.h`](luamenus.h) · [`luamenus.cpp`](luamenus.cpp) | Menus tab — free / premium menu lists |
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab - diagnostics card (sparkline, uptime, action count) and the session activity log with Copy/Clear |
 | [`TextEditor.cpp`](TextEditor.cpp) · [`TextEditor.h`](TextEditor.h) | Vendored ImGui code editor widget |
 | [`imgui/`](imgui) | Dear ImGui **1.93.0** + `imgui_impl_dx11` / `imgui_impl_win32` (vendored, unmodified). `imgui_demo.cpp` is on disk but not built — see [BUILD.md](BUILD.md) |
-| [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored,
-  unmodified, frozen by decision - see Notes) |
+| [`kiero/`](kiero) | Kiero 1.2.6 (D3D11 enabled) + bundled MinHook 1.3.3 sources (vendored, unmodified, frozen by decision - see Notes) |
 | [`ci/`](ci) | The GitHub Actions build workflow, staged as [`ci/build.yml`](ci/build.yml) + [`ci/enable.bat`](ci/enable.bat) — written and validated, **not yet enabled**. See [`ci/README.md`](ci/README.md) |
 | [`font_awesome.h`](font_awesome.h) · [`font_awesome.cpp`](font_awesome.cpp) | Font Awesome icon macros + compressed TTF blob |
 | [`stb_image.h`](stb_image.h) | PNG decoding for the menu logo (vendored **v2.30**) |
@@ -111,7 +116,8 @@ labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, cre
 | [`docs/preview_menus.png`](docs/preview_menus.png) | The same render with the Menus tab open (`--menus`) |
 | [`docs/preview_splash.png`](docs/preview_splash.png) | The first-open start card (`--splash`): logo, credit line, two honest hints, Continue |
 | [`docs/preview_hud.png`](docs/preview_hud.png) | The FPS HUD plate over the scene while the overlay is closed (`--hud`) |
-| [`docs/preview_default.png`](docs/preview_default.png) | The landing tab (`--default`): diagnostics sparkline, uptime line, session log with Copy/Clear |
+| [`docs/preview_default.png`](docs/preview_default.png) | The landing tab (`--default`): diagnostics sparkline, uptime line, session log with Copy and a confirming Clear |
+| [`docs/preview_key.png`](docs/preview_key.png) | The key gate card (`--key`): password field, Unlock button and the honest hint lines, shown instead of splash and shell until the session key matches |
 | [`CHANGELOG.md`](CHANGELOG.md) | One entry per batch on this branch, newest first - the condensed view of the fix table in BUILD.md |
 
 ## Architecture
@@ -133,11 +139,11 @@ flowchart TD
     C --> D{"kiero::init D3D11<br/>== Success?"}
     D -- "no: UnknownError" --> D1["Sleep 500 ms"] --> D2{"120 attempts<br/>or unloading?"}
     D2 -- "keep retrying" --> D
-    D2 -- "give up" --> D3(["thread exits FALSE"])
+    D2 -- "give up" --> D3(["trace line to EBengin.log,<br/>thread exits FALSE"])
     D -- "no: NotSupported /<br/>ModuleNotFound" --> D3
     D -- "yes" --> E{"kiero::bind index 8<br/>IDXGISwapChain::Present"}
     E -- "failed" --> E1["kiero::shutdown"] --> D3
-    E -- "ok" --> F(["hook live, oPresent saved"])
+    E -- "ok" --> F(["hook live, oPresent saved,<br/>attach line in EBengin.log"])
 
     F --> G["hkPresent runs every frame"]
     G --> H{"g_unloading or<br/>pSwapChain == NULL?"}
@@ -148,7 +154,7 @@ flowchart TD
     J --> K{"all succeeded?"}
     K -- "no" --> Z
     K -- "yes" --> L["subclass WndProc<br/>only when oWndProc == NULL"]
-    L --> M["InitImGui: fonts, EBengin.png beside the DLL,<br/>ApplyStyle once, Executor::Init, Resources::Init"]
+    L --> M["InitImGui: fonts, EBengin.png beside the DLL,<br/>ApplyStyle once, host DPI, Settings::Load, ApplyScale,<br/>Executor::Init, Resources::Init"]
     M --> N["init = true"]
 
     I -- "later frames" --> O{"back buffer size<br/>changed?"}
@@ -157,7 +163,7 @@ flowchart TD
     P --> Q
     N --> Q
 
-    Q["NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"Toggle key pressed?<br/>edge triggered"}
+    Q["re-sample host DPI per frame, ApplyScale on change<br/>NewFrame for DX11, Win32 and ImGui<br/>MouseDrawCursor = Menu::IsMenuOpen"] --> R{"Toggle key pressed?<br/>edge triggered, suppressed while a<br/>capture is armed or a text field<br/>consumes a printable binding"}
     R -- "yes" --> S["toggle Menu::IsMenuOpen"] --> T
     R -- "no" --> T{"IsMenuOpen?"}
     T -- "yes" --> U["Menu::Render<br/>first open: splash card, first-start<br/>notice if no settings.ini, then shell:<br/>sidebar column + Tabs::Render"] --> V
@@ -178,7 +184,7 @@ flowchart TD
         W2 -- "no" --> W4(["CallWindowProc → game"])
     end
 
-    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"]
+    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, wait for an open<br/>modal dialog (capped ~2 s), Sleep 50 ms,<br/>Settings::Save flush"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"] --> U4["session-ended line<br/>in EBengin.log"]
 ```
 
 The two details that are easy to get wrong in a Present hook, and are therefore explicit in the
@@ -190,7 +196,7 @@ context disappears under it.
 ### Include graph
 
 Rectangles are translation units, rounded boxes are headers, each subgraph is one `.cpp` plus the
-header it owns. **Generated from the actual `#include` lines** — 35 nodes, 63 edges (regenerate with `python docs/gen_include_graph.py`).
+header it owns. **Generated from the actual `#include` lines** — 35 nodes, 81 edges (regenerate with `python docs/gen_include_graph.py`).
 
 ```mermaid
 flowchart LR
@@ -264,9 +270,12 @@ flowchart LR
     n2 --> n3
     n4 --> n3
     n4 --> n5
+    n4 --> n11
     n4 --> n24
     n4 --> n28
+    n4 --> n29
     n4 --> n30
+    n4 --> n33
     n5 --> n13
     n5 --> n31
     n6 --> n3
@@ -288,10 +297,18 @@ flowchart LR
     n14 --> n15
     n14 --> n28
     n14 --> n31
+    n16 --> n5
+    n16 --> n11
     n16 --> n13
     n16 --> n18
+    n16 --> n22
+    n16 --> n24
+    n16 --> n29
+    n16 --> n31
     n16 --> n32
+    n16 --> n33
     n16 --> n34
+    n17 --> n3
     n17 --> n13
     n17 --> n18
     n17 --> n20
@@ -299,16 +316,21 @@ flowchart LR
     n17 --> n26
     n17 --> n28
     n17 --> n31
+    n18 --> n24
     n19 --> n20
     n21 --> n3
     n21 --> n22
+    n21 --> n24
     n21 --> n28
     n21 --> n29
     n21 --> n30
+    n21 --> n33
     n22 --> n1
+    n22 --> n11
     n22 --> n13
     n22 --> n31
     n23 --> n3
+    n23 --> n5
     n23 --> n24
     n23 --> n28
     n23 --> n29
@@ -323,6 +345,8 @@ flowchart LR
     n27 --> n28
     n31 --> n13
     n31 --> n24
+    n31 --> n33
+    n33 --> n24
 ```
 
 What the shape of that graph is meant to show:
@@ -331,14 +355,18 @@ What the shape of that graph is meant to show:
   exist; it calls `Tabs::Render()`.
 * **`tabs.cpp` is the only node pointing at all five tabs.** Adding a tab touches `tabs.cpp`, one
   `SidebarItems[]` row in `menu.cpp` and one `Menu::TabId` enumerator — not the hook code.
-* **`main.cpp` points at `exec.h` and `resources.h` but at no tab body.** It only calls
-  `Executor::Init()` / `Resources::Init()`; the includes it needs are `includes.h`, `menu.h`,
-  `menu_style.h` and `assets.h`.
-* Only three headers include anything at all: `config.h → gui.h`, `exec.h → TextEditor.h` and
-  `resources.h → {TextEditor.h, exec.h, gui.h}`. The other ten — `assets.h`, `default.h`, `demo.h`,
-  `gui.h`, `includes.h`, `luamenus.h`, `menu.h`, `menu_style.h`, `tabs.h`, `TextEditor.h` — have no
-  outgoing edges. Nothing defines state in a header any more, which is what used to make a second
-  including `.cpp` a `LNK2005`.
+* **`main.cpp` calls the tabs' one-time setup but renders no tab body.** Its project includes
+  are `includes.h`, `menu.h`, `settings.h`, `menu_style.h`, `assets.h`, `exec.h`, `config.h`,
+  `gui.h` and `resources.h` (plus `<fstream>` for the hook trace log): `Executor::Init()` /
+  `Resources::Init()` at startup, `Config::IsCapturing()` in the toggle poll (row 164) and
+  `Gui::ModalActive()` in the DETACH wait (row 201). `config.h` is the only tab header among
+  them - declarations, not render code; no `tabs.h`, no tab body.
+* Header edges are exactly what the graph above shows — five headers have outgoing project
+  edges: `config.h → {font_awesome.h, gui.h}`, `exec.h → {TextEditor.h, font_awesome.h}`,
+  `gui.h → {font_awesome.h, settings.h, menu_style.h}`, `menu.h → settings.h` and
+  `resources.h → {TextEditor.h, exec.h, font_awesome.h, gui.h}`. Every other header has none
+  (regenerate after any include change: `python docs/gen_include_graph.py`). Nothing defines
+  state in a header any more, which is what used to make a second including `.cpp` a `LNK2005`.
 
 Vendored code (`imgui/`, `kiero/`, `stb_image.h`, `font_awesome.*`) is left out for readability; it
 has no edges into the project's own headers.
@@ -347,7 +375,7 @@ has no edges into the project's own headers.
 
 Full instructions, requirements and a troubleshooting table: **[BUILD.md](BUILD.md)**.
 
-Quick version — Windows 10/11, Visual Studio 2019 or 2022 with the
+Quick version — Windows 10 (1607+)/11, Visual Studio 2019 or 2022 with the
 *Desktop development with C++* workload (the legacy DirectX SDK is **not** required):
 
 ```bat
@@ -386,7 +414,13 @@ Until then there is **no CI and no compile proof** — every check on this branc
 ## Runtime behaviour
 
 * The toggle key — **INSERT** by default, rebindable in Config → Interface — toggles the menu.
-* The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates
+* The menu is keyboard-navigable: Tab/arrows move the focus, Enter/Space activates,
+  Ctrl+Tab / Ctrl+Shift+Tab cycle the tabs, and the sidebar logo returns to the landing
+  tab - both hand the keyboard cursor over to the new tab's sidebar entry
+* A session key gate sits in front of splash and shell: once per inject the overlay
+  asks for its key (password field, Enter submits); the check is local plaintext against a
+  constant - no server, no persistence - and the card says so; a Caps-Lock
+  hint line explains case-mismatched attempts while Caps Lock is on
   (ImGui keyboard nav, accent-coloured focus rectangle).
 * Opening the menu gives it keyboard focus; the nav cursor starts on the sidebar entry of
   the open tab (first entry on the landing tab, which has no sidebar row).
@@ -414,8 +448,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * The code uses **no deprecated ImGui API**: the menu shell was moved off the legacy
   `Columns()`/`NextColumn()`/`SetColumnOffset()` API onto `BeginTable`/`TableSetupColumn`. That
   makes `#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS` in `imgui/imconfig.h` a clean compile, and the
-  recommended way to stay ahead of the next upgrade. (`demo.h` still uses `Columns()` — it is an
-  annotated cheat-sheet wired to no tab, left alone on purpose.)
+  recommended way to stay ahead of the next upgrade. (`demo.cpp`, the annotated cheat-sheet
+  wired to no tab, moved to `BeginTable` too — its comment records the legacy calls it replaced,
+  and no `Columns()`/`NextColumn()`/`SetColumnOffset()` call is left in any project file.)
 * `style.CellPadding` is `(0,0)` in `menu_style.h`. That is not cosmetic: table cells are inset by
   `CellPadding` on every side, so the default `4,1` would leave the 225px sidebar with 217px of
   usable width. Keep it at zero, or subtract the padding from `Menu::SidebarWidth`.
@@ -433,8 +468,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * Every menu global is declared `extern` in its header and defined in exactly one `.cpp`, so
   adding a second translation unit cannot produce `LNK2005` duplicates.
 * **Shell and tabs are separate translation units.** `menu.cpp` draws the window and the sidebar and
-  calls `Tabs::Render()`; `tabs.cpp` owns the `switch` and is the only file that includes the five tab
-  headers. `main.cpp` (hooks, device, ImGui lifetime) includes neither. Adding a tab therefore touches
+  calls `Tabs::Render()`; `tabs.cpp` owns the `switch` and is the only file that includes all five tab
+  headers. `main.cpp` (hooks, device, ImGui lifetime) includes neither `tabs.h` nor a tab body; its
+  one tab-header include is `config.h`, for `Config::IsCapturing()` (row 164). Adding a tab therefore touches
   `tabs.cpp`, `menu.cpp` (one `SidebarItems[]` row) and `menu.h` (one `TabId` enumerator) — not the
   hook code.
 * `demo.h` is compiled but wired to no sidebar entry; call `Demo::Render()` from `Tabs::Render()` if
@@ -452,7 +488,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   and the overlay toggle key (Config → "Toggle key", click-to-capture, ESC cancels). The sidebar
   footer carries a live FPS / frame-time readout, and the landing tab lists a timestamped session
   log of loads, dumps, copies and stop/run requests — the actions whose only other feedback is a
-  message box. All of it is in `settings.cpp` / `activity.cpp`.
+  message box. All of it is in `settings.cpp` / `activity.cpp`. Hook-level outcomes go to a
+  second, separate file: `<DLL folder>\EBengin.log` keeps one timestamped line per inject —
+  attach, the failure that stopped it, or the clean unload — capped at 64 KB (`main.cpp`).
 * **The interface gives non-blocking feedback:** success/info paths (loads, dumps, copies,
   run/execute requests, key captures) raise a toast card in the window's bottom-right corner
   instead of a focus-stealing message box; critical errors keep theirs. The window opens with a
@@ -462,7 +500,7 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * **Tab comfort:** the editor carries a status line (Ln/Col, line count, language, the
   last loaded or saved file, and a `modified` mark while unsaved edits exist), the Resources
   file browser and stopper have case-insensitive filter boxes, and the landing tab's Diagnostics
-  card draws a 120-frame frame-time sparkline with session uptime and action count (`perf.cpp`).
+  card draws a 120-frame frame-time sparkline with menu-open uptime and action count (`perf.cpp`).
 * **Editor toolbar:** icon buttons for undo/redo/copy/paste/clear, save (one click to the
   last file, Shift+click or a first save through the dialog - which reopens on the last
   file's folder with its name prefilled - Ctrl+S from the keyboard, Ctrl+Shift+S forcing
@@ -484,12 +522,12 @@ Until then there is **no CI and no compile proof** — every check on this branc
   position, last tab, toggle key, the
   animation/toast switches and the interface scale in `settings.ini`.
 * **Interface scale:** Config → Interface carries a 70–200% slider, persisted as `[ui] scale` and
-  applied through ImGui 1.92's `style.FontScaleMain`, so fonts, frames, sidebar and window size
+  applied through ImGui 1.93's `style.FontScaleMain`, so fonts, frames, sidebar and window size
   grow together instead of text overflowing fixed widgets. Explicit widget sizes do not follow the
   font on their own, so every hardcoded pixel size in the tabs (button heights, the switch track,
   list boxes, toast cards, the logo) goes through `Settings::Px()` — the identity at 100 %,
   twice the compiled pixels at 200 %. It applies when the slider is released
-  — 1.92 bakes a font for every distinct size it sees, so a live drag would bake ~130 of them.
+  — 1.93 bakes a font for every distinct size it sees, so a live drag would bake ~130 of them.
   The shell is re-clamped on screen whenever the scale changes, so growing it to 200% cannot push
   the title bar off-screen and leave nothing to grab.
 * **Environment compatibility:** the menu degrades honestly instead of breaking — a missing
