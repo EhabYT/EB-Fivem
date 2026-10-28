@@ -20,8 +20,11 @@ and the verification anchor only; per-batch write-ups live here and in the commi
 - RenderSplash now wraps the hints at word boundaries and centres each line; single-line strings
   render exactly as before, so the default-binding preview is unchanged.
 - docs/render_preview.py models the same wrap and extends its asserts: beyond the depicted INSERT
-  binding it proves the worst case (qualified printable sentence, two lines) fits both the card
-  width and the fixed 288px card height.
+  binding it proves the worst case (qualified printable sentence, two lines) fits the card width -
+  and that assert caught a second defect on its first real run: the fixed 288px card was too short
+  for a two-line hint, which would have hung the Continue button off the card edge.  The card now
+  grows by one line advance per extra wrapped line, and the renderer's budget assert proves the
+  worst case ends inside the grown card.
 
 ## The Docs & render row counts the graph it describes (row 227)
 - Row 226's two new includes grew the regenerated README include graph from 79 to 81 edges (the

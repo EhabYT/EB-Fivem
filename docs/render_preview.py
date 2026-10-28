@@ -379,7 +379,29 @@ if TAB == "splash":
     # plus one centred, rounded card - no sidebar, no title bar.
     # ------------------------------------------------------------------
     MC, RADc = 28, 10
-    CWc, CHc = 460.0, 288.0
+    HINT1 = "Interface-level: no game state is read or written."
+    HINT2 = "INSERT toggles this overlay at any time."  # code formats
+    # KeyName(bound key); the preview depicts the default binding, INSERT.
+    # A printable binding (hand-edited ini only, row 210) gets the qualified
+    # variant "(not while typing in a text field)" instead.
+    def wrap(t, maxw):
+        lines, cur = [], ""
+        for w in t.split(" "):
+            test = (cur + " " + w).strip()
+            if cur and TW(test) > maxw:
+                lines.append(cur); cur = w
+            else:
+                cur = test
+        lines.append(cur)
+        return lines
+    HINT1L, HINT2L = wrap(HINT1, 460.0 - 16), wrap(HINT2, 460.0 - 16)
+    HINT2P = wrap("0 toggles this overlay (not while typing in a text field).",
+                  460.0 - 16)
+    ADV = FONT_SIZE + ITEM_SPACING_Y
+    CWc = 460.0
+    # UI: row 228 - the card grows by one line advance per wrapped hint line
+    CHc = 288.0 + (len(HINT1L) + len(HINT2L) - 2) * ADV
+    CHw = 288.0 + (len(HINT1L) + len(HINT2P) - 2) * ADV   # worst-case height
     FW, FH = W + 2 * MC, H + 2 * MC
     canvas = Image.new("RGBA", (FW * S, FH * S), (12, 18, 28, 255))
     OX, OY = (FW - CWc) / 2, (FH - CHc) / 2
@@ -401,31 +423,12 @@ if TAB == "splash":
                         radius=RADc * S, outline=C_BORDER, width=S)
 
     CREDIT = "Remade : by EB"
-    HINT1 = "Interface-level: no game state is read or written."
-    HINT2 = "INSERT toggles this overlay at any time."  # code formats
-    # KeyName(bound key); the preview depicts the default binding, INSERT.
-    # A printable binding (hand-edited ini only, row 210) gets the qualified
-    # variant "(not while typing in a text field)" instead - not depicted.
     BTN = "Continue"
-    def wrap(t, maxw):
-        lines, cur = [], ""
-        for w in t.split(" "):
-            test = (cur + " " + w).strip()
-            if cur and TW(test) > maxw:
-                lines.append(cur); cur = w
-            else:
-                cur = test
-        lines.append(cur)
-        return lines
-
     for t in (CREDIT, BTN):
         assert TW(t) <= CWc - 16, "splash line clipped: " + t
-    # UI: row 228 - the code wraps the hints at word boundaries and centres each
-    # line; model the same, and prove the worst case (qualified printable
-    # sentence, two lines) still fits the fixed card height.
-    HINT1L, HINT2L = wrap(HINT1, CWc - 16), wrap(HINT2, CWc - 16)
-    HINT2P = wrap("0 toggles this overlay (not while typing in a text field).",
-                  CWc - 16)
+    # UI: row 228 - the code wraps the hints at word boundaries, centres each
+    # line and grows the card per extra line; prove the worst case (qualified
+    # printable sentence) fits both the card width and the grown height.
     for ln in HINT1L + HINT2L + HINT2P:
         assert TW(ln) <= CWc - 16, "splash wrapped line clipped: " + ln
     assert len(HINT2P) <= 2, "printable hint needs more than two lines"
@@ -447,9 +450,10 @@ if TAB == "splash":
     for ln in HINT2L:
         T(OX + (CWc - TW(ln)) / 2, ly, ln, C_TEXT)
         ly += FONT_SIZE + ITEM_SPACING_Y
-    # worst-case height budget: the qualified variant adds one line to the card
-    assert ly + (FONT_SIZE + ITEM_SPACING_Y) + ITEM_SPACING_Y + 30 <= OY + CHc - 8, \
-        "splash card too short for a wrapped hint"
+    # worst-case height budget: with the qualified variant wrapped to two
+    # lines the card grows to CHw, and the content must still end inside it
+    assert ly + (len(HINT2P) - len(HINT2L)) * ADV + ITEM_SPACING_Y + 30 \
+        <= OY + CHw - 8, "splash card too short for a wrapped hint"
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     bx, BW, BH = OX + (CWc - 140) / 2, 140.0, 30.0
     d.rounded_rectangle([bx * S, ly * S, (bx + BW) * S - 1, (ly + BH) * S - 1],
