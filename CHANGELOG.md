@@ -11,6 +11,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The docs tables render whole on GitHub again (rows 224-225)
+- Two rows of the README file-inventory table were wrapped over physical newlines (the config.cpp
+  row broke after "switches", the kiero row after "(vendored,").  GFM tables are one line per row,
+  so on GitHub the table ended mid-inventory and the continuation lines rendered as loose paragraph
+  text.  Both rows are single lines again.
+- Row 106's fix description quoted the diagnostics suffix as `| settings: <path>` - an unescaped
+  pipe inside a table cell splits it in GFM and shifted every later column of that row.  Escaped
+  now, like the other literal-pipe quotes in the log.
+- An escape-aware column-count sweep over every markdown table in README, BUILD, CHANGELOG and
+  ci/README reports zero mismatches after these two fixes.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The CI enable steps no longer send anyone to a merged branch (row 223)
 - Four instruction sites hard-coded the merged PR-#1 branch name as the push target: BUILD.md
   section 7's bat block, ci/README.md step 4, its local-git bat block, and the echo inside
