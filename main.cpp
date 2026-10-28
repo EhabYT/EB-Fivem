@@ -55,14 +55,16 @@ static volatile bool  g_frameActive = false;  // an ImGui frame has run; read by
 static volatile LONG g_presentDepth = 0;
 static volatile LONG g_wndprocDepth = 0;
 static volatile LONG g_hookFaulted = 0;    // UI: row 236 - overlay out of service
-// UI: row 246 - per-process single-instance guard ("Local\\EBengin_SingleInstance_<pid>").
-// Acquired in MainThread (never under the loader lock, preserving row 236) and
-// held for the session; a second injection into the same process sees
-// ERROR_ALREADY_EXISTS, logs the skip, and exits without stacking a second
-// Present hook or ImGui context.  g_ownsSession gates DLL_PROCESS_DETACH so
-// unloading a rejected duplicate never tears down the live first instance.
+// UI: row 246/247 - per-process single-instance guard ("Local\\EBengin_SingleInstance_<pid>").
+// Acquired in DLL_PROCESS_ATTACH before CreateThread so a duplicate mapping is
+// rejected immediately with FALSE (and g_mainThreadEntered also blocks a second
+// MainThread entry in the same mapping).  g_ownsSession gates DLL_PROCESS_DETACH
+// so a rejected duplicate never tears down the live first instance, and
+// g_mainThreadActive lets dynamic DETACH wait for MainThread before unmap.
 static HANDLE g_instanceMutex = NULL;
 static volatile LONG g_ownsSession = 0;
+static volatile LONG g_mainThreadActive = 0;
+static volatile LONG g_mainThreadEntered = 0;
 
 static void ReleaseInstanceMutex()
 {
@@ -84,6 +86,7 @@ static void FaultDisable(const char* reason)
 {
 	g_hookFaulted = 1;
 	init = false;
+	g_frameActive = false;
 	if (window != NULL && oWndProc != NULL)
 	{
 		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
@@ -93,14 +96,6 @@ static void FaultDisable(const char* reason)
 }
 static UINT  g_rtWidth = 0;
 static UINT  g_rtHeight = 0;
-// UI: row 235 - the cached back-buffer texture, one held reference.  Pointer
-// identity is the resize signal dimensions alone cannot give: a same-size
-// ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate
-// switch) swaps the texture under an unchanged BufferDesc, and the cached
-// render target view would dangle over a released buffer.  Holding one
-// reference also keeps the old address from being recycled for the new
-// texture, so the comparison below cannot alias.
-static ID3D11Texture2D* g_backBuffer = NULL;
 
 
 bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
@@ -201,7 +196,12 @@ std::string ResolveAssetPath(const char* file)
 }
 
 
-// Release the render target view so the swap chain can resize its buffers.
+// UI: row 249 - release the render target view before returning from Present so
+// zero references to swap-chain buffer 0 (neither ID3D11RenderTargetView nor
+// ID3D11Texture2D, nor an OMSetRenderTargets binding on pContext) survive
+// between frames.  Because this DLL hooks Present only and not ResizeBuffers,
+// holding any buffer-0 reference across frames makes the host's own
+// IDXGISwapChain::ResizeBuffers fail with DXGI_ERROR_INVALID_CALL (0x887A0001).
 static void CleanupRenderTarget()
 {
 	if (mainRenderTargetView != NULL)
@@ -209,23 +209,16 @@ static void CleanupRenderTarget()
 		mainRenderTargetView->Release();
 		mainRenderTargetView = NULL;
 	}
-	// UI: row 235 - drop the cached buffer reference together with the view;
-	// keeping it would pin a texture the swap chain no longer uses.
-	if (g_backBuffer != NULL)
-	{
-		g_backBuffer->Release();
-		g_backBuffer = NULL;
-	}
-	g_rtWidth = 0;
-	g_rtHeight = 0;
 }
 
-// (Re)create the render target view from swap chain buffer 0.  Called once at
-// startup and again whenever the game resizes its window / changes resolution.
+// Acquire a render target view for the current frame's swap-chain buffer 0 and
+// release the temporary ID3D11Texture2D reference immediately.
 static bool CreateRenderTarget(IDXGISwapChain* pSwapChain)
 {
 	if (pSwapChain == NULL || pDevice == NULL)
 		return false;
+
+	CleanupRenderTarget();
 
 	ID3D11Texture2D* pBackBuffer = NULL;
 	if (FAILED(pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer)) || pBackBuffer == NULL)
@@ -236,19 +229,12 @@ static bool CreateRenderTarget(IDXGISwapChain* pSwapChain)
 	pBackBuffer->GetDesc(&bbDesc);
 
 	HRESULT hr = pDevice->CreateRenderTargetView(pBackBuffer, NULL, &mainRenderTargetView);
+	pBackBuffer->Release();
 	if (FAILED(hr) || mainRenderTargetView == NULL)
 	{
 		mainRenderTargetView = NULL;
-		pBackBuffer->Release();
 		return false;
 	}
-
-	// UI: row 235 - keep the GetBuffer reference: this pointer is the resize
-	// signal PresentBody compares against, and the held reference stops the
-	// address from being recycled behind our back.
-	if (g_backBuffer != NULL)
-		g_backBuffer->Release();
-	g_backBuffer = pBackBuffer;
 
 	g_rtWidth = bbDesc.Width;
 	g_rtHeight = bbDesc.Height;
@@ -332,6 +318,7 @@ void CleanupImGui()
 	if (!init)
 		return;
 	init = false;
+	g_frameActive = false;
 
 	// UI: row 234 - give the window proc back to the game first: a message that
 	// enters WndProc after DestroyContext() would call ImGui_ImplWin32_
@@ -342,6 +329,7 @@ void CleanupImGui()
 		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
 		oWndProc = NULL;
 	}
+	window = NULL;
 
 	if (ImGui::GetCurrentContext() != NULL)
 	{
@@ -351,6 +339,8 @@ void CleanupImGui()
 	}
 
 	CleanupRenderTarget();
+	g_rtWidth = 0;
+	g_rtHeight = 0;
 
 	if (logo != NULL)
 	{
@@ -358,7 +348,19 @@ void CleanupImGui()
 		logo = NULL;
 		LogoLoaded = false;
 	}
-
+	// UI: row 248 - release the cached device/context references here too so a
+	// dynamic unload (DLL_PROCESS_DETACH) drops them just like the device-reset
+	// path below.
+	if (pContext != NULL)
+	{
+		pContext->Release();
+		pContext = NULL;
+	}
+	if (pDevice != NULL)
+	{
+		pDevice->Release();
+		pDevice = NULL;
+	}
 }
 
 
@@ -366,7 +368,7 @@ void CleanupImGui()
 // so DETACH can wait for in-flight messages before the context they read dies.
 static LRESULT WndProcFrame(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (g_unloading)
+	if (g_unloading || g_hookFaulted || !init)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
 								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
 
@@ -434,7 +436,7 @@ static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (g_unloading || g_hookFaulted)
+	if (g_unloading || g_hookFaulted || !init)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
 								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
 
@@ -454,57 +456,67 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
 	if (!init)
 	{
+		if (pContext != NULL) { pContext->Release(); pContext = NULL; }
+		if (pDevice != NULL) { pDevice->Release(); pDevice = NULL; }
 		if (FAILED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)&pDevice)) || pDevice == NULL)
 			return oPresent(pSwapChain, SyncInterval, Flags);
 
 		pDevice->GetImmediateContext(&pContext);
 		if (pContext == NULL)
+		{
+			pDevice->Release();
+			pDevice = NULL;
 			return oPresent(pSwapChain, SyncInterval, Flags);
+		}
 
 		DXGI_SWAP_CHAIN_DESC sd;
 		if (FAILED(pSwapChain->GetDesc(&sd)) || sd.OutputWindow == NULL)
+		{
+			pContext->Release();
+			pContext = NULL;
+			pDevice->Release();
+			pDevice = NULL;
 			return oPresent(pSwapChain, SyncInterval, Flags);
+		}
 		window = sd.OutputWindow;
 
 		if (!CreateRenderTarget(pSwapChain))
+		{
+			window = NULL;
+			pContext->Release();
+			pContext = NULL;
+			pDevice->Release();
+			pDevice = NULL;
 			return oPresent(pSwapChain, SyncInterval, Flags);
+		}
 
-		// Subclass exactly once.  If CreateRenderTarget() above ever bails out and
-		// we come back next frame, a second SetWindowLongPtr would store *our own*
-		// WndProc as the "original" and build an endless call chain.
-		if (oWndProc == NULL)
-			oWndProc = (WNDPROC)SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)WndProc);
-
+		// UI: row 248 - finish InitImGui() (CreateContext, font bake, Win32/DX11
+		// backend init, settings load) BEFORE installing WndProc: on a host whose
+		// window thread is not the render thread (GTA V / FiveM), subclassing
+		// first let the window thread enter WndProc -> ImGui_ImplWin32_WndProcHandler
+		// while InitImGui() was still constructing the context on the render thread.
 		InitImGui();
 		init = true;
+		if (oWndProc == NULL)
+			oWndProc = (WNDPROC)SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)WndProc);
 	}
 	else
 	{
-		// Alt-tab, resolution change, borderless<->fullscreen: the back buffer is
-		// a different texture now, so the cached render target view is stale.
-		// UI: row 235 - dimensions alone miss a same-size ResizeBuffers
-		// (borderless<->fullscreen at equal resolution, refresh-rate switch):
-		// BufferDesc stays put while the texture is swapped, and drawing through
-		// the cached view then hits a released buffer - device removed or worse.
-		// Pointer identity of buffer 0 catches every swap; the reference held in
-		// g_backBuffer keeps the old address from aliasing the new texture.
-		ID3D11Texture2D* curBuffer = NULL;
-		const bool gotBuffer = SUCCEEDED(pSwapChain->GetBuffer(
-			0, __uuidof(ID3D11Texture2D), (LPVOID*)&curBuffer)) && curBuffer != NULL;
-		if (gotBuffer)
-			curBuffer->Release();   // probe only; g_backBuffer keeps the cache ref
-
+		// UI: row 249 - CreateRenderTarget acquires a fresh view of buffer 0 for
+		// this frame and CleanupRenderTarget releases it before oPresent, so
+		// same-size and different-size ResizeBuffers both work without holding
+		// any buffer-0 reference between frames.  When the dimensions change,
+		// also cycle ImGui's DX11 device objects.
 		DXGI_SWAP_CHAIN_DESC sd;
 		const bool resized = SUCCEEDED(pSwapChain->GetDesc(&sd)) &&
 			(sd.BufferDesc.Width != g_rtWidth || sd.BufferDesc.Height != g_rtHeight);
-		if (resized || (gotBuffer && curBuffer != g_backBuffer))
+		if (resized)
 		{
-			CleanupRenderTarget();
 			ImGui_ImplDX11_InvalidateDeviceObjects();
-			if (!CreateRenderTarget(pSwapChain))
-				return oPresent(pSwapChain, SyncInterval, Flags);
 			ImGui_ImplDX11_CreateDeviceObjects();
 		}
+		if (!CreateRenderTarget(pSwapChain))
+			return oPresent(pSwapChain, SyncInterval, Flags);
 	}
 
 	// UI: row 187 - DPI was sampled once at init: dragging the host window to
@@ -565,8 +577,24 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
 	ImGui::Render();
 
+	// UI: row 249 - ImGui_ImplDX11_RenderDrawData backs up and restores shaders,
+	// states, viewports and buffers, but NOT the Output-Merger render target.
+	// Leaving mainRenderTargetView bound on pContext (and alive in a global)
+	// clobbered the host's bound RTV/DSV and kept an outstanding reference to
+	// swap-chain buffer 0 across Present, causing host ResizeBuffers calls to
+	// fail with DXGI_ERROR_INVALID_CALL.  Save/restore the host's OM target and
+	// release mainRenderTargetView before handing the frame to oPresent.
+	ID3D11RenderTargetView* oldRTV = NULL;
+	ID3D11DepthStencilView* oldDSV = NULL;
+	pContext->OMGetRenderTargets(1, &oldRTV, &oldDSV);
 	pContext->OMSetRenderTargets(1, &mainRenderTargetView, NULL);
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	pContext->OMSetRenderTargets(1, &oldRTV, oldDSV);
+	if (oldRTV != NULL)
+		oldRTV->Release();
+	if (oldDSV != NULL)
+		oldDSV->Release();
+	CleanupRenderTarget();
 
 	HRESULT hr = oPresent(pSwapChain, SyncInterval, Flags);
 
@@ -693,20 +721,13 @@ static void LogHookLine(const char* text)
 
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
-	// UI: row 246 - per-process single-instance check: if this process already
-	// holds an active EBengin session, bail out before touching kiero or ImGui.
-	char mutexName[64];
-	snprintf(mutexName, sizeof(mutexName), "Local\\EBengin_SingleInstance_%lu",
-		(unsigned long)GetCurrentProcessId());
-	HANDLE hMutex = CreateMutexA(NULL, FALSE, mutexName);
-	if (hMutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS)
+	// UI: row 247 - guard against a second MainThread entry in the same module
+	// (while DLL_PROCESS_ATTACH below guards against a second module mapping).
+	if (InterlockedCompareExchange(&g_mainThreadEntered, 1, 0) != 0)
 	{
-		CloseHandle(hMutex);
 		LogHookLine("hook skipped: instance already active in this process");
 		return FALSE;
 	}
-	g_instanceMutex = hMutex;
-	g_ownsSession = 1;
 
 	// The old version spun in a tight `do {} while (!init_hook)` loop with no
 	// sleep and no exit condition, burning a core forever if the hook could
@@ -720,13 +741,16 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 			if (kiero::bind(8, (void**)&oPresent, (void*)hkPresent) == kiero::Status::Success)
 			{
 				LogHookLine("hook attached (D3D11 present)");
+				InterlockedExchange(&g_mainThreadActive, 0);
 				return TRUE;
 			}
 
 			kiero::shutdown();
 			LogHookLine("hook failed: present bind refused");
 			g_ownsSession = 0;
+			g_mainThreadEntered = 0;
 			ReleaseInstanceMutex();
+			InterlockedExchange(&g_mainThreadActive, 0);
 			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
@@ -738,20 +762,30 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 				? "hook failed: host is not a D3D11 renderer"
 				: "hook failed: swap chain module not found");
 			g_ownsSession = 0;
+			g_mainThreadEntered = 0;
 			ReleaseInstanceMutex();
+			InterlockedExchange(&g_mainThreadActive, 0);
 			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
-		Sleep(500);
+		// UI: row 247 - sleep in 50 ms slices checking !g_unloading so a dynamic
+		// unload wakes MainThread within <=50 ms instead of waiting out 500 ms.
+		for (int s = 0; s < 10 && !g_unloading; ++s)
+			Sleep(50);
 	}
 	// UI: row 190 - the loop also ends when an unload arrives mid-retry; that
 	// is not a failure, and logging "gave up" for it would put a lie in the
 	// trace.  The gave-up line belongs to a full 120-attempt exhaustion only.
 	if (g_unloading)
+	{
+		InterlockedExchange(&g_mainThreadActive, 0);
 		return FALSE;
+	}
 	LogHookLine("hook failed: attach gave up after 120 attempts");
 	g_ownsSession = 0;
+	g_mainThreadEntered = 0;
 	ReleaseInstanceMutex();
+	InterlockedExchange(&g_mainThreadActive, 0);
 	return FALSE;
 }
 
@@ -761,11 +795,43 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
+	{
+		// UI: row 247 - acquire the per-process single-instance mutex right in
+		// DLL_PROCESS_ATTACH (guide 4.1) before spawning MainThread: a duplicate
+		// injection is rejected immediately with FALSE (so the loader unmaps the
+		// second copy without creating a thread), and g_ownsSession/g_mainThreadActive
+		// are set before CreateThread so an immediate DETACH cannot race MainThread
+		// startup.  Also closes the thread HANDLE that used to leak on every attach.
+		char mutexName[64];
+		wsprintfA(mutexName, "Local\\EBengin_SingleInstance_%lu",
+			(unsigned long)GetCurrentProcessId());
+		HANDLE hMutex = CreateMutexA(nullptr, FALSE, mutexName);
+		if (hMutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS)
+		{
+			CloseHandle(hMutex);
+			if (g_hModule == NULL)
+				g_hModule = hMod;
+			OutputDebugStringA("EBengin: already injected, aborting second instance\n");
+			LogHookLine("hook skipped: instance already active in this process");
+			return FALSE;
+		}
 		g_hModule = hMod;
+		g_instanceMutex = hMutex;
+		g_ownsSession = 1;
+		g_mainThreadActive = 1;
 		DisableThreadLibraryCalls(hMod);
-		if (CreateThread(nullptr, 0, MainThread, hMod, 0, nullptr) == nullptr)
+		HANDLE hThread = CreateThread(nullptr, 0, MainThread, hMod, 0, nullptr);
+		if (hThread == nullptr)
+		{
+			g_mainThreadActive = 0;
+			g_ownsSession = 0;
+			ReleaseInstanceMutex();
 			g_hModule = NULL;
+			return FALSE;
+		}
+		CloseHandle(hThread);
 		break;
+	}
 
 	case DLL_PROCESS_DETACH:
 		// UI: row 246 - if this mapping was a rejected duplicate (or never started
@@ -775,6 +841,24 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		// Stop rendering before anything is torn down, otherwise the game can be
 		// sitting inside hkPresent while we destroy the ImGui context under it.
 		g_unloading = true;
+		// UI: row 247 - when lpReserved != nullptr, the host process is exiting:
+		// Windows has already terminated other threads (so depth counters could
+		// wait on dead threads, and d3d11.dll/dxgi.dll/heap locks may be held by
+		// terminated threads).  Skip fence waits, D3D11/ImGui COM releases and
+		// vtable patching during process termination; only flush settings, release
+		// the mutex and log the exit.  Full teardown runs on dynamic unload
+		// (FreeLibrary, lpReserved == nullptr).
+		if (lpReserved != nullptr)
+		{
+			Settings::Save();
+			ReleaseInstanceMutex();
+			g_ownsSession = 0;
+			LogHookLine("session ended (process exit)");
+			break;
+		}
+		// Wait for MainThread if detach arrived while the attach loop was still running.
+		for (int i = 0; i < 200 && g_mainThreadActive > 0; ++i)
+			Sleep(10);
 		// UI: row 201 - a modal dialog (Gui::ModalBoxA) blocks the render thread
 		// inside a frame for as long as the user leaves it open, and the fixed
 		// 50 ms below would then destroy the ImGui context under the live
@@ -798,6 +882,7 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		kiero::shutdown();
 		ReleaseInstanceMutex();
 		g_ownsSession = 0;
+		g_mainThreadEntered = 0;
 		// UI: row 193 - the trace log (row 188) records the attach and every
 		// failure outcome, but never a clean end: a report could not tell an
 		// orderly unload from a crash or a task kill.  One line closes the
