@@ -186,7 +186,7 @@ flowchart TD
         W2 -- "no" --> W4(["CallWindowProc → game"])
     end
 
-    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, Sleep 50 ms,<br/>Settings::Save flush"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"] --> U4["session-ended line<br/>in EBengin.log"]
+    UN(["DLL_PROCESS_DETACH"]) --> U1["g_unloading = true, wait for an open<br/>modal dialog (capped ~2 s), Sleep 50 ms,<br/>Settings::Save flush"] --> U2["CleanupImGui: backends, context,<br/>render target, logo, restore WndProc"] --> U3["kiero::shutdown"] --> U4["session-ended line<br/>in EBengin.log"]
 ```
 
 The two details that are easy to get wrong in a Present hook, and are therefore explicit in the

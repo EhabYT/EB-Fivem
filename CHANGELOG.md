@@ -9,6 +9,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The DETACH flowchart shows the modal wait row 201 added (row 222)
+- The README flowchart's DLL_PROCESS_DETACH node still read "g_unloading = true, Sleep 50 ms,
+  Settings::Save flush" - the pre-row-201 sequence.  Row 201 inserted a bounded wait for an open
+  modal dialog (80 x 25 ms, capped ~2 s) between g_unloading and the Sleep, because destroying the
+  ImGui context under a live dialog left the rest of that frame drawing with no context; the
+  flowchart never picked the step up.  The U1 node now lists it in code order.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The two cards are compact again, and supported bindings survive Config (rows 220-221)
 - A real inject screenshot showed the splash card filling the whole shell with ~300px of dead
   canvas under its content: SetNextWindowSize(460x288) loses to style.WindowMinSize (900x540 times
