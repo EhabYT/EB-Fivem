@@ -331,7 +331,8 @@ namespace Config
 				Executor::ApplyPrefs();
 				Activity::Push("Interface settings reset to defaults.");
 				// UI: row 231 - the reset clears the stored tab as well; name it.
-				Toasts::Push(Toasts::Info, "Interface settings reset; window position and last"
+				// UI: row 245 - restore space across the adjacent string literals ("lasttab").
+				Toasts::Push(Toasts::Info, "Interface settings reset; window position and last "
 					"tab apply on next start.");
 			}
 		}

@@ -95,12 +95,16 @@ namespace Menu
 			ImGui::SetCursorPosX(ImMax(0.0f,
 				(SidebarWidth() - ImGui::CalcTextSize("EBengin").x) * 0.5f));
 			ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
-			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
 		}
 		// UI: row 150 - once a sidebar tab was open, the landing tab (diagnostics
 		// + session activity) had no way back for the whole session; the logo is
-		// the home button now.  Works for the text-logo fallback too, since the
-		// Dummy/Text above are items as well.
+		// the home button now.
+		// UI: row 245 - ImGui::Dummy calls ItemAdd, overwriting LastItemData with
+		// the blank spacer below "EBengin" (and at x = 0..76 after TextColored's
+		// newline), so hovering or clicking the visible fallback wordmark did
+		// nothing while the empty space below it acted as the button.  Query
+		// IsItemHovered/IsItemClicked on the visible Image/TextColored item first,
+		// then add the height-preserving Dummy.
 		if (ImGui::IsItemHovered())
 		{
 			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -120,6 +124,8 @@ namespace Menu
 			// own) and the loop below consumes the flag this very frame.
 			g_justOpened = true;
 		}
+		if (!LogoLoaded)
+			ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)));
 		ImGui::NewLine();
 
 		for (size_t i = 0; i < IM_ARRAYSIZE(SidebarItems); ++i)

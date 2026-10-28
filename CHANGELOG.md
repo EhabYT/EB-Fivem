@@ -11,6 +11,20 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Fallback sidebar wordmark hit-target and reset-toast wording fix (row 245)
+- `menu.cpp` (`RenderSidebar`): when `EBengin.png` is missing next to the DLL (`!LogoLoaded`),
+  `ImGui::Dummy(ImVec2(Settings::Px(76.0f), Settings::Px(68.0f)))` ran immediately after
+  `ImGui::TextColored(..., "EBengin")` and before `ImGui::IsItemHovered()` / `ImGui::IsItemClicked()`.
+  Because `ImGui::Dummy` calls `ItemAdd`, it overwrote `GImGui->LastItemData` with the blank spacer
+  rect below `"EBengin"` (and at `x = 0..76` after `TextColored`'s newline), leaving the visible
+  `"EBengin"` wordmark unresponsive while the empty space below it acted as the home button.  The
+  `Dummy` spacer now runs after the hover/click checks so `IsItem*` inspects the visible `"EBengin"`
+  wordmark while preserving the exact sidebar height.
+- `config.cpp`: adjacent string literals in the Reset Interface Settings toast (`"...and last"`
+  `"tab apply on next start."`, row 231) lacked a separating space and rendered `"lasttab"`.
+  Restored the space; a regex scan of all multi-line string literals across the repository confirmed
+  no other missing space.
+
 ## Missing `else` in Execute after row 229 could read `resources[0]` on an empty list (row 244)
 - While checking the `Execute` handler (`exec.cpp`) referenced in the `_cfx_internal` verification
   step, found that removing the `else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)`
