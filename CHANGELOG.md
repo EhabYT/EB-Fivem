@@ -11,6 +11,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Teardown no longer races live hook calls (row 234)
+- On hosts whose window thread differs from the thread that calls Present (GTA V / FiveM pump
+  messages on the main thread while Present runs on the render thread), DETACH could destroy the
+  ImGui context and restore the Present hook bytes while either thread was still inside our hooks;
+  CleanupImGui also handed the window proc back only after DestroyContext, so an in-flight message
+  called ImGui_ImplWin32_WndProcHandler on a dead context.  Both are access-violation paths that
+  surface as "the game crashes after injection" or on eject.
+- hkPresent and WndProc are now thin wrappers that keep interlocked depth counters around static
+  bodies; DETACH waits for both counters (capped ~2 s, loader-lock safe) before teardown, and
+  CleanupImGui restores the window proc before the context dies.  The cross-thread lifetime flags
+  are volatile.  No menu behaviour changes; kiero/MinHook stay untouched.
+
 ## The sidebar license plate was a claim with nothing behind it (row 233)
 - "Licensed to #4278" was a hardcoded constant; no license mechanism exists in this build -
   nothing issues, stores or checks a license.  The line asserted a fact the build cannot back

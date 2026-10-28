@@ -43,9 +43,17 @@ namespace Menu
 // ---------------------------------------------------------------------------
 // Frame / lifetime state
 // ---------------------------------------------------------------------------
-static bool  init = false;                    // ImGui + render target are up
-static bool  g_unloading = false;             // DLL_PROCESS_DETACH started
-static bool  g_frameActive = false;         // an ImGui frame has run; read by WndProc
+static volatile bool  init = false;           // ImGui + render target are up
+static volatile bool  g_unloading = false;    // DLL_PROCESS_DETACH started
+static volatile bool  g_frameActive = false;  // an ImGui frame has run; read by WndProc
+// UI: row 234 - teardown fence: on hosts whose window thread is not the thread
+// that calls Present (GTA V pumps messages on its main thread while Present
+// runs on the render thread), DETACH used to destroy the ImGui context and
+// unhook Present with no way to know whether either thread was still inside
+// our hooks.  Both hooks now keep an interlocked depth counter so DETACH can
+// wait for in-flight calls before tearing anything down.
+static volatile LONG g_presentDepth = 0;
+static volatile LONG g_wndprocDepth = 0;
 static UINT  g_rtWidth = 0;
 static UINT  g_rtHeight = 0;
 
@@ -267,6 +275,16 @@ void CleanupImGui()
 		return;
 	init = false;
 
+	// UI: row 234 - give the window proc back to the game first: a message that
+	// enters WndProc after DestroyContext() would call ImGui_ImplWin32_
+	// WndProcHandler (and read GetIO()) on a dead context - an access violation
+	// on any host whose window thread differs from the render thread.
+	if (window != NULL && oWndProc != NULL)
+	{
+		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
+		oWndProc = NULL;
+	}
+
 	if (ImGui::GetCurrentContext() != NULL)
 	{
 		ImGui_ImplDX11_Shutdown();
@@ -283,16 +301,12 @@ void CleanupImGui()
 		LogoLoaded = false;
 	}
 
-	// Give the original window procedure back to the game.
-	if (window != NULL && oWndProc != NULL)
-	{
-		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
-		oWndProc = NULL;
-	}
 }
 
 
-LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+// UI: row 234 - body/wrapper split: the wrapper keeps the teardown fence count
+// so DETACH can wait for in-flight messages before the context they read dies.
+static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (g_unloading)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
@@ -343,7 +357,22 @@ LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 
-HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (g_unloading)
+		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
+								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+	InterlockedIncrement(&g_wndprocDepth);
+	const LRESULT r = WndProcBody(hWnd, uMsg, wParam, lParam);
+	InterlockedDecrement(&g_wndprocDepth);
+	return r;
+}
+
+
+// UI: row 234 - same split as WndProc: the hooked Present keeps a depth count
+// so DETACH never restores hook bytes or frees the context under a live frame.
+static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
 	if (g_unloading || pSwapChain == NULL)
 		return oPresent(pSwapChain, SyncInterval, Flags);
@@ -467,6 +496,18 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 }
 
 
+HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+{
+	if (g_unloading || pSwapChain == NULL)
+		return oPresent(pSwapChain, SyncInterval, Flags);
+
+	InterlockedIncrement(&g_presentDepth);
+	const HRESULT hr = PresentBody(pSwapChain, SyncInterval, Flags);
+	InterlockedDecrement(&g_presentDepth);
+	return hr;
+}
+
+
 // UI: row 188 - a failed hook attach used to be a silent no-op: the inject
 // looked like "did nothing", with no trace anywhere to tell "not a D3D11
 // host" from "bind refused" from "gave up".  One line per outcome next to
@@ -560,6 +601,12 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		for (int i = 0; i < 80 && Gui::ModalActive(); ++i)
 			Sleep(25);
 		Sleep(50);
+		// UI: row 234 - the render thread and the window thread can both be inside
+		// our hooks here; the old fixed sleep was not a fence.  Wait for both
+		// depth counters, capped at ~2 s so DETACH cannot stall the loader lock
+		// indefinitely - past the cap we proceed exactly as before.
+		for (int i = 0; i < 200 && (g_presentDepth > 0 || g_wndprocDepth > 0); ++i)
+			Sleep(10);
 		// The position save in Menu::Render() is throttled to ~1/s; flush the
 		// final window position / tab / toggle key so the next start restores
 		// exactly where this session ended.
