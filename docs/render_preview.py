@@ -336,7 +336,7 @@ def wrap_text(s, w):
 if TAB == "hud":
     # ------------------------------------------------------------------
     # main.cpp: while the overlay is closed and Settings::Current.Hud is
-    # on, Menu::RenderHud() draws the sidebar's FPS line plus the MADE BY EB
+    # on, Menu::RenderHud() draws the sidebar's FPS line plus the Remade : by EB
     # credit line on the background
     # draw list - over the game scene, under any window.  The scene is
     # arbitrary in game, so this render uses a mid-tone stand-in that lets
@@ -349,7 +349,7 @@ if TAB == "hud":
     SURF = canvas
 
     HUD = "FPS 144  |  6.9 ms"
-    CREDIT = "MADE BY EB"          # menu.cpp: second plate line, muted brand
+    CREDIT = "Remade : by EB"      # menu.cpp: second plate line, muted brand
     assert TW(HUD) <= FW - 40, "hud line clipped"
     assert TW(CREDIT) <= FW - 40, "hud credit clipped"
     ts_w = max(TW(HUD), TW(CREDIT))

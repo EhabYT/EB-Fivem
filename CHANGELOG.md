@@ -11,6 +11,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The HUD plate carries the owner-set credit wording (row 239)
+- Row 124 put "MADE BY EB" on the HUD plate; the standing credit directive sets the UI wording to
+  "Remade : by EB" (splash card, sidebar footer, Config About - rows 94/103).  The plate was the one
+  UI surface deviating from it.
+- The plate second line, the renderer hud-scene constant and every current-description sentence
+  (menu.h comment, README, BUILD architecture row) carry "Remade : by EB" now; plate metrics do not
+  move because the plate width is the max of its two lines and the FPS line is the longer one.
+- menu.cpp is normalized to CRLF: earlier patches had left 95 bare-LF lines in the otherwise CRLF
+  file (repo convention: sources and .bat CRLF, docs and renderer LF).  Past row and changelog
+  entries keep their historical wording.
+
 ## The two BUILD.md fix tables no longer share numbers (row 238)
 - Section 4 (build fixes) numbered its entries 1-14 while section 5 (runtime/correctness, the table every
   bare "row N" reference in code comments, CHANGELOG, README and the vcxproj points at) numbers 1-237 -

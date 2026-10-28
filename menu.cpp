@@ -421,7 +421,13 @@ namespace Menu
 		// is closed, so it is the one place the owner credit survives a
 		// closed menu: second plate line, muted brand alpha like the
 		// footer's credit line.
-		const char* credit = "MADE BY EB";
+		// UI: row 239 - the owner-set credit wording is "Remade : by EB"
+		// (rows 94/103: splash card, sidebar footer, Config About); the HUD plate
+		// was the one UI surface that deviated with "MADE BY EB" (row 124).  The
+		// plate width is the max of both lines and the FPS line is longer, so the
+		// metrics do not move.  This patch also normalizes the 95 bare-LF lines
+		// earlier patches left in this CRLF file.
+		const char* credit = "Remade : by EB";
 
 		const ImVec2 ts = ImGui::CalcTextSize(line);
 		const ImVec2 cs = ImGui::CalcTextSize(credit);
