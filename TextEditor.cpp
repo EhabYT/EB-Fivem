@@ -66,7 +66,20 @@ void TextEditor::SetLanguageDefinition(const LanguageDefinition& aLanguageDef)
 	mRegexList.clear();
 
 	for (auto& r : mLanguageDefinition.mTokenRegexStrings)
-		mRegexList.push_back(std::make_pair(std::regex(r.first, std::regex_constants::optimize), r.second));
+	{
+		// UI: row 237 - the std::regex constructor throws regex_error on a pattern
+		// this STL rejects; unguarded it escaped SetLanguageDefinition into
+		// Executor::Init() and the first Present, where nothing caught it and the
+		// process terminated before the menu ever drew.  A rejected pattern now
+		// costs one highlight rule, not the session.
+		try
+		{
+			mRegexList.push_back(std::make_pair(std::regex(r.first, std::regex_constants::optimize), r.second));
+		}
+		catch (const std::regex_error&)
+		{
+		}
+	}
 
 	Colorize();
 }

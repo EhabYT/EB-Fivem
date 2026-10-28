@@ -11,6 +11,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## C++ exceptions contained like access violations (row 237)
+- Row 236 switched the build to /EHsc, so C++ exceptions unwind - into std::terminate, because nothing
+  caught them.  The editor's token-regex constructors (TextEditor.cpp, SetLanguageDefinition) throw
+  regex_error straight into Executor::Init and the first Present when an STL rejects a pattern, and any
+  out_of_range / bad_alloc from a std:: call had the same end: process death with no log line, looking
+  exactly like a game crash.  The row-236 SEH guard catches access violations only.
+- The regex constructors are now guarded per pattern (a rejected pattern costs one highlight rule, not
+  the session), and PresentBody / WndProcBody wrap their frames in try/catch(...) on both threads.  All
+  three fault paths share one raw-Win32 degrade path (FaultDisable): overlay out of service, window proc
+  restored, fault line in EBengin.log, game continues.
+
 ## Crash-guide checklist: build flags explicit, frame faults contained (row 236)
 - The vcxproj never stated CRT, exception handling, /GS or ASLR: compiler defaults left a static
   CRT and no C++ unwind (a throwing std:: call terminated the process), and the security flags rode

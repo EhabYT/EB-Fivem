@@ -54,6 +54,28 @@ static volatile bool  g_frameActive = false;  // an ImGui frame has run; read by
 // wait for in-flight calls before tearing anything down.
 static volatile LONG g_presentDepth = 0;
 static volatile LONG g_wndprocDepth = 0;
+static volatile LONG g_hookFaulted = 0;    // UI: row 236 - overlay out of service
+
+// UI: row 236 - forward: LogHookLine is defined below the hooks, and both
+// fault paths need it.
+static void LogHookLine(const char* text);
+
+// UI: row 237 - the one degrade path shared by the SEH guard (row 236) and the
+// C++ exception containment below: hand the window proc back so no message can
+// reach the misfired state, stop re-entering the frame body, log the outcome.
+// Raw Win32/atomics only - freeing half-dead ImGui or CRT state from a fault
+// path is how a recoverable frame becomes a dead process.
+static void FaultDisable(const char* reason)
+{
+	g_hookFaulted = 1;
+	init = false;
+	if (window != NULL && oWndProc != NULL)
+	{
+		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
+		oWndProc = NULL;
+	}
+	LogHookLine(reason);
+}
 static UINT  g_rtWidth = 0;
 static UINT  g_rtHeight = 0;
 // UI: row 235 - the cached back-buffer texture, one held reference.  Pointer
@@ -327,7 +349,7 @@ void CleanupImGui()
 
 // UI: row 234 - body/wrapper split: the wrapper keeps the teardown fence count
 // so DETACH can wait for in-flight messages before the context they read dies.
-static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+static LRESULT WndProcFrame(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (g_unloading)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
@@ -378,6 +400,23 @@ static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 }
 
 
+// UI: row 237 - the same containment on the window thread: an exception inside
+// ImGui's message handler (the editor's input paths) used to terminate the
+// process here, again with no trace anywhere.
+static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	try
+	{
+		return WndProcFrame(hWnd, uMsg, wParam, lParam);
+	}
+	catch (...)
+	{
+		FaultDisable("window proc threw - overlay disabled, game continues");
+		return 0;
+	}
+}
+
+
 LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (g_unloading)
@@ -393,7 +432,7 @@ LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 // UI: row 234 - same split as WndProc: the hooked Present keeps a depth count
 // so DETACH never restores hook bytes or frees the context under a live frame.
-static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
 	if (g_unloading || pSwapChain == NULL)
 		return oPresent(pSwapChain, SyncInterval, Flags);
@@ -530,9 +569,26 @@ static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 }
 
 
-// UI: row 236 - forward: LogHookLine is defined below the hook, and the fault
-// handler needs it.
-static void LogHookLine(const char* text);
+// UI: row 237 - /EHsc (row 236) unwinds C++ exceptions, but nothing anywhere
+// caught them: a regex_error from the editor's token patterns, an out_of_range
+// or bad_alloc from any std:: call ran out of handlers into std::terminate -
+// process death with no log line, indistinguishable from a game crash.  Contain
+// it exactly like the SEH guard: one faulty frame costs the overlay, not the
+// session.  (The SEH guard above catches access violations; under /EHsc a
+// catch(...) does not, hence both.)
+static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+{
+	try
+	{
+		return PresentFrame(pSwapChain, SyncInterval, Flags);
+	}
+	catch (...)
+	{
+		FaultDisable("hook threw inside a frame - overlay disabled, game continues");
+		return S_OK;
+	}
+}
+
 
 // UI: row 236 - crash guard: an access violation inside our own frame code used
 // to take the host process down with us.  Catch it, put the overlay out of
@@ -541,8 +597,6 @@ static void LogHookLine(const char* text);
 // __try is legal here; the handler touches raw Win32/atomics only (never ImGui -
 // its state is exactly what misfired) and writes a line to EBengin.log like
 // every other hook outcome.
-static volatile LONG g_hookFaulted = 0;
-
 HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
 	if (g_unloading || g_hookFaulted || pSwapChain == NULL)
@@ -556,18 +610,7 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		// Minimal raw teardown: hand the window proc back so no message can reach
-		// the misfired ImGui state, stop re-entering the body, log the outcome.
-		// No CleanupImGui/DestroyContext in here - freeing half-dead state from
-		// the fault handler is how a recoverable frame becomes a dead process.
-		g_hookFaulted = 1;
-		init = false;
-		if (window != NULL && oWndProc != NULL)
-		{
-			SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
-			oWndProc = NULL;
-		}
-		LogHookLine("hook faulted inside a frame - overlay disabled, game continues");
+		FaultDisable("hook faulted inside a frame - overlay disabled, game continues");
 		hr = S_OK;   // this frame's draw is lost; the next Present passes through
 	}
 	InterlockedDecrement(&g_presentDepth);
