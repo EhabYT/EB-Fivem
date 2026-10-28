@@ -11,6 +11,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Stale editor coordinates after SetText can no longer read past the buffer (row 242)
+- TextEditor::SetText replaced the lines but kept cursor and selection: load a 100-line file, SelectAll,
+  load a 5-line file, press Copy - and GetText's reserve loop read mLines[5..99] out of bounds
+  (GetCharacterIndex answers -1 for vanished lines, which the copy loop took as line[-1]; DeleteRange
+  erased at begin() - 1).  Four clicks, undefined behaviour, no log line.
+- SetText now resets cursor and selection to the top of the new buffer (the natural reading of a replaced
+  buffer), GetText clamps stale or hand-built ranges into the buffer, and DeleteRange refuses impossible
+  indices.  Vendored ImGuiColorTextEdit, not frozen - all three sites carry row comments.
+
 ## Hygiene sweep finished, conventions written down (row 241)
 - The sweep (BOM, EOF newline, trailing whitespace over every project-owned file) found one defect:
   font_awesome.h ended without a final newline.  The .sln UTF-8 BOM is MSVC's own convention and stays -

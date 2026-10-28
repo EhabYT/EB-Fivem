@@ -97,6 +97,18 @@ std::string TextEditor::GetText(const Coordinates& aStart, const Coordinates& aE
 	auto lend = aEnd.mLine;
 	auto istart = GetCharacterIndex(aStart);
 	auto iend = GetCharacterIndex(aEnd);
+	// UI: row 242 - stale or hand-built ranges must not read past the buffer:
+	// the reserve loop below indexes mLines up to lend, and GetCharacterIndex
+	// answers -1 for lines that no longer exist, which the copy loop under it
+	// would take as line[-1].
+	if (lstart < 0)
+		lstart = 0;
+	if (lend > (int)mLines.size())
+		lend = (int)mLines.size();
+	if (istart < 0)
+		istart = 0;
+	if (iend < 0)
+		iend = 0;
 	size_t s = 0;
 
 	for (size_t i = lstart; i < lend; i++)
@@ -244,6 +256,10 @@ void TextEditor::DeleteRange(const Coordinates& aStart, const Coordinates& aEnd)
 
 	auto start = GetCharacterIndex(aStart);
 	auto end = GetCharacterIndex(aEnd);
+	// UI: row 242 - GetCharacterIndex answers -1 for lines past the buffer;
+	// erasing at begin() - 1 is undefined, so refuse the range instead.
+	if (start < 0 || end < 0)
+		return;
 
 	if (aStart.mLine == aEnd.mLine)
 	{
@@ -1197,6 +1213,14 @@ void TextEditor::SetText(const std::string& aText)
 			mLines.back().emplace_back(Glyph(chr, PaletteIndex::Default));
 		}
 	}
+
+	// UI: row 242 - cursor and selection used to outlive the buffer: loading a
+	// shorter file left mState pointing past the new last line, so the next
+	// GetSelectedText/Copy ran GetText's reserve loop over mLines out of bounds
+	// (and DeleteRange erased at index -1).  A replaced buffer starts at the top
+	// with nothing selected.
+	mState = EditorState();
+	mInteractiveStart = mInteractiveEnd = mState.mCursorPosition;
 
 	mTextChanged = true;
 	mScrollToTop = true;
