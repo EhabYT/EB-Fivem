@@ -11,6 +11,24 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Harden attach/detach lifecycle: DllMain mutex gate, thread fence, and process-exit path (row 247)
+- `DLL_PROCESS_ATTACH` (`main.cpp`): moved the `Local\EBengin_SingleInstance_<pid>` `CreateMutexA`
+  acquisition into `DLL_PROCESS_ATTACH` before `CreateThread` (matching guide 4.1).  A duplicate
+  injection sees `ERROR_ALREADY_EXISTS`, emits `OutputDebugStringA`, and returns `FALSE` so the
+  Windows loader unmaps the duplicate immediately without spawning a thread; `g_mainThreadEntered`
+  remains at the top of `MainThread` to block direct thread re-entry in the same mapping.
+- Fixed the leaked `CreateThread` `HANDLE` in `DLL_PROCESS_ATTACH` (`CloseHandle(hThread)` on
+  success; full rollback + `return FALSE` on failure).
+- `MainThread` unload fence (`main.cpp`): split the 500 ms retry sleep into `10 x 50 ms` slices
+  checking `!g_unloading`, and added `g_mainThreadActive` so dynamic `DLL_PROCESS_DETACH` waits for
+  `MainThread` to exit before unmapping the DLL.
+- Process-exit vs. dynamic-unload separation in `DLL_PROCESS_DETACH` (`main.cpp`): when
+  `lpReserved != nullptr` (the host process is terminating and Windows has already killed other
+  threads), `DETACH` now flushes `Settings::Save()`, releases the instance mutex, and logs
+  `session ended (process exit)` without waiting on dead-thread depth counters or calling
+  `CleanupImGui()` / `kiero::shutdown()` into partially torn-down `d3d11.dll` / `dxgi.dll`.  Full
+  fences and ImGui/kiero teardown run on dynamic unload (`lpReserved == nullptr`).
+
 ## Single-instance guard, Present re-entrancy guard, and PID/TID/base logging (row 246)
 - Applied the fixes from the `EBengin.log` / `settings.ini` analysis (two `hook attached` lines with
   no `session ended` line between them).

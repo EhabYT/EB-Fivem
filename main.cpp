@@ -55,14 +55,16 @@ static volatile bool  g_frameActive = false;  // an ImGui frame has run; read by
 static volatile LONG g_presentDepth = 0;
 static volatile LONG g_wndprocDepth = 0;
 static volatile LONG g_hookFaulted = 0;    // UI: row 236 - overlay out of service
-// UI: row 246 - per-process single-instance guard ("Local\\EBengin_SingleInstance_<pid>").
-// Acquired in MainThread (never under the loader lock, preserving row 236) and
-// held for the session; a second injection into the same process sees
-// ERROR_ALREADY_EXISTS, logs the skip, and exits without stacking a second
-// Present hook or ImGui context.  g_ownsSession gates DLL_PROCESS_DETACH so
-// unloading a rejected duplicate never tears down the live first instance.
+// UI: row 246/247 - per-process single-instance guard ("Local\\EBengin_SingleInstance_<pid>").
+// Acquired in DLL_PROCESS_ATTACH before CreateThread so a duplicate mapping is
+// rejected immediately with FALSE (and g_mainThreadEntered also blocks a second
+// MainThread entry in the same mapping).  g_ownsSession gates DLL_PROCESS_DETACH
+// so a rejected duplicate never tears down the live first instance, and
+// g_mainThreadActive lets dynamic DETACH wait for MainThread before unmap.
 static HANDLE g_instanceMutex = NULL;
 static volatile LONG g_ownsSession = 0;
+static volatile LONG g_mainThreadActive = 0;
+static volatile LONG g_mainThreadEntered = 0;
 
 static void ReleaseInstanceMutex()
 {
@@ -693,20 +695,13 @@ static void LogHookLine(const char* text)
 
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
-	// UI: row 246 - per-process single-instance check: if this process already
-	// holds an active EBengin session, bail out before touching kiero or ImGui.
-	char mutexName[64];
-	snprintf(mutexName, sizeof(mutexName), "Local\\EBengin_SingleInstance_%lu",
-		(unsigned long)GetCurrentProcessId());
-	HANDLE hMutex = CreateMutexA(NULL, FALSE, mutexName);
-	if (hMutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS)
+	// UI: row 247 - guard against a second MainThread entry in the same module
+	// (while DLL_PROCESS_ATTACH below guards against a second module mapping).
+	if (InterlockedCompareExchange(&g_mainThreadEntered, 1, 0) != 0)
 	{
-		CloseHandle(hMutex);
 		LogHookLine("hook skipped: instance already active in this process");
 		return FALSE;
 	}
-	g_instanceMutex = hMutex;
-	g_ownsSession = 1;
 
 	// The old version spun in a tight `do {} while (!init_hook)` loop with no
 	// sleep and no exit condition, burning a core forever if the hook could
@@ -720,13 +715,16 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 			if (kiero::bind(8, (void**)&oPresent, (void*)hkPresent) == kiero::Status::Success)
 			{
 				LogHookLine("hook attached (D3D11 present)");
+				InterlockedExchange(&g_mainThreadActive, 0);
 				return TRUE;
 			}
 
 			kiero::shutdown();
 			LogHookLine("hook failed: present bind refused");
 			g_ownsSession = 0;
+			g_mainThreadEntered = 0;
 			ReleaseInstanceMutex();
+			InterlockedExchange(&g_mainThreadActive, 0);
 			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
@@ -738,20 +736,30 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 				? "hook failed: host is not a D3D11 renderer"
 				: "hook failed: swap chain module not found");
 			g_ownsSession = 0;
+			g_mainThreadEntered = 0;
 			ReleaseInstanceMutex();
+			InterlockedExchange(&g_mainThreadActive, 0);
 			return FALSE;   // logged outcome; the gave-up line below stays for retries only
 		}
 
-		Sleep(500);
+		// UI: row 247 - sleep in 50 ms slices checking !g_unloading so a dynamic
+		// unload wakes MainThread within <=50 ms instead of waiting out 500 ms.
+		for (int s = 0; s < 10 && !g_unloading; ++s)
+			Sleep(50);
 	}
 	// UI: row 190 - the loop also ends when an unload arrives mid-retry; that
 	// is not a failure, and logging "gave up" for it would put a lie in the
 	// trace.  The gave-up line belongs to a full 120-attempt exhaustion only.
 	if (g_unloading)
+	{
+		InterlockedExchange(&g_mainThreadActive, 0);
 		return FALSE;
+	}
 	LogHookLine("hook failed: attach gave up after 120 attempts");
 	g_ownsSession = 0;
+	g_mainThreadEntered = 0;
 	ReleaseInstanceMutex();
+	InterlockedExchange(&g_mainThreadActive, 0);
 	return FALSE;
 }
 
@@ -761,11 +769,40 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 	switch (dwReason)
 	{
 	case DLL_PROCESS_ATTACH:
+	{
+		// UI: row 247 - acquire the per-process single-instance mutex right in
+		// DLL_PROCESS_ATTACH (guide 4.1) before spawning MainThread: a duplicate
+		// injection is rejected immediately with FALSE (so the loader unmaps the
+		// second copy without creating a thread), and g_ownsSession/g_mainThreadActive
+		// are set before CreateThread so an immediate DETACH cannot race MainThread
+		// startup.  Also closes the thread HANDLE that used to leak on every attach.
+		char mutexName[64];
+		wsprintfA(mutexName, "Local\\EBengin_SingleInstance_%lu",
+			(unsigned long)GetCurrentProcessId());
+		HANDLE hMutex = CreateMutexA(nullptr, FALSE, mutexName);
+		if (hMutex != nullptr && GetLastError() == ERROR_ALREADY_EXISTS)
+		{
+			CloseHandle(hMutex);
+			OutputDebugStringA("EBengin: already injected, aborting second instance\n");
+			return FALSE;
+		}
 		g_hModule = hMod;
+		g_instanceMutex = hMutex;
+		g_ownsSession = 1;
+		g_mainThreadActive = 1;
 		DisableThreadLibraryCalls(hMod);
-		if (CreateThread(nullptr, 0, MainThread, hMod, 0, nullptr) == nullptr)
+		HANDLE hThread = CreateThread(nullptr, 0, MainThread, hMod, 0, nullptr);
+		if (hThread == nullptr)
+		{
+			g_mainThreadActive = 0;
+			g_ownsSession = 0;
+			ReleaseInstanceMutex();
 			g_hModule = NULL;
+			return FALSE;
+		}
+		CloseHandle(hThread);
 		break;
+	}
 
 	case DLL_PROCESS_DETACH:
 		// UI: row 246 - if this mapping was a rejected duplicate (or never started
@@ -775,6 +812,24 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		// Stop rendering before anything is torn down, otherwise the game can be
 		// sitting inside hkPresent while we destroy the ImGui context under it.
 		g_unloading = true;
+		// UI: row 247 - when lpReserved != nullptr, the host process is exiting:
+		// Windows has already terminated other threads (so depth counters could
+		// wait on dead threads, and d3d11.dll/dxgi.dll/heap locks may be held by
+		// terminated threads).  Skip fence waits, D3D11/ImGui COM releases and
+		// vtable patching during process termination; only flush settings, release
+		// the mutex and log the exit.  Full teardown runs on dynamic unload
+		// (FreeLibrary, lpReserved == nullptr).
+		if (lpReserved != nullptr)
+		{
+			Settings::Save();
+			ReleaseInstanceMutex();
+			g_ownsSession = 0;
+			LogHookLine("session ended (process exit)");
+			break;
+		}
+		// Wait for MainThread if detach arrived while the attach loop was still running.
+		for (int i = 0; i < 200 && g_mainThreadActive > 0; ++i)
+			Sleep(10);
 		// UI: row 201 - a modal dialog (Gui::ModalBoxA) blocks the render thread
 		// inside a frame for as long as the user leaves it open, and the fixed
 		// 50 ms below would then destroy the ImGui context under the live
@@ -798,6 +853,7 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		kiero::shutdown();
 		ReleaseInstanceMutex();
 		g_ownsSession = 0;
+		g_mainThreadEntered = 0;
 		// UI: row 193 - the trace log (row 188) records the attach and every
 		// failure outcome, but never a clean end: a report could not tell an
 		// orderly unload from a crash or a task kill.  One line closes the
