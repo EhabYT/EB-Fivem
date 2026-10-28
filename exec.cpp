@@ -256,7 +256,11 @@ namespace Executor
 				OPENFILENAMEA ofn;
 				ZeroMemory(&ofn, sizeof(ofn));
 				ofn.lStructSize = sizeof(ofn);
-				ofn.hwndOwner = FindWindowA(NULL, "FiveM");
+				// UI: row 211 - was FindWindowA(NULL, "FiveM"): a title guess that
+				// answers NULL (unowned dialog behind a fullscreen game, reading
+				// as a hang) whenever the host titles its window differently.
+				// The hook resolved the real swap-chain window long ago.
+				ofn.hwndOwner = window;
 				ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
 				ofn.lpstrFile = file;
 				ofn.nMaxFile = MAX_PATH;
@@ -512,7 +516,7 @@ namespace Executor
 			OPENFILENAMEA ofn;
 			ZeroMemory(&ofn, sizeof(ofn));
 			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = FindWindowA(NULL, "FiveM");
+			ofn.hwndOwner = window;   // UI: row 211 - real host window, not a title guess
 			ofn.lpstrFilter = "Lua / text files\0*.lua;*.txt\0All files\0*.*\0";
 			ofn.lpstrFile = file;
 			ofn.nMaxFile = MAX_PATH;

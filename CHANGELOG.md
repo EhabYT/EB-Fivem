@@ -9,6 +9,23 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The splash hint says exactly what the toggle does, and dialogs belong to the game window (rows 210-211)
+- The splash hint claimed "<key> toggles this overlay at any time." - overstating the one binding
+  class the present loop deliberately suppresses: a printable key (possible only via hand-edited
+  ini; the capture refuses them since row 166) does not flip the overlay while a text field
+  consumes input (rows 155/164).  The hint keeps the confident sentence for non-printable
+  bindings and names the qualifier for printable ones.  The preview still depicts the default
+  INSERT binding, so preview_splash.png is byte-identical.
+- Every dialog the UI raised was unowned or title-guessed: Gui::ModalBoxA passed NULL to
+  MessageBoxA, and both file dialogs used FindWindowA(NULL, "FiveM").  A NULL answer - any host
+  window titled differently - or the wrong top-level window leaves the dialog BEHIND a fullscreen
+  game while the modal loop has already stalled the render thread: what the user sees is a hang
+  with no visible cause, the exact family the trace log (rows 188-193) exists to shorten.  All
+  dialogs are now owned by the real host window: main.cpp resolves it from the swap chain
+  (sd.OutputWindow) into its global `window`, gui.h declares it extern, and ModalBoxA plus both
+  ofn.hwndOwner assignments use it.  No title guess remains in the codebase.
+- All eight previews stay byte-identical (no scene depicts a dialog).
+
 ## The OS floor is named, and "nothing appears in-game" starts at the trace log (rows 208-209)
 - The requirements table said "Windows 10 / 11 x64", but GetDpiForWindow - called in InitImGui
   (row 154) and per frame in hkPresent (row 187) - exists in user32.dll only since Windows 10

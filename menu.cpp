@@ -324,9 +324,20 @@ namespace Menu
 		// The toggle key is user-bindable (Config -> Toggle key), so the hint
 		// names whatever is actually bound; KeyName is the same helper the
 		// Config button and the key-change toast use.
-		char hint2[96];
-		snprintf(hint2, sizeof(hint2), "%s toggles this overlay at any time.",
-			Settings::KeyName(Settings::Current.ToggleKey));
+		// UI: row 210 - "at any time" overstated the one binding class the
+		// present loop deliberately suppresses: a printable key (hand-edited
+		// ini only - the capture refuses them, row 166) does not flip the
+		// overlay while a text field consumes input (rows 155/164).  The hint
+		// names that qualifier for exactly that class and keeps the confident
+		// sentence for everything else.
+		char hint2[128];
+		const int hk = Settings::Current.ToggleKey;
+		const bool hkPrintable = (hk >= 'A' && hk <= 'Z')
+			|| (hk >= '0' && hk <= '9') || hk == VK_SPACE;
+		snprintf(hint2, sizeof(hint2), hkPrintable
+				? "%s toggles this overlay (not while typing in a text field)."
+				: "%s toggles this overlay at any time.",
+			Settings::KeyName(hk));
 		Centered(hint2, ImColor(255, 255, 255, 255));
 
 		ImGui::Spacing();

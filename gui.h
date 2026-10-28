@@ -8,6 +8,13 @@
 #include "settings.h"
 
 #include <Windows.h>
+
+// UI: row 211 - defined in main.cpp: the host window the hook resolved from
+// the swap chain (sd.OutputWindow).  Every dialog this UI raises belongs to
+// it - an unowned dialog can sit BEHIND a fullscreen game while the modal
+// loop has already stalled the render thread, which reads as a hang with
+// no visible cause.
+extern HWND window;
 #include <cstring>
 #include <string>
 #include <iostream>
@@ -53,7 +60,8 @@ namespace Gui
 	{
 		const ULONGLONG t0 = ::GetTickCount64();
 		ModalActiveRef() = true;
-		const int r = ::MessageBoxA(NULL, text, title, flags);
+		// UI: row 211 - was NULL: unowned boxes can open behind the game window.
+		const int r = ::MessageBoxA(window, text, title, flags);
 		ModalActiveRef() = false;
 		ModalSeconds((double)(::GetTickCount64() - t0) / 1000.0);
 		for (int vk = 7; vk < 255; ++vk)
