@@ -11,6 +11,24 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The project compiles again: three latent compile blockers fixed (row 226)
+- A real MSVC build reported what no static check here could see until it looked structurally:
+  (a) the row-164 capture block (`static bool g_capturing` + `IsCapturing()`) had been inserted
+  INSIDE `Config::Render()` - C2601 "local function definitions are illegal", plus "g_capturing:
+  undeclared identifier" inside IsCapturing; the block now sits at namespace scope between
+  ValidToggleKey() and Render().
+  (b) `menu_style.h` writes `Settings::StyleMetricK()` in ApplyStyle() but never included
+  settings.h, and gui.h includes menu_style.h one line before settings.h - so every translation
+  unit died with "Settings: is not a class or namespace" / "StyleMetricK: identifier not found".
+  menu_style.h now includes settings.h and is self-contained.
+  (c) menu.cpp's key gate pushes Activity::Push (rows 155/157) without including activity.h.
+- Verified without a Windows compiler: a brace-depth trace puts both capture symbols at namespace
+  depth with file depth 0, and a comment-stripped include-closure sweep reports zero translation
+  units using a project namespace without an include path to its header; settings.h includes
+  nothing local, so the new menu_style.h include creates no cycle.
+- The explorer.exe/Windhawk lines in the submitted log are the debugger session around a failed
+  build (the row-98 F5 scenario), not a second defect.
+
 ## The docs tables render whole on GitHub again (rows 224-225)
 - Two rows of the README file-inventory table were wrapped over physical newlines (the config.cpp
   row broke after "switches", the kiero row after "(vendored,").  GFM tables are one line per row,

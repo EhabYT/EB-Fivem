@@ -33,6 +33,21 @@ namespace Config
 			|| vk == VK_PAUSE || vk == VK_SCROLL || vk == VK_NUMLOCK;
 	}
 
+	// UI: row 226 - until this row the block below sat INSIDE
+	// Render(): MSVC answers a function definition inside a function with C2601
+	// ("local function definitions are illegal"), and the file-local capture flag
+	// was invisible to IsCapturing() - the two errors every build opened with.
+	// UI: row 164 - the capture state used to be a function-local static, so
+	// nothing outside Config::Render() could see it.  The present loop needs
+	// it: a toggle-key press while a capture is armed used to flip the overlay
+	// shut mid-capture (the poll runs before Render), swallowing the binding.
+	static bool g_capturing = false;
+
+	bool IsCapturing()
+	{
+		return g_capturing;
+	}
+
 	void Render()
 	{
 		// UI: row 167 - an armed capture survives tab switches (the scan only
@@ -113,17 +128,6 @@ namespace Config
 		}
 
 		Gui::Seperator("##config_seperator_4");
-
-	// UI: row 164 - the capture state used to be a function-local static, so
-	// nothing outside Config::Render() could see it.  The present loop needs
-	// it: a toggle-key press while a capture is armed used to flip the overlay
-	// shut mid-capture (the poll runs before Render), swallowing the binding.
-	static bool g_capturing = false;
-
-	bool IsCapturing()
-	{
-		return g_capturing;
-	}
 
 		// Interface preferences: which key toggles the overlay.  Click the button,
 		// then press the key; ESC cancels.  Persisted with the rest of settings.

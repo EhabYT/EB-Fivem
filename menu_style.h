@@ -1,6 +1,11 @@
 #pragma once
 
 #include "imgui/imgui.h"
+// UI: row 226 - ApplyStyle() below writes Settings::StyleMetricK(); without this
+// include every translation unit that reached menu_style.h before settings.h
+// (gui.h included it one line earlier) failed with "Settings: is not a class or
+// namespace" / "StyleMetricK: identifier not found".
+#include "settings.h"
 
 // UI: AA contrast pass (row 147).  Secondary/muted ink used to be the brand
 // accent at 60% alpha (blend 64,109,154), which measures 2.8:1 on the canvas -

@@ -4,6 +4,7 @@
 #include "font_awesome.h"
 #include "settings.h"
 #include "toasts.h"
+#include "activity.h"   // UI: row 226 - key gate pushes Activity lines (rows 155/157)
 #include "perf.h"
 
 #include <cstdio>
