@@ -11,6 +11,96 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Stale editor coordinates after SetText can no longer read past the buffer (row 242)
+- TextEditor::SetText replaced the lines but kept cursor and selection: load a 100-line file, SelectAll,
+  load a 5-line file, press Copy - and GetText's reserve loop read mLines[5..99] out of bounds
+  (GetCharacterIndex answers -1 for vanished lines, which the copy loop took as line[-1]; DeleteRange
+  erased at begin() - 1).  Four clicks, undefined behaviour, no log line.
+- SetText now resets cursor and selection to the top of the new buffer (the natural reading of a replaced
+  buffer), GetText clamps stale or hand-built ranges into the buffer, and DeleteRange refuses impossible
+  indices.  Vendored ImGuiColorTextEdit, not frozen - all three sites carry row comments.
+
+## Hygiene sweep finished, conventions written down (row 241)
+- The sweep (BOM, EOF newline, trailing whitespace over every project-owned file) found one defect:
+  font_awesome.h ended without a final newline.  The .sln UTF-8 BOM is MSVC's own convention and stays -
+  Visual Studio re-adds it on every save, so removing it would only create diff noise.
+- font_awesome.h ends with exactly one newline now, and BUILD.md section 4 carries the written hygiene
+  conventions: CRLF for sources/.bat/.sln (BOM kept on purpose), LF for docs/renderer/yml, vendored trees
+  untouched, one EOF newline and no trailing whitespace anywhere.
+
+## Endings census finished: clipboard.h joins the CRLF convention (row 240)
+- The row-239 census over the whole tree found one more project-owned outlier: clipboard.h was entirely
+  LF while every other project source, the .bat files and the .sln are CRLF.  Docs, renderer and
+  ci/build.yml stay LF by convention; the vendored trees (stb_image.h with 7988 LF lines, imgui/,
+  kiero/) keep their upstream endings on purpose.
+- clipboard.h is normalized to CRLF; BUILD.md records the census and the vendored exception, so the
+  convention now has a written definition.  A duplicate-`##id` sweep over every tab renderer found only
+  the intended OpenPopup/BeginPopup pair (exec.cpp recent-files popup).
+
+## The HUD plate carries the owner-set credit wording (row 239)
+- Row 124 put "MADE BY EB" on the HUD plate; the standing credit directive sets the UI wording to
+  "Remade : by EB" (splash card, sidebar footer, Config About - rows 94/103).  The plate was the one
+  UI surface deviating from it.
+- The plate second line, the renderer hud-scene constant and every current-description sentence
+  (menu.h comment, README, BUILD architecture row) carry "Remade : by EB" now; plate metrics do not
+  move because the plate width is the max of its two lines and the FPS line is the longer one.
+- menu.cpp is normalized to CRLF: earlier patches had left 95 bare-LF lines in the otherwise CRLF
+  file (repo convention: sources and .bat CRLF, docs and renderer LF).  Past row and changelog
+  entries keep their historical wording.
+
+## The two BUILD.md fix tables no longer share numbers (row 238)
+- Section 4 (build fixes) numbered its entries 1-14 while section 5 (runtime/correctness, the table every
+  bare "row N" reference in code comments, CHANGELOG, README and the vcxproj points at) numbers 1-237 -
+  for 1-14 a reference could land in either table.
+- Section 4 is renumbered B1-B14 and says why in its intro; bare "row N" is unambiguous again.  Docs only.
+
+## C++ exceptions contained like access violations (row 237)
+- Row 236 switched the build to /EHsc, so C++ exceptions unwind - into std::terminate, because nothing
+  caught them.  The editor's token-regex constructors (TextEditor.cpp, SetLanguageDefinition) throw
+  regex_error straight into Executor::Init and the first Present when an STL rejects a pattern, and any
+  out_of_range / bad_alloc from a std:: call had the same end: process death with no log line, looking
+  exactly like a game crash.  The row-236 SEH guard catches access violations only.
+- The regex constructors are now guarded per pattern (a rejected pattern costs one highlight rule, not
+  the session), and PresentBody / WndProcBody wrap their frames in try/catch(...) on both threads.  All
+  three fault paths share one raw-Win32 degrade path (FaultDisable): overlay out of service, window proc
+  restored, fault line in EBengin.log, game continues.
+
+## Crash-guide checklist: build flags explicit, frame faults contained (row 236)
+- The vcxproj never stated CRT, exception handling, /GS or ASLR: compiler defaults left a static
+  CRT and no C++ unwind (a throwing std:: call terminated the process), and the security flags rode
+  on implicit defaults.  All four configurations now carry /MD (dynamic CRT, matching the host),
+  /EHsc, /GS and /DYNAMICBASE + /HIGHENTROPYVA explicitly.
+- The Present hook wraps the frame body in an SEH guard: an access violation in our own draw code no
+  longer kills the host - the handler hands the window proc back, disables the overlay for the
+  session, logs a fault line to EBengin.log, and every later frame passes straight to the game.
+- BUILD.md gained a "capturing the real crash" subsection (EBengin.log, procdump, WinDbg
+  !analyze -v, what to paste) plus the user-side environment checks as diagnostics; no injector and
+  no anti-cheat interaction - both stay out of scope by standing rule.
+
+## Same-size resizes no longer draw through a released back buffer (row 235)
+- The Present hook detected resizes by comparing buffer dimensions.  A same-size ResizeBuffers -
+  borderless<->fullscreen at equal resolution, or a refresh-rate switch - swaps the back-buffer
+  texture under an unchanged BufferDesc, so the cached render target view kept referencing a
+  released texture and every subsequent draw went through it: a device-removed / access-violation
+  path in the middle of a session.
+- Buffer 0 pointer identity is now the second resize signal: CreateRenderTarget keeps one reference
+  to the texture the view was built from (the held reference also stops the freed address from being
+  recycled for the new texture, which would alias the comparison), CleanupRenderTarget releases it
+  together with the view, and the per-frame probe recreates view and ImGui device objects whenever
+  the pointer or the dimensions change.  No menu behaviour changes; kiero/MinHook untouched.
+
+## Teardown no longer races live hook calls (row 234)
+- On hosts whose window thread differs from the thread that calls Present (GTA V / FiveM pump
+  messages on the main thread while Present runs on the render thread), DETACH could destroy the
+  ImGui context and restore the Present hook bytes while either thread was still inside our hooks;
+  CleanupImGui also handed the window proc back only after DestroyContext, so an in-flight message
+  called ImGui_ImplWin32_WndProcHandler on a dead context.  Both are access-violation paths that
+  surface as "the game crashes after injection" or on eject.
+- hkPresent and WndProc are now thin wrappers that keep interlocked depth counters around static
+  bodies; DETACH waits for both counters (capped ~2 s, loader-lock safe) before teardown, and
+  CleanupImGui restores the window proc before the context dies.  The cross-thread lifetime flags
+  are volatile.  No menu behaviour changes; kiero/MinHook stay untouched.
+
 ## The sidebar license plate was a claim with nothing behind it (row 233)
 - "Licensed to #4278" was a hardcoded constant; no license mechanism exists in this build -
   nothing issues, stores or checks a license.  The line asserted a fact the build cannot back

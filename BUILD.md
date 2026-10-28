@@ -113,24 +113,36 @@ interface scale (`[ui] scale`, 70–200%).
 If you are comparing against the original upstream snapshot, these are the things that
 stopped it from compiling/opening, and what changed:
 
+Entries are numbered B1-B14 on purpose: the bare "row N" references used across code
+comments, the CHANGELOG and the README all point at the section 5 table, and the two
+tables used to share the numbers 1-14, so "row 12" could land in either (row 238).
+
 | # | Symptom before | Cause | Fix |
 |---|---|---|---|
-| 1 | `MSB3202: The project file "ImGui DirectX 11 Kiero Hook\ImGui DirectX 11 Kiero Hook.vcxproj" was not found` | `redENGINE UI.sln` referenced a nested folder that does not exist; the `.vcxproj` sits in the repo root | Corrected the project path in the `.sln` |
-| 2 | `C1083: Cannot open include file: 'imgui.h'` | `imgui_impl_dx11.cpp` / `imgui_impl_win32.cpp` do `#include "imgui.h"`, but nothing put the project dir or `imgui\` on the include path | `IncludePath` now contains `$(ProjectDir);$(ProjectDir)imgui` |
-| 3 | `C2397: conversion from 'double' to 'int' requires a narrowing conversion` | `icons_config.OversampleH = 2.5;` — those fields are `int` in `ImFontConfig` | Set to `3` / `1` |
-| 4 | `C2664: 'ImGui::Combo': cannot convert argument 4 from 'size_t' to 'int'` | `exec.h` passed `resources.size()` | Cast to `int` |
-| 5 | `MSB8020: The build tools for v142 cannot be found` on VS2022-only machines | Toolset hard-pinned to `v142` | Conditional: `v142` if present, else `$(DefaultPlatformToolset)` |
-| 6 | Bogus `C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include` on the include path | Legacy hardcoded SDK | Removed; Windows SDK provides `d3d11.h` / `dxgi.h` |
-| 7 | `RC.exe` needed for a resource that does not belong to this DLL | `kiero\minhook\dll_resources\MinHook.rc` was compiled in, stamping MinHook's version info onto redENGINE | `ResourceCompile` item removed from `.vcxproj` and `.filters` |
-| 8 | Crashed the host process on every machine except the author's | `IM_ASSERT(LoadTextureFromFile("D:\\rE.png", ...))` — a hardcoded path plus a hard assert | Resolves next to the DLL, no assert, text fallback in `menu.h` |
-| 9 | `C2065: 'uintptr_t': undeclared identifier` (possible, with `/permissive-`) | `PTR` typedef relied on a transitive include | `#include <cstdint>` and `<string>` in `includes.h` |
-| 10 | `std::find` used without `<algorithm>` | Relied on transitive includes | Added to `resources.h` |
-| 11 | Language standard depended on the toolset default | Not specified | `LanguageStandard = stdcpp17` in all four configs |
-| 12 | `font_awesome.cpp` listed as `<None>` although it is a `#include`d TU payload | Ambiguous project item | Now `ClCompile` with `ExcludedFromBuild=true` |
-| 13 | Mixed calling conventions on the hook | `__stdcall` is ignored on x64 | `HK_CALL` macro in `includes.h`, used by `Present` / `hkPresent` |
-| 14 | `error C4996: 'sprintf': … declared deprecated` ×33, fatal because `SDLCheck` is `true` | `imgui/imgui_demo.cpp` was compiled into the DLL | Removed from the project. `ShowDemoWindow` / `ShowAboutWindow` / `ShowStyleEditor` / `ShowUserGuide` are never called anywhere in this codebase (`ShowMetricsWindow` lives in `imgui.cpp`, so it survives). The file stays on disk as vendored upstream code, it is simply not built — which also drops ~590 KB of demo source from every compile. **Do not re-add it without either dropping `SDLCheck` or defining `_CRT_SECURE_NO_WARNINGS` for that file.** |
+| B1 | `MSB3202: The project file "ImGui DirectX 11 Kiero Hook\ImGui DirectX 11 Kiero Hook.vcxproj" was not found` | `redENGINE UI.sln` referenced a nested folder that does not exist; the `.vcxproj` sits in the repo root | Corrected the project path in the `.sln` |
+| B2 | `C1083: Cannot open include file: 'imgui.h'` | `imgui_impl_dx11.cpp` / `imgui_impl_win32.cpp` do `#include "imgui.h"`, but nothing put the project dir or `imgui\` on the include path | `IncludePath` now contains `$(ProjectDir);$(ProjectDir)imgui` |
+| B3 | `C2397: conversion from 'double' to 'int' requires a narrowing conversion` | `icons_config.OversampleH = 2.5;` — those fields are `int` in `ImFontConfig` | Set to `3` / `1` |
+| B4 | `C2664: 'ImGui::Combo': cannot convert argument 4 from 'size_t' to 'int'` | `exec.h` passed `resources.size()` | Cast to `int` |
+| B5 | `MSB8020: The build tools for v142 cannot be found` on VS2022-only machines | Toolset hard-pinned to `v142` | Conditional: `v142` if present, else `$(DefaultPlatformToolset)` |
+| B6 | Bogus `C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include` on the include path | Legacy hardcoded SDK | Removed; Windows SDK provides `d3d11.h` / `dxgi.h` |
+| B7 | `RC.exe` needed for a resource that does not belong to this DLL | `kiero\minhook\dll_resources\MinHook.rc` was compiled in, stamping MinHook's version info onto redENGINE | `ResourceCompile` item removed from `.vcxproj` and `.filters` |
+| B8 | Crashed the host process on every machine except the author's | `IM_ASSERT(LoadTextureFromFile("D:\\rE.png", ...))` — a hardcoded path plus a hard assert | Resolves next to the DLL, no assert, text fallback in `menu.h` |
+| B9 | `C2065: 'uintptr_t': undeclared identifier` (possible, with `/permissive-`) | `PTR` typedef relied on a transitive include | `#include <cstdint>` and `<string>` in `includes.h` |
+| B10 | `std::find` used without `<algorithm>` | Relied on transitive includes | Added to `resources.h` |
+| B11 | Language standard depended on the toolset default | Not specified | `LanguageStandard = stdcpp17` in all four configs |
+| B12 | `font_awesome.cpp` listed as `<None>` although it is a `#include`d TU payload | Ambiguous project item | Now `ClCompile` with `ExcludedFromBuild=true` |
+| B13 | Mixed calling conventions on the hook | `__stdcall` is ignored on x64 | `HK_CALL` macro in `includes.h`, used by `Present` / `hkPresent` |
+| B14 | `error C4996: 'sprintf': … declared deprecated` ×33, fatal because `SDLCheck` is `true` | `imgui/imgui_demo.cpp` was compiled into the DLL | Removed from the project. `ShowDemoWindow` / `ShowAboutWindow` / `ShowStyleEditor` / `ShowUserGuide` are never called anywhere in this codebase (`ShowMetricsWindow` lives in `imgui.cpp`, so it survives). The file stays on disk as vendored upstream code, it is simply not built — which also drops ~590 KB of demo source from every compile. **Do not re-add it without either dropping `SDLCheck` or defining `_CRT_SECURE_NO_WARNINGS` for that file.** |
 
 ---
+
+### Hygiene conventions (written down across rows 239-241)
+
+- Project sources, `.bat` and `.sln`: CRLF.  The `.sln` carries the MSVC UTF-8 BOM on purpose -
+  Visual Studio re-adds it on every save, so removing it would only create recurring diff noise.
+- Docs (`*.md`), `docs/render_preview.py`, `ci/build.yml`: LF.
+- Vendored trees (`imgui/`, `kiero/`, `stb_image.h`, `TextEditor.*`): upstream endings, untouched.
+- Every text file ends with exactly one newline; no trailing whitespace at line ends.
 
 ## 5. Runtime / correctness fixes that were applied
 
@@ -371,6 +383,15 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 231 | The "Reset interface settings" confirm named four of the six things the whole-struct assignment resets: the stored window position and last tab go back to defaults too - main.cpp opens the next session on the stored tab (`Menu::Tab = Settings::Current.Tab`) - yet no UI text mentioned the tab anywhere | The modal, the button tooltip and the success toast now state the complete scope: key/scale/switches/HUD corner are overwritten at once; the stored window position and last tab reset and apply on the next start |
 | 232 | The Menus tab lists compiled-in menu names (FreeMenus/PremMenus in luamenus.cpp), and nothing said so until the Run button's hover tooltip - the lists read like an installed catalogue, the same provenance gap the Resources tab had before row 230 | The tab opens with the same muted provenance line ("Compiled-in name list - nothing here is bundled or launched."), the README names the menu lists' origin too, and docs/render_preview.py models the line - so preview_menus.png shifts by exactly that line, committed deliberately |
 | 233 | The sidebar footer carried a hardcoded license plate ("Licensed to #4278") while no license mechanism exists in this build - nothing issues, stores or checks a license, so the line asserted a fact the build cannot back up, in the one place every frame shows | The footer states the true fact in its place ("No license check."), the README records the swap beside the other honesty labels, and the renderer's footer string follows - the sidebar draws in every scene, so all eight previews change by exactly that one string, committed deliberately |
+| 234 | Teardown raced live hook calls on multi-threaded hosts: GTA V / FiveM pump window messages on a different thread than the one that calls Present, so DETACH could destroy the ImGui context and restore the Present hook bytes while either thread was still inside our hooks, and CleanupImGui handed the window proc back only *after* DestroyContext - in-flight messages then called into a dead context. Both are access-violation paths that surface as "the game crashes after injection/eject" | hkPresent and WndProc are now thin wrappers around static bodies that keep interlocked depth counters; DETACH waits for both counters (capped ~2 s) before tearing down; CleanupImGui restores the window proc before the context dies; the cross-thread lifetime flags are volatile. kiero/MinHook untouched |
+| 235 | The resize check in the Present hook compared buffer dimensions only, so a same-size ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate switch) swapped the back-buffer texture under an unchanged BufferDesc: the cached render target view then referenced a released texture and every draw went through it - a device-removed / access-violation path mid-session | Buffer 0 pointer identity is the second resize signal: CreateRenderTarget keeps one reference to the texture the view was built from (which also stops address recycling from aliasing the comparison), CleanupRenderTarget drops it with the view, and the per-frame probe recreates view plus ImGui device objects whenever the pointer or the dimensions change |
+| 236 | Applying the crash-guide checklist to this repo found four hardening gaps: the vcxproj never stated CRT, exception handling, /GS or ASLR explicitly (compiler defaults meant a static CRT and no C++ unwind - a throwing std:: call terminated the process instead of unwinding), and an access violation inside our own frame code took the host process down with it | All four configurations now carry /MD (dynamic CRT, matching the host), /EHsc, /GS and /DYNAMICBASE + /HIGHENTROPYVA explicitly; the Present hook wraps the frame body in an SEH guard whose fault handler puts the overlay out of service for the session (window proc restored, later frames pass through) and logs a fault line to EBengin.log - one faulty frame costs the menu, not the game |
+| 237 | Row 236 switched the build to /EHsc, so C++ exceptions now unwind - but nothing anywhere caught them: the editor's token-regex constructors (TextEditor.cpp SetLanguageDefinition) can throw regex_error straight into Executor::Init and the first Present, and any out_of_range/bad_alloc from a std:: call ran out of handlers into std::terminate - process death with no log line, indistinguishable from a game crash (the SEH guard catches access violations only; under /EHsc catch(...) does not) | The regex constructors are guarded per pattern (a rejected pattern costs one highlight rule), and both threads now contain exceptions: PresentBody and WndProcBody wrap their frames in try/catch(...) and share one raw-Win32 degrade path (FaultDisable) with the SEH guard - overlay out of service, window proc restored, fault line logged, game continues |
+| 238 | BUILD.md numbered its build-fix table (section 4) 1-14 while the runtime/correctness table (section 5) numbers 1-237 - and every bare "row N" cross-reference in code comments, CHANGELOG, README and the vcxproj points at section 5, so for 1-14 a reference could land in either table | Section 4 is renumbered B1-B14 and carries a note saying why; bare "row N" is unambiguous again |
+| 239 | The HUD plate credited "MADE BY EB" (row 124) while the owner-set UI credit wording is "Remade : by EB" (rows 94/103: splash card, sidebar footer, Config About) - the plate was the one UI surface deviating from the standing credit directive; menu.cpp also carried 95 bare-LF lines left by earlier patches in an otherwise CRLF file | The plate second line, the renderer hud-scene constant and every current-description sentence (menu.h comment, README, BUILD architecture row) carry "Remade : by EB" now; plate metrics unchanged (width is the max of both lines, the FPS line is longer); menu.cpp is normalized to CRLF; past row/changelog entries keep their historical wording |
+| 240 | The row-239 endings census over the whole tree found one more project-owned outlier: clipboard.h was entirely LF while every other project source, the .bat files and the .sln are CRLF (docs, renderer and ci/build.yml are LF by convention; the vendored trees - stb_image.h with 7988 LF lines, imgui/, kiero/ - keep their upstream endings on purpose) | clipboard.h is normalized to CRLF; the census result and the vendored exception are recorded here so the convention has a written definition |
+| 241 | The hygiene sweep (BOM / EOF newline / trailing whitespace over every project-owned file) found font_awesome.h ending without a final newline, and the endings convention from rows 239-240 plus the deliberate .sln BOM exception had no written home | font_awesome.h ends with exactly one newline now, and BUILD.md section 4 carries a short "Hygiene conventions" subsection: CRLF for sources/.bat/.sln (BOM kept on purpose), LF for docs/renderer/yml, vendored trees untouched, one EOF newline and no trailing whitespace anywhere |
+| 242 | TextEditor::SetText replaced the buffer but kept cursor and selection: after loading a shorter file, mState pointed past the new last line, and the next Copy/GetSelectedText ran GetText's reserve loop over mLines out of bounds (GetCharacterIndex answers -1 for vanished lines, which the copy loop took as line[-1]; DeleteRange even erased at begin()-1) - reachable in four clicks: big file, SelectAll, load small file, Copy | SetText resets cursor and selection to the top of the new buffer; GetText clamps stale or hand-built ranges into the buffer; DeleteRange refuses impossible indices. Vendored file, not frozen - marked with row comments |
 
 
 
@@ -387,7 +408,7 @@ How the pieces fit together, top to bottom:
 | Layer | Files | Responsibility |
 |---|---|---|
 | Hook & lifetime | `main.cpp`, `includes.h`, `kiero/` | `DllMain` spawns `MainThread`; kiero hooks `IDXGISwapChain::Present` (vtable 8). `hkPresent` owns device/render-target lifecycle, resize & device-lost rebuild, the edge-triggered toggle poll and the frame pump; every hook outcome leaves one timestamped line in `EBengin.log` next to the DLL (rows 188-193, 64 KB cap) |
-| Shell | `menu.cpp`, `menu.h`, `menu_style.h` | One ImGui window: sidebar on a darker nav-rail cell (logo, tab buttons, animated marker, accent wash on the selected row, FPS footer plus credit line), two-column table shell, open fade, drop shadow, brand rule, window-position persistence; first-open splash start card; `RenderHud()` FPS plate with the `MADE BY EB` credit line over the scene while the overlay is closed; `ApplyStyle()` sets the theme once (six-stop ramps plus the cohesion stops) |
+| Shell | `menu.cpp`, `menu.h`, `menu_style.h` | One ImGui window: sidebar on a darker nav-rail cell (logo, tab buttons, animated marker, accent wash on the selected row, FPS footer plus credit line), two-column table shell, open fade, drop shadow, brand rule, window-position persistence; first-open splash start card; `RenderHud()` FPS plate with the `Remade : by EB` credit line over the scene while the overlay is closed; `ApplyStyle()` sets the theme once (six-stop ramps plus the cohesion stops) |
 | Routing | `tabs.cpp`, `tabs.h` | `switch (Menu::Tab)` into the five tab bodies; the shell never learns which tabs exist |
 | Tab bodies | `default.cpp`, `exec.cpp`, `resources.cpp`, `luamenus.cpp`, `config.cpp` | Landing (activity log, diagnostics card), executor (TextEditor + toolbar incl. save-to-file + status line), resources (browser/triggers/stopper + filters + dump), menus (two lists), config (switches incl. FPS HUD, key capture, reset, About block with build/host info, not-writable flag, Copy diagnostics and Open settings folder buttons) |
 | Widgets & feedback | `gui.h`, `toasts.*`, `activity.*`, `perf.*`, `settings.*` | `SectionTitle`/`Seperator`/`PrimaryButton`/`Toggle`; toast stack; session log; frame-time ring; `settings.ini` persistence — single-purpose modules, each with its own header |
@@ -669,3 +690,21 @@ the vendored tree really is 1.93.0 (`IMGUI_VERSION` at the top of `imgui/imgui.h
 Right-click the project → *Retarget solution*, or install that SDK. The project asks for
 `10.0` (= latest installed), so this only happens with a stale `Directory.Build.props` or
 a custom `WindowsTargetPlatformVersion` in `%LOCALAPPDATA%\Microsoft.Cpp.*.user.props`.
+
+**The game crashes after injection - capturing the real crash**
+The DLL records its own lifecycle next to itself in `EBengin.log`: the attach outcome, a clean
+unload, and (row 236) a fault line whenever the SEH guard caught our own frame code.  If the game
+still crashes:
+
+1. Copy the last ~20 lines of `EBengin.log` (DLL folder).
+2. Capture the game process: `procdump -e -ma -x crash.dmp <game>.exe`, or keep the Windows crash
+   dialog report; open the dump in WinDbg and run `!analyze -v` for exception code, faulting module
+   and call stack.
+3. Paste the log lines plus the `!analyze -v` output (faulting module and top frames) with the bug
+   report - with the faulting module known, a fix can target it instead of crash classes.
+
+User-side environment checks (diagnostics only; this repository ships no injector): run game and
+tooling as administrator while testing; inject 5-10 s after the game reaches its menu; x64 DLL into
+an x64 process; treat HVCI / Exploit Protection as diagnostic switches, not permanent settings.  On
+anti-cheat protected online titles a crash after injection can be a deliberate block - this project
+ships no bypass of any kind (see README).

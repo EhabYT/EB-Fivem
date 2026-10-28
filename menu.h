@@ -58,6 +58,6 @@ namespace Menu
 	// Draws the whole menu window: sidebar column + tab content column.
 	// Implemented in menu.cpp.
 	void Render();
-	void RenderHud();   // FPS/frame-time plate with the MADE BY EB credit
+	void RenderHud();   // FPS/frame-time plate with the Remade : by EB credit
 	                    // line, over the scene while the overlay is closed
 }

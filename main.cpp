@@ -43,11 +43,49 @@ namespace Menu
 // ---------------------------------------------------------------------------
 // Frame / lifetime state
 // ---------------------------------------------------------------------------
-static bool  init = false;                    // ImGui + render target are up
-static bool  g_unloading = false;             // DLL_PROCESS_DETACH started
-static bool  g_frameActive = false;         // an ImGui frame has run; read by WndProc
+static volatile bool  init = false;           // ImGui + render target are up
+static volatile bool  g_unloading = false;    // DLL_PROCESS_DETACH started
+static volatile bool  g_frameActive = false;  // an ImGui frame has run; read by WndProc
+// UI: row 234 - teardown fence: on hosts whose window thread is not the thread
+// that calls Present (GTA V pumps messages on its main thread while Present
+// runs on the render thread), DETACH used to destroy the ImGui context and
+// unhook Present with no way to know whether either thread was still inside
+// our hooks.  Both hooks now keep an interlocked depth counter so DETACH can
+// wait for in-flight calls before tearing anything down.
+static volatile LONG g_presentDepth = 0;
+static volatile LONG g_wndprocDepth = 0;
+static volatile LONG g_hookFaulted = 0;    // UI: row 236 - overlay out of service
+
+// UI: row 236 - forward: LogHookLine is defined below the hooks, and both
+// fault paths need it.
+static void LogHookLine(const char* text);
+
+// UI: row 237 - the one degrade path shared by the SEH guard (row 236) and the
+// C++ exception containment below: hand the window proc back so no message can
+// reach the misfired state, stop re-entering the frame body, log the outcome.
+// Raw Win32/atomics only - freeing half-dead ImGui or CRT state from a fault
+// path is how a recoverable frame becomes a dead process.
+static void FaultDisable(const char* reason)
+{
+	g_hookFaulted = 1;
+	init = false;
+	if (window != NULL && oWndProc != NULL)
+	{
+		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
+		oWndProc = NULL;
+	}
+	LogHookLine(reason);
+}
 static UINT  g_rtWidth = 0;
 static UINT  g_rtHeight = 0;
+// UI: row 235 - the cached back-buffer texture, one held reference.  Pointer
+// identity is the resize signal dimensions alone cannot give: a same-size
+// ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate
+// switch) swaps the texture under an unchanged BufferDesc, and the cached
+// render target view would dangle over a released buffer.  Holding one
+// reference also keeps the old address from being recycled for the new
+// texture, so the comparison below cannot alias.
+static ID3D11Texture2D* g_backBuffer = NULL;
 
 
 bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
@@ -156,6 +194,13 @@ static void CleanupRenderTarget()
 		mainRenderTargetView->Release();
 		mainRenderTargetView = NULL;
 	}
+	// UI: row 235 - drop the cached buffer reference together with the view;
+	// keeping it would pin a texture the swap chain no longer uses.
+	if (g_backBuffer != NULL)
+	{
+		g_backBuffer->Release();
+		g_backBuffer = NULL;
+	}
 	g_rtWidth = 0;
 	g_rtHeight = 0;
 }
@@ -176,13 +221,19 @@ static bool CreateRenderTarget(IDXGISwapChain* pSwapChain)
 	pBackBuffer->GetDesc(&bbDesc);
 
 	HRESULT hr = pDevice->CreateRenderTargetView(pBackBuffer, NULL, &mainRenderTargetView);
-	pBackBuffer->Release();
-
 	if (FAILED(hr) || mainRenderTargetView == NULL)
 	{
 		mainRenderTargetView = NULL;
+		pBackBuffer->Release();
 		return false;
 	}
+
+	// UI: row 235 - keep the GetBuffer reference: this pointer is the resize
+	// signal PresentBody compares against, and the held reference stops the
+	// address from being recycled behind our back.
+	if (g_backBuffer != NULL)
+		g_backBuffer->Release();
+	g_backBuffer = pBackBuffer;
 
 	g_rtWidth = bbDesc.Width;
 	g_rtHeight = bbDesc.Height;
@@ -267,6 +318,16 @@ void CleanupImGui()
 		return;
 	init = false;
 
+	// UI: row 234 - give the window proc back to the game first: a message that
+	// enters WndProc after DestroyContext() would call ImGui_ImplWin32_
+	// WndProcHandler (and read GetIO()) on a dead context - an access violation
+	// on any host whose window thread differs from the render thread.
+	if (window != NULL && oWndProc != NULL)
+	{
+		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
+		oWndProc = NULL;
+	}
+
 	if (ImGui::GetCurrentContext() != NULL)
 	{
 		ImGui_ImplDX11_Shutdown();
@@ -283,16 +344,12 @@ void CleanupImGui()
 		LogoLoaded = false;
 	}
 
-	// Give the original window procedure back to the game.
-	if (window != NULL && oWndProc != NULL)
-	{
-		SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
-		oWndProc = NULL;
-	}
 }
 
 
-LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+// UI: row 234 - body/wrapper split: the wrapper keeps the teardown fence count
+// so DETACH can wait for in-flight messages before the context they read dies.
+static LRESULT WndProcFrame(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (g_unloading)
 		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
@@ -343,7 +400,39 @@ LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 }
 
 
-HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+// UI: row 237 - the same containment on the window thread: an exception inside
+// ImGui's message handler (the editor's input paths) used to terminate the
+// process here, again with no trace anywhere.
+static LRESULT WndProcBody(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	try
+	{
+		return WndProcFrame(hWnd, uMsg, wParam, lParam);
+	}
+	catch (...)
+	{
+		FaultDisable("window proc threw - overlay disabled, game continues");
+		return 0;
+	}
+}
+
+
+LRESULT CALLBACK WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	if (g_unloading)
+		return (oWndProc != NULL) ? CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam)
+								  : DefWindowProc(hWnd, uMsg, wParam, lParam);
+
+	InterlockedIncrement(&g_wndprocDepth);
+	const LRESULT r = WndProcBody(hWnd, uMsg, wParam, lParam);
+	InterlockedDecrement(&g_wndprocDepth);
+	return r;
+}
+
+
+// UI: row 234 - same split as WndProc: the hooked Present keeps a depth count
+// so DETACH never restores hook bytes or frees the context under a live frame.
+static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
 	if (g_unloading || pSwapChain == NULL)
 		return oPresent(pSwapChain, SyncInterval, Flags);
@@ -378,9 +467,22 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 	{
 		// Alt-tab, resolution change, borderless<->fullscreen: the back buffer is
 		// a different texture now, so the cached render target view is stale.
+		// UI: row 235 - dimensions alone miss a same-size ResizeBuffers
+		// (borderless<->fullscreen at equal resolution, refresh-rate switch):
+		// BufferDesc stays put while the texture is swapped, and drawing through
+		// the cached view then hits a released buffer - device removed or worse.
+		// Pointer identity of buffer 0 catches every swap; the reference held in
+		// g_backBuffer keeps the old address from aliasing the new texture.
+		ID3D11Texture2D* curBuffer = NULL;
+		const bool gotBuffer = SUCCEEDED(pSwapChain->GetBuffer(
+			0, __uuidof(ID3D11Texture2D), (LPVOID*)&curBuffer)) && curBuffer != NULL;
+		if (gotBuffer)
+			curBuffer->Release();   // probe only; g_backBuffer keeps the cache ref
+
 		DXGI_SWAP_CHAIN_DESC sd;
-		if (SUCCEEDED(pSwapChain->GetDesc(&sd)) &&
-			(sd.BufferDesc.Width != g_rtWidth || sd.BufferDesc.Height != g_rtHeight))
+		const bool resized = SUCCEEDED(pSwapChain->GetDesc(&sd)) &&
+			(sd.BufferDesc.Width != g_rtWidth || sd.BufferDesc.Height != g_rtHeight);
+		if (resized || (gotBuffer && curBuffer != g_backBuffer))
 		{
 			CleanupRenderTarget();
 			ImGui_ImplDX11_InvalidateDeviceObjects();
@@ -463,6 +565,55 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 		if (pDevice != NULL) { pDevice->Release(); pDevice = NULL; }
 	}
 
+	return hr;
+}
+
+
+// UI: row 237 - /EHsc (row 236) unwinds C++ exceptions, but nothing anywhere
+// caught them: a regex_error from the editor's token patterns, an out_of_range
+// or bad_alloc from any std:: call ran out of handlers into std::terminate -
+// process death with no log line, indistinguishable from a game crash.  Contain
+// it exactly like the SEH guard: one faulty frame costs the overlay, not the
+// session.  (The SEH guard above catches access violations; under /EHsc a
+// catch(...) does not, hence both.)
+static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+{
+	try
+	{
+		return PresentFrame(pSwapChain, SyncInterval, Flags);
+	}
+	catch (...)
+	{
+		FaultDisable("hook threw inside a frame - overlay disabled, game continues");
+		return S_OK;
+	}
+}
+
+
+// UI: row 236 - crash guard: an access violation inside our own frame code used
+// to take the host process down with us.  Catch it, put the overlay out of
+// service and let every later frame pass straight to the game: one faulty
+// frame costs the menu, not the session.  The wrapper holds no C++ objects, so
+// __try is legal here; the handler touches raw Win32/atomics only (never ImGui -
+// its state is exactly what misfired) and writes a line to EBengin.log like
+// every other hook outcome.
+HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+{
+	if (g_unloading || g_hookFaulted || pSwapChain == NULL)
+		return oPresent(pSwapChain, SyncInterval, Flags);
+
+	InterlockedIncrement(&g_presentDepth);
+	HRESULT hr;
+	__try
+	{
+		hr = PresentBody(pSwapChain, SyncInterval, Flags);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		FaultDisable("hook faulted inside a frame - overlay disabled, game continues");
+		hr = S_OK;   // this frame's draw is lost; the next Present passes through
+	}
+	InterlockedDecrement(&g_presentDepth);
 	return hr;
 }
 
@@ -560,6 +711,12 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		for (int i = 0; i < 80 && Gui::ModalActive(); ++i)
 			Sleep(25);
 		Sleep(50);
+		// UI: row 234 - the render thread and the window thread can both be inside
+		// our hooks here; the old fixed sleep was not a fence.  Wait for both
+		// depth counters, capped at ~2 s so DETACH cannot stall the loader lock
+		// indefinitely - past the cap we proceed exactly as before.
+		for (int i = 0; i < 200 && (g_presentDepth > 0 || g_wndprocDepth > 0); ++i)
+			Sleep(10);
 		// The position save in Menu::Render() is throttled to ~1/s; flush the
 		// final window position / tab / toggle key so the next start restores
 		// exactly where this session ended.
