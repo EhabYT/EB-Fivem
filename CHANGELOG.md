@@ -11,6 +11,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The CI enable steps no longer send anyone to a merged branch (row 223)
+- Four instruction sites hard-coded the merged PR-#1 branch name as the push target: BUILD.md
+  section 7's bat block, ci/README.md step 4, its local-git bat block, and the echo inside
+  ci/enable.bat.  Following them would commit and push the workflow enablement to a branch that is
+  merged and gone.  All four are branch-agnostic now (YOUR-BRANCH / "the branch your checkout is
+  on", named via `git rev-parse --abbrev-ref HEAD`), and ci/README.md's blob link points at `main`,
+  which carries the merged file.
+- The CHANGELOG header (previous commit in this row) claimed every entry lives on the old branch;
+  it now names both session branches with the merge fact (PR #1 merged as 8d8ea8e, current since).
+- The verbatim quote of GitHub's `remote rejected` error keeps its original branch name on purpose:
+  it is a historical record of what the service answered, not an instruction.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The DETACH flowchart shows the modal wait row 201 added (row 222)
 - The README flowchart's DLL_PROCESS_DETACH node still read "g_unloading = true, Sleep 50 ms,
   Settings::Save flush" - the pre-row-201 sequence.  Row 201 inserted a bounded wait for an open

@@ -36,7 +36,7 @@ echo.
 echo [enable] Now commit and push with your own credentials:
 echo.
 echo     git commit -m "ci: enable the Windows build workflow"
-echo     git push origin arena/57915bfa-eb-fivem
+echo     git push origin YOUR-BRANCH   (name it: git rev-parse --abbrev-ref HEAD)
 echo.
 echo [enable] Then start the first run from the Actions tab (workflow_dispatch).
 

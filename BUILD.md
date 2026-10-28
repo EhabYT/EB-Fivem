@@ -360,6 +360,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 220 | A real inject screenshot showed the splash card filling the whole shell: `SetNextWindowSize(460x288)` loses to `style.WindowMinSize` (900x540 times scale), because ImGui clamps every window without `AlwaysAutoResize` in `CalcWindowMinSize` - content packed at the top, ~300px of dead canvas below; the key gate card had the same clamp | Both cards push their own size as `ImGuiStyleVar_WindowMinSize` around their Begin/End (popped after), so clamp and request agree; the shell keeps the global minimum. The previews always modelled the compact cards, so they become truthful instead of changing |
 | 221 | The row-142 stored-key reset used `!ValidToggleKey()` alone, which includes printable keys - but a printable binding is a supported ini-only binding (rows 166/194/210: the present loop suppresses it while a text field consumes input, the splash hint names that qualifier). Opening Config once destroyed it, with a toast claiming it "flips while typing" that the row-164 guard disproves; and Load's "can never fire" reason was only true for scancode-less keys, not for numpad/modifier keys that do fire while typing | Config reset now uses Load's predicate (`!printable && !ValidToggleKey`), so supported bindings survive every tab; both sites name the two failure classes honestly - no scancode = can never fire, real key outside both allow-lists = flips while typing |
 | 222 | The README DETACH flowchart node still showed the pre-row-201 sequence ("g_unloading = true, Sleep 50 ms, Settings::Save flush"): the bounded wait for an open modal dialog (80 x 25 ms, capped ~2 s, so DETACH cannot destroy the ImGui context under a live dialog nor stall the loader lock) never entered the chain when row 201 added it - the one place the README names ModalActive is the include-graph prose | The U1 node now lists the modal wait between g_unloading and the Sleep/Save flush, in the same order DllMain runs it |
+| 223 | The CI enable instructions hard-coded the merged PR-#1 branch name as *the* push target in four places (BUILD section 7 block, ci/README.md step 4, its local-git bat block, and the echo inside ci/enable.bat), and the CHANGELOG header still claimed every entry lives on that old branch; a blob link pinned the same dead branch. Anyone following the steps would commit and push to a merged branch | All four instruction sites are branch-agnostic now (YOUR-BRANCH / "the branch your checkout is on", named via `git rev-parse --abbrev-ref HEAD`); the blob link points at `main`, which carries the merged file; the CHANGELOG header (previous commit) names both session branches with the merge fact. The one verbatim quote of GitHub's `remote rejected` error keeps its original branch name - it is a historical record |
 
 
 
@@ -553,7 +554,7 @@ Adding a tab is now three edits: an enumerator in `Menu::TabId`, a row in `Sideb
 > ```bat
 > ci\enable.bat
 > git commit -m "ci: enable the Windows build workflow"
-> git push origin arena/57915bfa-eb-fivem
+> git push origin <the branch your checkout is on>
 > ```
 >
 > `enable.bat` copies `ci\build.yml` to `.github\workflows\build.yml` and runs `git add` on it, then
