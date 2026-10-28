@@ -891,6 +891,11 @@ elif TAB == "resources":
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
+    # UI: row 230 - the tab's provenance line, muted brand token (row 147)
+    T(CX0, y + (LINE_H - FONT_SIZE) / 2,
+      "Compiled-in sample list - nothing here is read from a server.",
+      C_MUTED_BRAND)
+    y += LINE_ADV
 
     bw = (CX1 - CX0 - 2 * ITEM_SPACING_X) / 3.0        # resources.cpp buttonWidth
     SUBTABS = [("\uf07c", " File Browser"), ("\uf00e", " Triggers"), ("\uf02c", " Stopper")]

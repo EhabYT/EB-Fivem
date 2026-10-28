@@ -666,6 +666,11 @@ namespace Executor
 				Settings::Current.ResourceName = resources[selectedResource];
 				Settings::Save();
 			}
+			// UI: row 230 - the Executor's target combo offers the same compiled-in
+			// sample names; the hover tooltip says so where the selection happens.
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%s",
+					"Compiled-in sample names - nothing is read from a server.");
 		}
 		else
 			// The stopper can erase the last entry; without a fallback the row

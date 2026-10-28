@@ -457,6 +457,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * What is **implemented**: the full UI, the Lua editor with syntax highlighting, Load-from-file,
   the trigger clipboard list, resource dumps, and the resource-list stopper (which
   confirms before removing an entry).
+  The resource names in the Executor combo and the Resources tab are a **compiled-in sample
+  list** (`exec.cpp`); nothing is enumerated from a server, and the Resources tab says so in a
+  muted line above the sub-tabs (row 230).
   What is **still a stub** (and now says so in a tooltip before the click as well as in a
   message box after it, instead of doing nothing silently):
   actually executing a script, actually stopping a server resource, launching the listed menus,

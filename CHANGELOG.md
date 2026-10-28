@@ -11,6 +11,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The Resources tab names its own provenance (row 230)
+- The browser, stopper and Executor combo operate on a compiled-in sample list (exec.cpp), but
+  nothing in the UI said so: names like `_cfx_internal` or `esx_mafia` read as live server
+  discovery.  The project's own honesty contract gives inert features visible labels in the tab
+  (the Safe Mode / ScriptHook Bypass pattern), so the Resources tab now opens with a muted line -
+  "Compiled-in sample list - nothing here is read from a server." - and the Executor combo repeats
+  it in a hover tooltip; the README names the list's origin.
+- docs/render_preview.py models the new line, so preview_resources.png shifts by exactly one line;
+  the changed render is committed deliberately, the other seven stay byte-identical.
+
 ## The _cfx_internal error boxes were capability claims in refusal form (row 229)
 - Execute answered the internal FiveM context with a red error modal, "You can't execute in
   _cfx_internal." - which implies execution works for every other resource.  It does not: this

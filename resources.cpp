@@ -206,6 +206,13 @@ namespace Resources
 	void Render()
 	{
 		Gui::SectionTitle("Resources", "##resources_seperator_2");
+		// UI: row 230 - the browser and stopper operate on a compiled-in sample
+		// list (exec.cpp); nothing here is enumerated from a server.  The tab
+		// never said so, so names like _cfx_internal or esx_mafia read as live
+		// discovery - the same honesty contract the inert Config switches fulfil
+		// with visible labels, not just tooltips.
+		ImGui::TextColored(ColMuted, "%s",
+			"Compiled-in sample list - nothing here is read from a server.");
 
 		// GetWindowWidth()/4 is a quarter of the 900px *outer* window, so three of
 		// them plus two ItemSpacings (691px) did not fit the ~658px content cell
