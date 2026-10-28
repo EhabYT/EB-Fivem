@@ -496,11 +496,12 @@ namespace Executor
 			{
 				Gui::ModalBoxA( "No resource selected.", "EBengin", MB_OK | MB_ICONERROR);
 			}
-			else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
-			{
-				Gui::ModalBoxA( "You can't execute in _cfx_internal.", "EBengin", MB_OK | MB_ICONERROR);
-			}
-			else
+			// UI: row 229 - the _cfx_internal special case answered a click on
+			// Execute with an error box ("You can't execute in _cfx_internal."),
+			// which implied execution exists for every OTHER resource: it does
+			// not, this build reports only (the modal below says so out loud).
+			// The internal context now takes the same honest report-only path
+			// as any other target - no capability claim, no payload, unchanged.
 			{
 				// Not implemented in this build.  The button used to be silently dead,
 				// which reads as a crash/hang to the user.

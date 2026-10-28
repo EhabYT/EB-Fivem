@@ -413,11 +413,12 @@ namespace Resources
 			const std::string stopLabel = std::string("Stop ") + resources[selectedResource];
 			if (ImGui::Button(stopLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(33.0f))))
 			{
-				if (strcmp(resources[selectedResource], "_cfx_internal") == 0)
-				{
-					Gui::ModalBoxA( "You can't stop _cfx_internal", "EBengin", MB_OK | MB_ICONERROR);
-				}
-				else
+				// UI: row 229 - the _cfx_internal special case refused with an error
+				// box that implied stopping works for other resources; the honest
+				// action here is only the confirmed removal from the LOCAL list
+				// ("This does not stop it on the server"), which is safe for every
+				// entry - the internal one is re-seeded on the next inject anyway
+				// (see the Init comment).  Same confirm path for all entries now.
 				{
 					const std::string stopped = resources[selectedResource];
 					// Erasing is the one visible state change among the stubs, and

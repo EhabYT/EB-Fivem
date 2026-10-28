@@ -11,6 +11,19 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The _cfx_internal error boxes were capability claims in refusal form (row 229)
+- Execute answered the internal FiveM context with a red error modal, "You can't execute in
+  _cfx_internal." - which implies execution works for every other resource.  It does not: this
+  build reports only, and the general path says so out loud ("Execution is not implemented in this
+  build", target and script size named).  A real click screenshot showed the misleading box.
+- The resource stopper refused the same entry with "You can't stop _cfx_internal", implying stopping
+  works elsewhere; the honest action is only the confirmed removal from the local list, which the
+  confirmation states ("This does not stop it on the server") - safe for every entry, since the
+  internal one is re-seeded on the next inject anyway.
+- Both special cases are removed; `_cfx_internal` now takes the same honest paths as every other
+  entry.  No handler signature changed and no payload was added - the refusals that implied
+  capabilities were the defect.
+
 ## The splash hint wraps instead of clipping (row 228)
 - A real inject screenshot showed the second splash hint running off the right card edge, clipped
   mid-word: a long localised key name (German numpad: "0 (ZEHNERTASTATUR)") or the qualified
