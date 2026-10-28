@@ -91,6 +91,13 @@ namespace Menus
 	void Render()
 	{
 		Gui::SectionTitle("Menus", "##menus_seperator_1");
+		// UI: row 232 - the same provenance as the Resources list (row 230): both
+		// name vectors are compile-time constants; nothing is fetched, bundled or
+		// launched.  The Run tooltip says "not bundled", but only on hover - until
+		// then the two lists read like an installed catalogue.  The tab itself now
+		// says so up front, with the same muted token.
+		ImGui::TextColored(ColMuted, "%s",
+			"Compiled-in name list - nothing here is bundled or launched.");
 		ImGui::NewLine();
 
 		const float halfWidth = ImGui::GetContentRegionAvail().x / 2.0f;

@@ -11,6 +11,15 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The Menus tab joins the Resources provenance pattern (row 232)
+- FreeMenus/PremMenus (luamenus.cpp) are compile-time constants, but the only hint was the Run
+  button's hover tooltip ("not bundled"); until hovered, the lists read like an installed
+  catalogue - the same provenance gap row 230 closed for the Resources list.
+- The tab now opens with the same muted line - "Compiled-in name list - nothing here is bundled
+  or launched." - and the README names the menu lists' origin next to the resource list's.
+  docs/render_preview.py models the line, so preview_menus.png shifts by exactly one line; the
+  changed render is committed deliberately, the other seven stay byte-identical.
+
 ## The reset dialog names everything it destroys (row 231)
 - "Restore the compiled defaults?" listed four of the six things the whole-struct assignment
   resets: the stored window position and the last tab go back to defaults as well - and main.cpp

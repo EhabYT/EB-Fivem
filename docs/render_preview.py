@@ -998,6 +998,11 @@ elif TAB == "menus":
     y = CY0 + LINE_ADV
     R(CX0, y, CX1, y + 1, C_BORDER)
     y += 1 + ITEM_SPACING_Y
+    # UI: row 232 - the tab's provenance line, muted brand token (row 147)
+    T(CX0, y + (LINE_H - FONT_SIZE) / 2,
+      "Compiled-in name list - nothing here is bundled or launched.",
+      C_MUTED_BRAND)
+    y += LINE_ADV
     y += LINE_ADV                                   # ImGui::NewLine()
 
     half = (CX1 - CX0) / 2.0
