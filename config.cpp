@@ -136,13 +136,29 @@ namespace Config
 		if (!keyChecked)
 		{
 			keyChecked = true;
-			if (!ValidToggleKey(Settings::Current.ToggleKey))
+			const int vk = Settings::Current.ToggleKey;
+			const bool printable = (vk >= 'A' && vk <= 'Z')
+				|| (vk >= '0' && vk <= '9') || vk == VK_SPACE;
+			// UI: row 221 - same predicate as Settings::Load() (row 194): a
+			// printable binding is a supported ini-only binding (rows 166/210),
+			// the present loop suppresses it while a text field consumes input
+			// and the splash hint names that qualifier.  The old predicate here
+			// reset exactly those keys to INSERT the first time this tab opened,
+			// with a toast claiming they flip while typing - which the row-164
+			// guard disproves every frame.
+			if (!printable && !ValidToggleKey(vk))
 			{
-				const std::string oldKey = Settings::KeyName(Settings::Current.ToggleKey);
+				const std::string oldKey = Settings::KeyName(vk);
+				// UI: row 221 - two failure classes, named honestly: no scancode
+				// means no physical key can produce the edge at all; a real key
+				// outside both allow-lists (numpad, modifiers) does fire - also
+				// while typing, which is the misfire row 142 exists for.
+				const bool dead = MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_VSC) == 0;
 				Settings::Current.ToggleKey = VK_INSERT;
 				Settings::Save();
 				Activity::Push("Stored toggle key " + oldKey
-					+ " flips while typing; reset to INSERT.");
+					+ (dead ? " can never fire; reset to INSERT."
+						: " flips while typing; reset to INSERT."));
 				Toasts::Push(Toasts::Warn, "Stored toggle key " + oldKey
 					+ " reset to INSERT.");
 			}

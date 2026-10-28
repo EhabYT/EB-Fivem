@@ -9,6 +9,21 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The two cards are compact again, and supported bindings survive Config (rows 220-221)
+- A real inject screenshot showed the splash card filling the whole shell with ~300px of dead
+  canvas under its content: SetNextWindowSize(460x288) loses to style.WindowMinSize (900x540 times
+  scale) because ImGui clamps every window without AlwaysAutoResize in CalcWindowMinSize
+  (imgui.cpp:6899-6900).  The key gate card had the same clamp.  Both cards now push their own size
+  as ImGuiStyleVar_WindowMinSize around their Begin/End; the shell keeps the global minimum.  The
+  previews always modelled the compact cards, so this fix makes reality match them - all eight
+  renders stay byte-identical.
+- The row-142 stored-key reset used !ValidToggleKey() alone, which includes printable keys - but a
+  printable binding is a supported ini-only binding (rows 166/194/210).  Opening Config once
+  destroyed it, with a toast claiming it "flips while typing" that the row-164 input guard
+  disproves every frame.  The reset now uses Load's predicate (!printable && !ValidToggleKey), and
+  both sites name the two failure classes honestly: no scancode = can never fire, a real key
+  outside both allow-lists (numpad, modifiers) = flips while typing.
+
 ## The scale row-log entries point at 1.93 and at real imgui.cpp lines (rows 218-219)
 - BUILD.md row 76 still described the interface scale as applied "through ImGui 1.92's
   style.FontScaleMain" and "because 1.92 bakes a font" - present-tense mechanism claims about the

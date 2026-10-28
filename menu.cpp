@@ -268,6 +268,15 @@ namespace Menu
 
 		const ImVec2 disp = ImGui::GetIO().DisplaySize;
 		const ImVec2 card(Settings::Px(460.0f), Settings::Px(288.0f));
+		// UI: row 220 - ApplyStyle()/ApplyScale() keep style.WindowMinSize at the
+		// shell's 900x540 (times scale), and ImGui clamps every window without
+		// AlwaysAutoResize to it (imgui.cpp CalcWindowMinSize): SetNextWindowSize
+		// asked for 460x288 and got a shell-sized card back - content packed at
+		// the top, ~300px of dead canvas below, exactly what a real inject
+		// screenshot showed.  Pushing the card size as the minimum for this one
+		// window lets the clamp agree with the request; the previews always
+		// modelled the compact card, so they become truthful, not different.
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, card);
 		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
 			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -349,6 +358,7 @@ namespace Menu
 
 		ImGui::End();
 		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();   // UI: row 220 - the WindowMinSize push above
 	}
 
 	// FPS / frame-time HUD over the game scene while the overlay is closed: the
@@ -447,6 +457,9 @@ namespace Menu
 		// user guess; GetKeyState reads the toggle state, no text is inspected.
 		const bool caps = (GetKeyState(VK_CAPITAL) & 1) != 0;
 		const ImVec2 card(Settings::Px(460.0f), Settings::Px(caps ? 256.0f : 232.0f));
+		// UI: row 220 - same WindowMinSize clamp as the splash: the gate card
+		// rendered shell-sized with its field and button stranded at the top.
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, card);
 		ImGui::SetNextWindowSize(card, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(ImVec2(disp.x * 0.5f, disp.y * 0.5f),
 			ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -565,6 +578,7 @@ namespace Menu
 			Toasts::RenderScreen();
 		ImGui::End();
 		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();   // UI: row 220 - the WindowMinSize push above
 	}
 
 	void Render()

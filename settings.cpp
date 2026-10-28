@@ -80,8 +80,14 @@ namespace Settings
 				|| (vk >= '0' && vk <= '9') || vk == VK_SPACE;
 			if (!printable && !Config::ValidToggleKey(vk))
 			{
+				// UI: row 221 - name the actual failure class, as config.cpp now
+				// does: no scancode = no physical key produces the edge; a real
+				// key outside both allow-lists (numpad, modifiers) fires while
+				// typing.  "can never fire" was only true for the first class.
+				const bool dead = MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_VSC) == 0;
 				Activity::Push(std::string("Stored toggle key ") + KeyName(vk)
-					+ " can never fire; reset to INSERT.");
+					+ (dead ? " can never fire; reset to INSERT."
+						: " flips while typing; reset to INSERT."));
 				Current.ToggleKey = 0x2D;
 			}
 		}
