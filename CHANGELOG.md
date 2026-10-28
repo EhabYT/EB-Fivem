@@ -11,6 +11,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Crash-guide checklist: build flags explicit, frame faults contained (row 236)
+- The vcxproj never stated CRT, exception handling, /GS or ASLR: compiler defaults left a static
+  CRT and no C++ unwind (a throwing std:: call terminated the process), and the security flags rode
+  on implicit defaults.  All four configurations now carry /MD (dynamic CRT, matching the host),
+  /EHsc, /GS and /DYNAMICBASE + /HIGHENTROPYVA explicitly.
+- The Present hook wraps the frame body in an SEH guard: an access violation in our own draw code no
+  longer kills the host - the handler hands the window proc back, disables the overlay for the
+  session, logs a fault line to EBengin.log, and every later frame passes straight to the game.
+- BUILD.md gained a "capturing the real crash" subsection (EBengin.log, procdump, WinDbg
+  !analyze -v, what to paste) plus the user-side environment checks as diagnostics; no injector and
+  no anti-cheat interaction - both stay out of scope by standing rule.
+
 ## Same-size resizes no longer draw through a released back buffer (row 235)
 - The Present hook detected resizes by comparing buffer dimensions.  A same-size ResizeBuffers -
   borderless<->fullscreen at equal resolution, or a refresh-rate switch - swaps the back-buffer

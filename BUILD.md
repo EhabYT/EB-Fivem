@@ -373,6 +373,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 233 | The sidebar footer carried a hardcoded license plate ("Licensed to #4278") while no license mechanism exists in this build - nothing issues, stores or checks a license, so the line asserted a fact the build cannot back up, in the one place every frame shows | The footer states the true fact in its place ("No license check."), the README records the swap beside the other honesty labels, and the renderer's footer string follows - the sidebar draws in every scene, so all eight previews change by exactly that one string, committed deliberately |
 | 234 | Teardown raced live hook calls on multi-threaded hosts: GTA V / FiveM pump window messages on a different thread than the one that calls Present, so DETACH could destroy the ImGui context and restore the Present hook bytes while either thread was still inside our hooks, and CleanupImGui handed the window proc back only *after* DestroyContext - in-flight messages then called into a dead context. Both are access-violation paths that surface as "the game crashes after injection/eject" | hkPresent and WndProc are now thin wrappers around static bodies that keep interlocked depth counters; DETACH waits for both counters (capped ~2 s) before tearing down; CleanupImGui restores the window proc before the context dies; the cross-thread lifetime flags are volatile. kiero/MinHook untouched |
 | 235 | The resize check in the Present hook compared buffer dimensions only, so a same-size ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate switch) swapped the back-buffer texture under an unchanged BufferDesc: the cached render target view then referenced a released texture and every draw went through it - a device-removed / access-violation path mid-session | Buffer 0 pointer identity is the second resize signal: CreateRenderTarget keeps one reference to the texture the view was built from (which also stops address recycling from aliasing the comparison), CleanupRenderTarget drops it with the view, and the per-frame probe recreates view plus ImGui device objects whenever the pointer or the dimensions change |
+| 236 | Applying the crash-guide checklist to this repo found four hardening gaps: the vcxproj never stated CRT, exception handling, /GS or ASLR explicitly (compiler defaults meant a static CRT and no C++ unwind - a throwing std:: call terminated the process instead of unwinding), and an access violation inside our own frame code took the host process down with it | All four configurations now carry /MD (dynamic CRT, matching the host), /EHsc, /GS and /DYNAMICBASE + /HIGHENTROPYVA explicitly; the Present hook wraps the frame body in an SEH guard whose fault handler puts the overlay out of service for the session (window proc restored, later frames pass through) and logs a fault line to EBengin.log - one faulty frame costs the menu, not the game |
 
 
 
@@ -671,3 +672,21 @@ the vendored tree really is 1.93.0 (`IMGUI_VERSION` at the top of `imgui/imgui.h
 Right-click the project → *Retarget solution*, or install that SDK. The project asks for
 `10.0` (= latest installed), so this only happens with a stale `Directory.Build.props` or
 a custom `WindowsTargetPlatformVersion` in `%LOCALAPPDATA%\Microsoft.Cpp.*.user.props`.
+
+**The game crashes after injection - capturing the real crash**
+The DLL records its own lifecycle next to itself in `EBengin.log`: the attach outcome, a clean
+unload, and (row 236) a fault line whenever the SEH guard caught our own frame code.  If the game
+still crashes:
+
+1. Copy the last ~20 lines of `EBengin.log` (DLL folder).
+2. Capture the game process: `procdump -e -ma -x crash.dmp <game>.exe`, or keep the Windows crash
+   dialog report; open the dump in WinDbg and run `!analyze -v` for exception code, faulting module
+   and call stack.
+3. Paste the log lines plus the `!analyze -v` output (faulting module and top frames) with the bug
+   report - with the faulting module known, a fix can target it instead of crash classes.
+
+User-side environment checks (diagnostics only; this repository ships no injector): run game and
+tooling as administrator while testing; inject 5-10 s after the game reaches its menu; x64 DLL into
+an x64 process; treat HVCI / Exploit Protection as diagnostic switches, not permanent settings.  On
+anti-cheat protected online titles a crash after injection can be a deliberate block - this project
+ships no bypass of any kind (see README).

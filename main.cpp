@@ -530,13 +530,46 @@ static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 }
 
 
+// UI: row 236 - forward: LogHookLine is defined below the hook, and the fault
+// handler needs it.
+static void LogHookLine(const char* text);
+
+// UI: row 236 - crash guard: an access violation inside our own frame code used
+// to take the host process down with us.  Catch it, put the overlay out of
+// service and let every later frame pass straight to the game: one faulty
+// frame costs the menu, not the session.  The wrapper holds no C++ objects, so
+// __try is legal here; the handler touches raw Win32/atomics only (never ImGui -
+// its state is exactly what misfired) and writes a line to EBengin.log like
+// every other hook outcome.
+static volatile LONG g_hookFaulted = 0;
+
 HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
 {
-	if (g_unloading || pSwapChain == NULL)
+	if (g_unloading || g_hookFaulted || pSwapChain == NULL)
 		return oPresent(pSwapChain, SyncInterval, Flags);
 
 	InterlockedIncrement(&g_presentDepth);
-	const HRESULT hr = PresentBody(pSwapChain, SyncInterval, Flags);
+	HRESULT hr;
+	__try
+	{
+		hr = PresentBody(pSwapChain, SyncInterval, Flags);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		// Minimal raw teardown: hand the window proc back so no message can reach
+		// the misfired ImGui state, stop re-entering the body, log the outcome.
+		// No CleanupImGui/DestroyContext in here - freeing half-dead state from
+		// the fault handler is how a recoverable frame becomes a dead process.
+		g_hookFaulted = 1;
+		init = false;
+		if (window != NULL && oWndProc != NULL)
+		{
+			SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)oWndProc);
+			oWndProc = NULL;
+		}
+		LogHookLine("hook faulted inside a frame - overlay disabled, game continues");
+		hr = S_OK;   // this frame's draw is lost; the next Present passes through
+	}
 	InterlockedDecrement(&g_presentDepth);
 	return hr;
 }
