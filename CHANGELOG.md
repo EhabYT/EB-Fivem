@@ -11,6 +11,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Missing `else` in Execute after row 229 could read `resources[0]` on an empty list (row 244)
+- While checking the `Execute` handler (`exec.cpp`) referenced in the `_cfx_internal` verification
+  step, found that removing the `else if (strcmp(resources[selectedResource], "_cfx_internal") == 0)`
+  branch in row 229 had also removed the trailing `else`, leaving a bare `{ ... }` block after
+  `if (resources.empty())`.
+- If all entries had been removed in the Stopper tab (`resources.empty() == true`), clicking
+  `Execute` opened `"No resource selected."` and then fell straight through into the report-only
+  block, indexing `resources[selectedResource]` on an empty `std::vector<const char*>` (out-of-bounds
+  read / crash).
+- Fix: restored `else` before the report-only block in `exec.cpp`.  Scanned every `.cpp`/`.h` file
+  for any other `}` followed by an unattached `{` block - `exec.cpp` was the only hit.
+
 ## Fault lines carry code and address; probe DLL and advanced-debugging docs (row 243)
 - Applied the second half of the user-supplied crash guide (advanced debugging, testing methodology,
   exception codes, validation checklist) within the standing scope rules.
