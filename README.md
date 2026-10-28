@@ -119,6 +119,7 @@ labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, cre
 | [`docs/preview_splash.png`](docs/preview_splash.png) | The first-open start card (`--splash`): logo, credit line, two honest hints, Continue |
 | [`docs/preview_hud.png`](docs/preview_hud.png) | The FPS HUD plate over the scene while the overlay is closed (`--hud`) |
 | [`docs/preview_default.png`](docs/preview_default.png) | The landing tab (`--default`): diagnostics sparkline, uptime line, session log with Copy and a confirming Clear |
+| [`docs/preview_key.png`](docs/preview_key.png) | The key gate card (`--key`): password field, Unlock button and the honest hint lines, shown instead of splash and shell until the session key matches |
 | [`CHANGELOG.md`](CHANGELOG.md) | One entry per batch on this branch, newest first - the condensed view of the fix table in BUILD.md |
 
 ## Architecture

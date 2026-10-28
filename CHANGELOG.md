@@ -9,6 +9,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The runtime files are named where readers look for them (rows 216-217)
+- BUILD.md's runtime-assets section listed only what the DLL reads (EBengin.png, Bahnschrift.ttf).
+  The two files it writes next to itself were unnamed: settings.ini surfaced only in the toggle
+  paragraph, and EBengin.log (rows 188-193) not at all - in the very document whose troubleshooting
+  entry (row 209) now sends readers to that log first.  Section 3 gains a written-at-runtime
+  paragraph naming both (one timestamped line per inject, 64 KB cap, safe to delete, neither needs
+  shipping), and section 9's Hook & lifetime row names the trace.
+- The README docs table listed seven previews; preview_key.png - embedded in the prose since
+  row 182 - never got its table row, so the file inventory and the prose disagreed about how many
+  previews exist.  The table lists all eight, with the key gate card described like its siblings.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## Present-tense version tags say 1.93.0, and the Docs & render row is whole again (rows 214-215)
 - Three present-tense texts still named ImGui 1.92/1.92.9 while the vendored tree is 1.93.0: the
   config.cpp interface-scale comment, the README interface-scale bullet, and the BUILD

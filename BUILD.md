@@ -96,6 +96,11 @@ So a working deployment is just:
 <folder>\EBengin.png
 ```
 
+Two files are *written* next to the DLL at runtime, and neither needs shipping:
+`settings.ini` (the interface prefs described below, appearing with the first saved change)
+and `EBengin.log` - the hook trace of rows 188-193: one timestamped line per inject (attach,
+the named failure that stopped it, or clean unload), capped at 64 KB, safe to delete.
+
 The menu is toggled with the bound key — **INSERT** by default, rebindable in Config →
 Interface and persisted in `settings.ini`, together with the window position, the last open tab,
 the animation/toast switches, the editor whitespace dots, the open Resources sub-tab and the
@@ -348,6 +353,8 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 213 | Three tooltips passed user-controlled file paths as the printf format string (Save "Save to <name>...", Revert "Revert to <name>", Recent-popup "<full path>\nRight-click..."): a '%' in a filename - legal on Windows - is the same UB runtime-fix #15 removed from the list texts, reintroduced on rows added later | All three build the string first and pass it through SetTooltip("%s", ...); every remaining SetTooltip site was verified literal-or-%s |
 | 214 | Three present-tense texts still named ImGui 1.92/1.92.9 while the vendored tree is 1.93.0 (imgui.h IMGUI_VERSION): the config.cpp scale comment ("1.92's global font scale factor", "1.92 bakes"), the README interface-scale bullet ("ImGui 1.92's style.FontScaleMain") and the BUILD troubleshooting answer ("really is 1.92.9") - the migration-history mentions (1.75 to 1.92.9, "via 1.92.9") stay untouched, they are correct history | All three present-tense spots now say 1.93/1.93.0; the bake-on-release rationale itself is unchanged because the behaviour is |
 | 215 | The BUILD "Docs & render" row listed seven previews (preview_key.png, added row 182, missing), carried a garbled sentence ("The Triggers pane is never depicted README include graph regenerated..." - two sentences fused, article and verb gone) and a stale graph count "(35 nodes, 63 edges)" three regenerations behind (79 since row 203) | The row lists all eight previews, the sentence is split and grammatical, and the count matches the graph it describes |
+| 216 | The runtime-assets section listed only what the DLL READS (EBengin.png, Bahnschrift.ttf); the two files it WRITES next to itself were unnamed - settings.ini only surfaced in the toggle paragraph, and EBengin.log (rows 188-193) not at all, in the very document whose troubleshooting now sends readers to it. Section 9's Hook & lifetime row likewise never mentioned the trace | Section 3 gains a written-at-runtime paragraph naming settings.ini and EBengin.log (one line per inject, 64 KB cap, safe to delete, neither needs shipping); the section-9 Hook row names the trace log |
+| 217 | The README docs table listed seven previews; preview_key.png - embedded in the prose since row 182 - never got its table row, so the file inventory and the prose disagreed about how many previews exist | The table lists all eight, with the key gate card described like its siblings |
 
 
 
@@ -363,7 +370,7 @@ How the pieces fit together, top to bottom:
 
 | Layer | Files | Responsibility |
 |---|---|---|
-| Hook & lifetime | `main.cpp`, `includes.h`, `kiero/` | `DllMain` spawns `MainThread`; kiero hooks `IDXGISwapChain::Present` (vtable 8). `hkPresent` owns device/render-target lifecycle, resize & device-lost rebuild, the edge-triggered toggle poll and the frame pump |
+| Hook & lifetime | `main.cpp`, `includes.h`, `kiero/` | `DllMain` spawns `MainThread`; kiero hooks `IDXGISwapChain::Present` (vtable 8). `hkPresent` owns device/render-target lifecycle, resize & device-lost rebuild, the edge-triggered toggle poll and the frame pump; every hook outcome leaves one timestamped line in `EBengin.log` next to the DLL (rows 188-193, 64 KB cap) |
 | Shell | `menu.cpp`, `menu.h`, `menu_style.h` | One ImGui window: sidebar on a darker nav-rail cell (logo, tab buttons, animated marker, accent wash on the selected row, FPS footer plus credit line), two-column table shell, open fade, drop shadow, brand rule, window-position persistence; first-open splash start card; `RenderHud()` FPS plate with the `MADE BY EB` credit line over the scene while the overlay is closed; `ApplyStyle()` sets the theme once (six-stop ramps plus the cohesion stops) |
 | Routing | `tabs.cpp`, `tabs.h` | `switch (Menu::Tab)` into the five tab bodies; the shell never learns which tabs exist |
 | Tab bodies | `default.cpp`, `exec.cpp`, `resources.cpp`, `luamenus.cpp`, `config.cpp` | Landing (activity log, diagnostics card), executor (TextEditor + toolbar incl. save-to-file + status line), resources (browser/triggers/stopper + filters + dump), menus (two lists), config (switches incl. FPS HUD, key capture, reset, About block with build/host info, not-writable flag, Copy diagnostics and Open settings folder buttons) |
