@@ -11,6 +11,27 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Release swap-chain buffer-0 RTV and restore OM render targets before oPresent (row 249)
+- Root-cause D3D11/DXGI fix in `PresentFrame` / `CreateRenderTarget` / `CleanupRenderTarget`
+  (`main.cpp`):
+  - `ImGui_ImplDX11_RenderDrawData` backs up and restores shaders, states, viewports, and vertex/index
+    buffers, but **does not** back up or restore the Output-Merger render target (`OMGetRenderTargets`
+    / `OMSetRenderTargets`).
+  - Calling `pContext->OMSetRenderTargets(1, &mainRenderTargetView, NULL)` without restoring the
+    host's RTV/DSV clobbered the host's bound render targets and left `mainRenderTargetView` bound to
+    `pContext` across `oPresent`, while `mainRenderTargetView` and `g_backBuffer` held two additional
+    COM references to swap-chain buffer 0 between frames.
+  - Because this DLL binds `Present` only (not `ResizeBuffers`), holding any reference to buffer 0
+    between frames causes the host game's own `IDXGISwapChain::ResizeBuffers` call (window resize,
+    Alt+Tab, borderless/fullscreen toggle, resolution switch) to fail in `dxgi.dll` with
+    `DXGI_ERROR_INVALID_CALL` (`0x887A0001`).
+- Fix: `CreateRenderTarget` releases `pBackBuffer` immediately after creating `mainRenderTargetView`;
+  `PresentFrame` saves the host's `oldRTV`/`oldDSV` via `OMGetRenderTargets`, binds
+  `mainRenderTargetView` for `ImGui_ImplDX11_RenderDrawData`, restores `oldRTV`/`oldDSV`, and calls
+  `CleanupRenderTarget()` **before** calling `oPresent`.  Zero references to swap-chain buffer 0 survive
+  outside the draw call, and every frame automatically binds the current buffer 0 (covering both
+  dimension-changing and same-size `ResizeBuffers`).
+
 ## Fix first-frame WndProc vs. InitImGui race, COM ref leaks, and duplicate-attach log line (row 248)
 - `PresentFrame` / `WndProc` (`main.cpp`): `PresentFrame` (`!init`) previously called
   `SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)WndProc)` *before* `InitImGui()`, and `WndProc`

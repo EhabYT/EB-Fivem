@@ -96,14 +96,6 @@ static void FaultDisable(const char* reason)
 }
 static UINT  g_rtWidth = 0;
 static UINT  g_rtHeight = 0;
-// UI: row 235 - the cached back-buffer texture, one held reference.  Pointer
-// identity is the resize signal dimensions alone cannot give: a same-size
-// ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate
-// switch) swaps the texture under an unchanged BufferDesc, and the cached
-// render target view would dangle over a released buffer.  Holding one
-// reference also keeps the old address from being recycled for the new
-// texture, so the comparison below cannot alias.
-static ID3D11Texture2D* g_backBuffer = NULL;
 
 
 bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
@@ -204,7 +196,12 @@ std::string ResolveAssetPath(const char* file)
 }
 
 
-// Release the render target view so the swap chain can resize its buffers.
+// UI: row 249 - release the render target view before returning from Present so
+// zero references to swap-chain buffer 0 (neither ID3D11RenderTargetView nor
+// ID3D11Texture2D, nor an OMSetRenderTargets binding on pContext) survive
+// between frames.  Because this DLL hooks Present only and not ResizeBuffers,
+// holding any buffer-0 reference across frames makes the host's own
+// IDXGISwapChain::ResizeBuffers fail with DXGI_ERROR_INVALID_CALL (0x887A0001).
 static void CleanupRenderTarget()
 {
 	if (mainRenderTargetView != NULL)
@@ -212,23 +209,16 @@ static void CleanupRenderTarget()
 		mainRenderTargetView->Release();
 		mainRenderTargetView = NULL;
 	}
-	// UI: row 235 - drop the cached buffer reference together with the view;
-	// keeping it would pin a texture the swap chain no longer uses.
-	if (g_backBuffer != NULL)
-	{
-		g_backBuffer->Release();
-		g_backBuffer = NULL;
-	}
-	g_rtWidth = 0;
-	g_rtHeight = 0;
 }
 
-// (Re)create the render target view from swap chain buffer 0.  Called once at
-// startup and again whenever the game resizes its window / changes resolution.
+// Acquire a render target view for the current frame's swap-chain buffer 0 and
+// release the temporary ID3D11Texture2D reference immediately.
 static bool CreateRenderTarget(IDXGISwapChain* pSwapChain)
 {
 	if (pSwapChain == NULL || pDevice == NULL)
 		return false;
+
+	CleanupRenderTarget();
 
 	ID3D11Texture2D* pBackBuffer = NULL;
 	if (FAILED(pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer)) || pBackBuffer == NULL)
@@ -239,19 +229,12 @@ static bool CreateRenderTarget(IDXGISwapChain* pSwapChain)
 	pBackBuffer->GetDesc(&bbDesc);
 
 	HRESULT hr = pDevice->CreateRenderTargetView(pBackBuffer, NULL, &mainRenderTargetView);
+	pBackBuffer->Release();
 	if (FAILED(hr) || mainRenderTargetView == NULL)
 	{
 		mainRenderTargetView = NULL;
-		pBackBuffer->Release();
 		return false;
 	}
-
-	// UI: row 235 - keep the GetBuffer reference: this pointer is the resize
-	// signal PresentBody compares against, and the held reference stops the
-	// address from being recycled behind our back.
-	if (g_backBuffer != NULL)
-		g_backBuffer->Release();
-	g_backBuffer = pBackBuffer;
 
 	g_rtWidth = bbDesc.Width;
 	g_rtHeight = bbDesc.Height;
@@ -356,6 +339,8 @@ void CleanupImGui()
 	}
 
 	CleanupRenderTarget();
+	g_rtWidth = 0;
+	g_rtHeight = 0;
 
 	if (logo != NULL)
 	{
@@ -517,31 +502,21 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 	}
 	else
 	{
-		// Alt-tab, resolution change, borderless<->fullscreen: the back buffer is
-		// a different texture now, so the cached render target view is stale.
-		// UI: row 235 - dimensions alone miss a same-size ResizeBuffers
-		// (borderless<->fullscreen at equal resolution, refresh-rate switch):
-		// BufferDesc stays put while the texture is swapped, and drawing through
-		// the cached view then hits a released buffer - device removed or worse.
-		// Pointer identity of buffer 0 catches every swap; the reference held in
-		// g_backBuffer keeps the old address from aliasing the new texture.
-		ID3D11Texture2D* curBuffer = NULL;
-		const bool gotBuffer = SUCCEEDED(pSwapChain->GetBuffer(
-			0, __uuidof(ID3D11Texture2D), (LPVOID*)&curBuffer)) && curBuffer != NULL;
-		if (gotBuffer)
-			curBuffer->Release();   // probe only; g_backBuffer keeps the cache ref
-
+		// UI: row 249 - CreateRenderTarget acquires a fresh view of buffer 0 for
+		// this frame and CleanupRenderTarget releases it before oPresent, so
+		// same-size and different-size ResizeBuffers both work without holding
+		// any buffer-0 reference between frames.  When the dimensions change,
+		// also cycle ImGui's DX11 device objects.
 		DXGI_SWAP_CHAIN_DESC sd;
 		const bool resized = SUCCEEDED(pSwapChain->GetDesc(&sd)) &&
 			(sd.BufferDesc.Width != g_rtWidth || sd.BufferDesc.Height != g_rtHeight);
-		if (resized || (gotBuffer && curBuffer != g_backBuffer))
+		if (resized)
 		{
-			CleanupRenderTarget();
 			ImGui_ImplDX11_InvalidateDeviceObjects();
-			if (!CreateRenderTarget(pSwapChain))
-				return oPresent(pSwapChain, SyncInterval, Flags);
 			ImGui_ImplDX11_CreateDeviceObjects();
 		}
+		if (!CreateRenderTarget(pSwapChain))
+			return oPresent(pSwapChain, SyncInterval, Flags);
 	}
 
 	// UI: row 187 - DPI was sampled once at init: dragging the host window to
@@ -602,8 +577,24 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
 	ImGui::Render();
 
+	// UI: row 249 - ImGui_ImplDX11_RenderDrawData backs up and restores shaders,
+	// states, viewports and buffers, but NOT the Output-Merger render target.
+	// Leaving mainRenderTargetView bound on pContext (and alive in a global)
+	// clobbered the host's bound RTV/DSV and kept an outstanding reference to
+	// swap-chain buffer 0 across Present, causing host ResizeBuffers calls to
+	// fail with DXGI_ERROR_INVALID_CALL.  Save/restore the host's OM target and
+	// release mainRenderTargetView before handing the frame to oPresent.
+	ID3D11RenderTargetView* oldRTV = NULL;
+	ID3D11DepthStencilView* oldDSV = NULL;
+	pContext->OMGetRenderTargets(1, &oldRTV, &oldDSV);
 	pContext->OMSetRenderTargets(1, &mainRenderTargetView, NULL);
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	pContext->OMSetRenderTargets(1, &oldRTV, oldDSV);
+	if (oldRTV != NULL)
+		oldRTV->Release();
+	if (oldDSV != NULL)
+		oldDSV->Release();
+	CleanupRenderTarget();
 
 	HRESULT hr = oPresent(pSwapChain, SyncInterval, Flags);
 
