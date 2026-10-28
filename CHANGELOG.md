@@ -1,6 +1,8 @@
 # Changelog
 
-All entries are work on this branch (`arena/57915bfa-eb-fivem`), newest first.
+All entries are work on this repository's session branches, newest first:
+PR #1's `arena/57915bfa-eb-fivem` (merged into `main` as `8d8ea8e`), then the
+current `arena/c5d3e349-eb-fivem`.
 Scope note: everything here is interface, tooling or documentation level. The
 payloads this menu's names suggest (script execution, resource stopping, menu
 launching, kernel access, ESP, aimbot) are deliberately **not** implemented and
