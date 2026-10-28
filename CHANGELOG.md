@@ -11,6 +11,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Same-size resizes no longer draw through a released back buffer (row 235)
+- The Present hook detected resizes by comparing buffer dimensions.  A same-size ResizeBuffers -
+  borderless<->fullscreen at equal resolution, or a refresh-rate switch - swaps the back-buffer
+  texture under an unchanged BufferDesc, so the cached render target view kept referencing a
+  released texture and every subsequent draw went through it: a device-removed / access-violation
+  path in the middle of a session.
+- Buffer 0 pointer identity is now the second resize signal: CreateRenderTarget keeps one reference
+  to the texture the view was built from (the held reference also stops the freed address from being
+  recycled for the new texture, which would alias the comparison), CleanupRenderTarget releases it
+  together with the view, and the per-frame probe recreates view and ImGui device objects whenever
+  the pointer or the dimensions change.  No menu behaviour changes; kiero/MinHook untouched.
+
 ## Teardown no longer races live hook calls (row 234)
 - On hosts whose window thread differs from the thread that calls Present (GTA V / FiveM pump
   messages on the main thread while Present runs on the render thread), DETACH could destroy the

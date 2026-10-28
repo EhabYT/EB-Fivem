@@ -56,6 +56,14 @@ static volatile LONG g_presentDepth = 0;
 static volatile LONG g_wndprocDepth = 0;
 static UINT  g_rtWidth = 0;
 static UINT  g_rtHeight = 0;
+// UI: row 235 - the cached back-buffer texture, one held reference.  Pointer
+// identity is the resize signal dimensions alone cannot give: a same-size
+// ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate
+// switch) swaps the texture under an unchanged BufferDesc, and the cached
+// render target view would dangle over a released buffer.  Holding one
+// reference also keeps the old address from being recycled for the new
+// texture, so the comparison below cannot alias.
+static ID3D11Texture2D* g_backBuffer = NULL;
 
 
 bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height)
@@ -164,6 +172,13 @@ static void CleanupRenderTarget()
 		mainRenderTargetView->Release();
 		mainRenderTargetView = NULL;
 	}
+	// UI: row 235 - drop the cached buffer reference together with the view;
+	// keeping it would pin a texture the swap chain no longer uses.
+	if (g_backBuffer != NULL)
+	{
+		g_backBuffer->Release();
+		g_backBuffer = NULL;
+	}
 	g_rtWidth = 0;
 	g_rtHeight = 0;
 }
@@ -184,13 +199,19 @@ static bool CreateRenderTarget(IDXGISwapChain* pSwapChain)
 	pBackBuffer->GetDesc(&bbDesc);
 
 	HRESULT hr = pDevice->CreateRenderTargetView(pBackBuffer, NULL, &mainRenderTargetView);
-	pBackBuffer->Release();
-
 	if (FAILED(hr) || mainRenderTargetView == NULL)
 	{
 		mainRenderTargetView = NULL;
+		pBackBuffer->Release();
 		return false;
 	}
+
+	// UI: row 235 - keep the GetBuffer reference: this pointer is the resize
+	// signal PresentBody compares against, and the held reference stops the
+	// address from being recycled behind our back.
+	if (g_backBuffer != NULL)
+		g_backBuffer->Release();
+	g_backBuffer = pBackBuffer;
 
 	g_rtWidth = bbDesc.Width;
 	g_rtHeight = bbDesc.Height;
@@ -407,9 +428,22 @@ static HRESULT PresentBody(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT F
 	{
 		// Alt-tab, resolution change, borderless<->fullscreen: the back buffer is
 		// a different texture now, so the cached render target view is stale.
+		// UI: row 235 - dimensions alone miss a same-size ResizeBuffers
+		// (borderless<->fullscreen at equal resolution, refresh-rate switch):
+		// BufferDesc stays put while the texture is swapped, and drawing through
+		// the cached view then hits a released buffer - device removed or worse.
+		// Pointer identity of buffer 0 catches every swap; the reference held in
+		// g_backBuffer keeps the old address from aliasing the new texture.
+		ID3D11Texture2D* curBuffer = NULL;
+		const bool gotBuffer = SUCCEEDED(pSwapChain->GetBuffer(
+			0, __uuidof(ID3D11Texture2D), (LPVOID*)&curBuffer)) && curBuffer != NULL;
+		if (gotBuffer)
+			curBuffer->Release();   // probe only; g_backBuffer keeps the cache ref
+
 		DXGI_SWAP_CHAIN_DESC sd;
-		if (SUCCEEDED(pSwapChain->GetDesc(&sd)) &&
-			(sd.BufferDesc.Width != g_rtWidth || sd.BufferDesc.Height != g_rtHeight))
+		const bool resized = SUCCEEDED(pSwapChain->GetDesc(&sd)) &&
+			(sd.BufferDesc.Width != g_rtWidth || sd.BufferDesc.Height != g_rtHeight);
+		if (resized || (gotBuffer && curBuffer != g_backBuffer))
 		{
 			CleanupRenderTarget();
 			ImGui_ImplDX11_InvalidateDeviceObjects();
