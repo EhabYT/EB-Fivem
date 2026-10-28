@@ -354,14 +354,18 @@ What the shape of that graph is meant to show:
   exist; it calls `Tabs::Render()`.
 * **`tabs.cpp` is the only node pointing at all five tabs.** Adding a tab touches `tabs.cpp`, one
   `SidebarItems[]` row in `menu.cpp` and one `Menu::TabId` enumerator — not the hook code.
-* **`main.cpp` points at `exec.h` and `resources.h` but at no tab body.** It only calls
-  `Executor::Init()` / `Resources::Init()`; the includes it needs are `includes.h`, `menu.h`,
-  `menu_style.h` and `assets.h`.
-* Only three headers include anything at all: `config.h → gui.h`, `exec.h → TextEditor.h` and
-  `resources.h → {TextEditor.h, exec.h, gui.h}`. The other ten — `assets.h`, `default.h`, `demo.h`,
-  `gui.h`, `includes.h`, `luamenus.h`, `menu.h`, `menu_style.h`, `tabs.h`, `TextEditor.h` — have no
-  outgoing edges. Nothing defines state in a header any more, which is what used to make a second
-  including `.cpp` a `LNK2005`.
+* **`main.cpp` calls the tabs' one-time setup but renders no tab body.** Its project includes
+  are `includes.h`, `menu.h`, `settings.h`, `menu_style.h`, `assets.h`, `exec.h`, `config.h`,
+  `gui.h` and `resources.h` (plus `<fstream>` for the hook trace log): `Executor::Init()` /
+  `Resources::Init()` at startup, `Config::IsCapturing()` in the toggle poll (row 164) and
+  `Gui::ModalActive()` in the DETACH wait (row 201). `config.h` is the only tab header among
+  them - declarations, not render code; no `tabs.h`, no tab body.
+* Header edges are exactly what the graph above shows — five headers have outgoing project
+  edges: `config.h → {font_awesome.h, gui.h}`, `exec.h → {TextEditor.h, font_awesome.h}`,
+  `gui.h → {font_awesome.h, settings.h, menu_style.h}`, `menu.h → settings.h` and
+  `resources.h → {TextEditor.h, exec.h, font_awesome.h, gui.h}`. Every other header has none
+  (regenerate after any include change: `python docs/gen_include_graph.py`). Nothing defines
+  state in a header any more, which is what used to make a second including `.cpp` a `LNK2005`.
 
 Vendored code (`imgui/`, `kiero/`, `stb_image.h`, `font_awesome.*`) is left out for readability; it
 has no edges into the project's own headers.
@@ -443,8 +447,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * The code uses **no deprecated ImGui API**: the menu shell was moved off the legacy
   `Columns()`/`NextColumn()`/`SetColumnOffset()` API onto `BeginTable`/`TableSetupColumn`. That
   makes `#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS` in `imgui/imconfig.h` a clean compile, and the
-  recommended way to stay ahead of the next upgrade. (`demo.h` still uses `Columns()` — it is an
-  annotated cheat-sheet wired to no tab, left alone on purpose.)
+  recommended way to stay ahead of the next upgrade. (`demo.cpp`, the annotated cheat-sheet
+  wired to no tab, moved to `BeginTable` too — its comment records the legacy calls it replaced,
+  and no `Columns()`/`NextColumn()`/`SetColumnOffset()` call is left in any project file.)
 * `style.CellPadding` is `(0,0)` in `menu_style.h`. That is not cosmetic: table cells are inset by
   `CellPadding` on every side, so the default `4,1` would leave the 225px sidebar with 217px of
   usable width. Keep it at zero, or subtract the padding from `Menu::SidebarWidth`.
@@ -462,8 +467,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
 * Every menu global is declared `extern` in its header and defined in exactly one `.cpp`, so
   adding a second translation unit cannot produce `LNK2005` duplicates.
 * **Shell and tabs are separate translation units.** `menu.cpp` draws the window and the sidebar and
-  calls `Tabs::Render()`; `tabs.cpp` owns the `switch` and is the only file that includes the five tab
-  headers. `main.cpp` (hooks, device, ImGui lifetime) includes neither. Adding a tab therefore touches
+  calls `Tabs::Render()`; `tabs.cpp` owns the `switch` and is the only file that includes all five tab
+  headers. `main.cpp` (hooks, device, ImGui lifetime) includes neither `tabs.h` nor a tab body; its
+  one tab-header include is `config.h`, for `Config::IsCapturing()` (row 164). Adding a tab therefore touches
   `tabs.cpp`, `menu.cpp` (one `SidebarItems[]` row) and `menu.h` (one `TabId` enumerator) — not the
   hook code.
 * `demo.h` is compiled but wired to no sidebar entry; call `Demo::Render()` from `Tabs::Render()` if

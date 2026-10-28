@@ -9,6 +9,23 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The README architecture prose agrees with the regenerated graph (rows 206-207)
+- Two bullets contradicted main.cpp's actual includes: one listed four includes and "no tab body"
+  while rows 164/188/201 had grown the list to nine project includes plus <fstream> - config.h
+  among them - and one claimed tabs.cpp "is the only file that includes the five tab headers"
+  with main.cpp including "neither".  Both now name reality: the nine includes and what each
+  reaches (Init calls, Config::IsCapturing in the toggle poll, Gui::ModalActive in the DETACH
+  wait), and tabs.cpp as the only file including ALL FIVE tab headers, with config.h as
+  main.cpp's single named exception.
+- The header-edge bullet claimed "only three headers include anything" with a ten-name edgeless
+  list the graph right above refutes: five headers have outgoing project edges (config.h, exec.h,
+  gui.h, menu.h, resources.h), and gui.h - listed as edgeless - has three.  The bullet now lists
+  the five with their exact edges and names gen_include_graph.py as the authority.  The
+  obsolete-API bullet also still excused demo.h for using Columns(), although demo.cpp moved to
+  BeginTable and no Columns()/NextColumn()/SetColumnOffset() call exists in any project file; the
+  parenthetical records the migration instead.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The session trace confirms before it dies, and the position save stops rewriting the ini (rows 204-205)
 - The session log is the only timestamped trace the session leaves - in memory only, and
   unrecoverable once cleared - but its Clear button fired immediately, while every other loss of
