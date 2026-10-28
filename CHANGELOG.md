@@ -11,6 +11,12 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The two BUILD.md fix tables no longer share numbers (row 238)
+- Section 4 (build fixes) numbered its entries 1-14 while section 5 (runtime/correctness, the table every
+  bare "row N" reference in code comments, CHANGELOG, README and the vcxproj points at) numbers 1-237 -
+  for 1-14 a reference could land in either table.
+- Section 4 is renumbered B1-B14 and says why in its intro; bare "row N" is unambiguous again.  Docs only.
+
 ## C++ exceptions contained like access violations (row 237)
 - Row 236 switched the build to /EHsc, so C++ exceptions unwind - into std::terminate, because nothing
   caught them.  The editor's token-regex constructors (TextEditor.cpp, SetLanguageDefinition) throw

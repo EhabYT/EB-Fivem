@@ -113,22 +113,26 @@ interface scale (`[ui] scale`, 70–200%).
 If you are comparing against the original upstream snapshot, these are the things that
 stopped it from compiling/opening, and what changed:
 
+Entries are numbered B1-B14 on purpose: the bare "row N" references used across code
+comments, the CHANGELOG and the README all point at the section 5 table, and the two
+tables used to share the numbers 1-14, so "row 12" could land in either (row 238).
+
 | # | Symptom before | Cause | Fix |
 |---|---|---|---|
-| 1 | `MSB3202: The project file "ImGui DirectX 11 Kiero Hook\ImGui DirectX 11 Kiero Hook.vcxproj" was not found` | `redENGINE UI.sln` referenced a nested folder that does not exist; the `.vcxproj` sits in the repo root | Corrected the project path in the `.sln` |
-| 2 | `C1083: Cannot open include file: 'imgui.h'` | `imgui_impl_dx11.cpp` / `imgui_impl_win32.cpp` do `#include "imgui.h"`, but nothing put the project dir or `imgui\` on the include path | `IncludePath` now contains `$(ProjectDir);$(ProjectDir)imgui` |
-| 3 | `C2397: conversion from 'double' to 'int' requires a narrowing conversion` | `icons_config.OversampleH = 2.5;` — those fields are `int` in `ImFontConfig` | Set to `3` / `1` |
-| 4 | `C2664: 'ImGui::Combo': cannot convert argument 4 from 'size_t' to 'int'` | `exec.h` passed `resources.size()` | Cast to `int` |
-| 5 | `MSB8020: The build tools for v142 cannot be found` on VS2022-only machines | Toolset hard-pinned to `v142` | Conditional: `v142` if present, else `$(DefaultPlatformToolset)` |
-| 6 | Bogus `C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include` on the include path | Legacy hardcoded SDK | Removed; Windows SDK provides `d3d11.h` / `dxgi.h` |
-| 7 | `RC.exe` needed for a resource that does not belong to this DLL | `kiero\minhook\dll_resources\MinHook.rc` was compiled in, stamping MinHook's version info onto redENGINE | `ResourceCompile` item removed from `.vcxproj` and `.filters` |
-| 8 | Crashed the host process on every machine except the author's | `IM_ASSERT(LoadTextureFromFile("D:\\rE.png", ...))` — a hardcoded path plus a hard assert | Resolves next to the DLL, no assert, text fallback in `menu.h` |
-| 9 | `C2065: 'uintptr_t': undeclared identifier` (possible, with `/permissive-`) | `PTR` typedef relied on a transitive include | `#include <cstdint>` and `<string>` in `includes.h` |
-| 10 | `std::find` used without `<algorithm>` | Relied on transitive includes | Added to `resources.h` |
-| 11 | Language standard depended on the toolset default | Not specified | `LanguageStandard = stdcpp17` in all four configs |
-| 12 | `font_awesome.cpp` listed as `<None>` although it is a `#include`d TU payload | Ambiguous project item | Now `ClCompile` with `ExcludedFromBuild=true` |
-| 13 | Mixed calling conventions on the hook | `__stdcall` is ignored on x64 | `HK_CALL` macro in `includes.h`, used by `Present` / `hkPresent` |
-| 14 | `error C4996: 'sprintf': … declared deprecated` ×33, fatal because `SDLCheck` is `true` | `imgui/imgui_demo.cpp` was compiled into the DLL | Removed from the project. `ShowDemoWindow` / `ShowAboutWindow` / `ShowStyleEditor` / `ShowUserGuide` are never called anywhere in this codebase (`ShowMetricsWindow` lives in `imgui.cpp`, so it survives). The file stays on disk as vendored upstream code, it is simply not built — which also drops ~590 KB of demo source from every compile. **Do not re-add it without either dropping `SDLCheck` or defining `_CRT_SECURE_NO_WARNINGS` for that file.** |
+| B1 | `MSB3202: The project file "ImGui DirectX 11 Kiero Hook\ImGui DirectX 11 Kiero Hook.vcxproj" was not found` | `redENGINE UI.sln` referenced a nested folder that does not exist; the `.vcxproj` sits in the repo root | Corrected the project path in the `.sln` |
+| B2 | `C1083: Cannot open include file: 'imgui.h'` | `imgui_impl_dx11.cpp` / `imgui_impl_win32.cpp` do `#include "imgui.h"`, but nothing put the project dir or `imgui\` on the include path | `IncludePath` now contains `$(ProjectDir);$(ProjectDir)imgui` |
+| B3 | `C2397: conversion from 'double' to 'int' requires a narrowing conversion` | `icons_config.OversampleH = 2.5;` — those fields are `int` in `ImFontConfig` | Set to `3` / `1` |
+| B4 | `C2664: 'ImGui::Combo': cannot convert argument 4 from 'size_t' to 'int'` | `exec.h` passed `resources.size()` | Cast to `int` |
+| B5 | `MSB8020: The build tools for v142 cannot be found` on VS2022-only machines | Toolset hard-pinned to `v142` | Conditional: `v142` if present, else `$(DefaultPlatformToolset)` |
+| B6 | Bogus `C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include` on the include path | Legacy hardcoded SDK | Removed; Windows SDK provides `d3d11.h` / `dxgi.h` |
+| B7 | `RC.exe` needed for a resource that does not belong to this DLL | `kiero\minhook\dll_resources\MinHook.rc` was compiled in, stamping MinHook's version info onto redENGINE | `ResourceCompile` item removed from `.vcxproj` and `.filters` |
+| B8 | Crashed the host process on every machine except the author's | `IM_ASSERT(LoadTextureFromFile("D:\\rE.png", ...))` — a hardcoded path plus a hard assert | Resolves next to the DLL, no assert, text fallback in `menu.h` |
+| B9 | `C2065: 'uintptr_t': undeclared identifier` (possible, with `/permissive-`) | `PTR` typedef relied on a transitive include | `#include <cstdint>` and `<string>` in `includes.h` |
+| B10 | `std::find` used without `<algorithm>` | Relied on transitive includes | Added to `resources.h` |
+| B11 | Language standard depended on the toolset default | Not specified | `LanguageStandard = stdcpp17` in all four configs |
+| B12 | `font_awesome.cpp` listed as `<None>` although it is a `#include`d TU payload | Ambiguous project item | Now `ClCompile` with `ExcludedFromBuild=true` |
+| B13 | Mixed calling conventions on the hook | `__stdcall` is ignored on x64 | `HK_CALL` macro in `includes.h`, used by `Present` / `hkPresent` |
+| B14 | `error C4996: 'sprintf': … declared deprecated` ×33, fatal because `SDLCheck` is `true` | `imgui/imgui_demo.cpp` was compiled into the DLL | Removed from the project. `ShowDemoWindow` / `ShowAboutWindow` / `ShowStyleEditor` / `ShowUserGuide` are never called anywhere in this codebase (`ShowMetricsWindow` lives in `imgui.cpp`, so it survives). The file stays on disk as vendored upstream code, it is simply not built — which also drops ~590 KB of demo source from every compile. **Do not re-add it without either dropping `SDLCheck` or defining `_CRT_SECURE_NO_WARNINGS` for that file.** |
 
 ---
 
@@ -375,6 +379,7 @@ Separate from the build fixes above: these are bugs that compiled fine but misbe
 | 235 | The resize check in the Present hook compared buffer dimensions only, so a same-size ResizeBuffers (borderless<->fullscreen at equal resolution, refresh-rate switch) swapped the back-buffer texture under an unchanged BufferDesc: the cached render target view then referenced a released texture and every draw went through it - a device-removed / access-violation path mid-session | Buffer 0 pointer identity is the second resize signal: CreateRenderTarget keeps one reference to the texture the view was built from (which also stops address recycling from aliasing the comparison), CleanupRenderTarget drops it with the view, and the per-frame probe recreates view plus ImGui device objects whenever the pointer or the dimensions change |
 | 236 | Applying the crash-guide checklist to this repo found four hardening gaps: the vcxproj never stated CRT, exception handling, /GS or ASLR explicitly (compiler defaults meant a static CRT and no C++ unwind - a throwing std:: call terminated the process instead of unwinding), and an access violation inside our own frame code took the host process down with it | All four configurations now carry /MD (dynamic CRT, matching the host), /EHsc, /GS and /DYNAMICBASE + /HIGHENTROPYVA explicitly; the Present hook wraps the frame body in an SEH guard whose fault handler puts the overlay out of service for the session (window proc restored, later frames pass through) and logs a fault line to EBengin.log - one faulty frame costs the menu, not the game |
 | 237 | Row 236 switched the build to /EHsc, so C++ exceptions now unwind - but nothing anywhere caught them: the editor's token-regex constructors (TextEditor.cpp SetLanguageDefinition) can throw regex_error straight into Executor::Init and the first Present, and any out_of_range/bad_alloc from a std:: call ran out of handlers into std::terminate - process death with no log line, indistinguishable from a game crash (the SEH guard catches access violations only; under /EHsc catch(...) does not) | The regex constructors are guarded per pattern (a rejected pattern costs one highlight rule), and both threads now contain exceptions: PresentBody and WndProcBody wrap their frames in try/catch(...) and share one raw-Win32 degrade path (FaultDisable) with the SEH guard - overlay out of service, window proc restored, fault line logged, game continues |
+| 238 | BUILD.md numbered its build-fix table (section 4) 1-14 while the runtime/correctness table (section 5) numbers 1-237 - and every bare "row N" cross-reference in code comments, CHANGELOG, README and the vcxproj points at section 5, so for 1-14 a reference could land in either table | Section 4 is renumbered B1-B14 and carries a note saying why; bare "row N" is unambiguous again |
 
 
 
