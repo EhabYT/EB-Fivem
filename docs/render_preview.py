@@ -407,8 +407,28 @@ if TAB == "splash":
     # A printable binding (hand-edited ini only, row 210) gets the qualified
     # variant "(not while typing in a text field)" instead - not depicted.
     BTN = "Continue"
-    for t in (CREDIT, HINT1, HINT2, BTN):
+    def wrap(t, maxw):
+        lines, cur = [], ""
+        for w in t.split(" "):
+            test = (cur + " " + w).strip()
+            if cur and TW(test) > maxw:
+                lines.append(cur); cur = w
+            else:
+                cur = test
+        lines.append(cur)
+        return lines
+
+    for t in (CREDIT, BTN):
         assert TW(t) <= CWc - 16, "splash line clipped: " + t
+    # UI: row 228 - the code wraps the hints at word boundaries and centres each
+    # line; model the same, and prove the worst case (qualified printable
+    # sentence, two lines) still fits the fixed card height.
+    HINT1L, HINT2L = wrap(HINT1, CWc - 16), wrap(HINT2, CWc - 16)
+    HINT2P = wrap("0 toggles this overlay (not while typing in a text field).",
+                  CWc - 16)
+    for ln in HINT1L + HINT2L + HINT2P:
+        assert TW(ln) <= CWc - 16, "splash wrapped line clipped: " + ln
+    assert len(HINT2P) <= 2, "printable hint needs more than two lines"
 
     ly = OY + 18
     lg = Image.open(os.path.join(REPO, "EBengin.png")).convert("RGBA")
@@ -421,10 +441,15 @@ if TAB == "splash":
     R(OX + 8, ly, OX + CWc - 8, ly + 1, C_BORDER)     # Gui::Seperator
     ly += 1 + ITEM_SPACING_Y
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
-    T(OX + (CWc - TW(HINT1)) / 2, ly, HINT1, C_TEXT)
-    ly += FONT_SIZE + ITEM_SPACING_Y
-    T(OX + (CWc - TW(HINT2)) / 2, ly, HINT2, C_TEXT)
-    ly += FONT_SIZE + ITEM_SPACING_Y
+    for ln in HINT1L:
+        T(OX + (CWc - TW(ln)) / 2, ly, ln, C_TEXT)
+        ly += FONT_SIZE + ITEM_SPACING_Y
+    for ln in HINT2L:
+        T(OX + (CWc - TW(ln)) / 2, ly, ln, C_TEXT)
+        ly += FONT_SIZE + ITEM_SPACING_Y
+    # worst-case height budget: the qualified variant adds one line to the card
+    assert ly + (FONT_SIZE + ITEM_SPACING_Y) + ITEM_SPACING_Y + 30 <= OY + CHc - 8, \
+        "splash card too short for a wrapped hint"
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     bx, BW, BH = OX + (CWc - 140) / 2, 140.0, 30.0
     d.rounded_rectangle([bx * S, ly * S, (bx + BW) * S - 1, (ly + BH) * S - 1],

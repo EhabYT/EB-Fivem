@@ -325,11 +325,39 @@ namespace Menu
 
 		Centered("Remade : by EB", ColMuted);
 
+		// UI: row 228 - a long localised key name (a German numpad binding reads
+		// "0 (ZEHNERTASTATUR)") or the qualified printable sentence can make a hint
+		// wider than the card: Centered() clamps the start cursor at zero but the
+		// line still ran past the right edge and clipped mid-word - exactly what a
+		// real inject screenshot showed.  Wrap at word boundaries and centre each
+		// line instead; single-line strings render exactly as before.
+		auto CenteredWrapped = [&Centered](const char* text, ImU32 col)
+		{
+			const float maxW = ImGui::GetContentRegionAvail().x;
+			std::string line;
+			const char* p = text;
+			while (*p)
+			{
+				const char* sp = strchr(p, ' ');
+				const size_t len = sp ? (size_t)(sp - p) + 1 : strlen(p);
+				const std::string test = line + std::string(p, len);
+				if (!line.empty() && ImGui::CalcTextSize(test.c_str()).x > maxW)
+				{
+					Centered(line.c_str(), col);
+					line.clear();
+				}
+				line.append(p, len);
+				p += len;
+			}
+			if (!line.empty())
+				Centered(line.c_str(), col);
+		};
+
 		ImGui::Spacing();
 		Gui::Seperator("##splash_seperator");
 		ImGui::Spacing();
 
-		Centered("Interface-level: no game state is read or written.",
+		CenteredWrapped("Interface-level: no game state is read or written.",
 			ImColor(255, 255, 255, 255));
 		// The toggle key is user-bindable (Config -> Toggle key), so the hint
 		// names whatever is actually bound; KeyName is the same helper the
@@ -348,7 +376,7 @@ namespace Menu
 				? "%s toggles this overlay (not while typing in a text field)."
 				: "%s toggles this overlay at any time.",
 			Settings::KeyName(hk));
-		Centered(hint2, ImColor(255, 255, 255, 255));
+		CenteredWrapped(hint2, ImColor(255, 255, 255, 255));
 
 		ImGui::Spacing();
 		const float bw = Settings::Px(140.0f);

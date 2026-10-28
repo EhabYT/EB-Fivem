@@ -11,6 +11,18 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The splash hint wraps instead of clipping (row 228)
+- A real inject screenshot showed the second splash hint running off the right card edge, clipped
+  mid-word: a long localised key name (German numpad: "0 (ZEHNERTASTATUR)") or the qualified
+  printable sentence ("... (not while typing in a text field).") makes the line wider than the
+  460px card, and the old single centred TextColored only clamped the start cursor - the overflow
+  still drew past the edge.
+- RenderSplash now wraps the hints at word boundaries and centres each line; single-line strings
+  render exactly as before, so the default-binding preview is unchanged.
+- docs/render_preview.py models the same wrap and extends its asserts: beyond the depicted INSERT
+  binding it proves the worst case (qualified printable sentence, two lines) fits both the card
+  width and the fixed 288px card height.
+
 ## The Docs & render row counts the graph it describes (row 227)
 - Row 226's two new includes grew the regenerated README include graph from 79 to 81 edges (the
   generator rewrites the mermaid block itself, so the README moved in the same commit).  The BUILD
