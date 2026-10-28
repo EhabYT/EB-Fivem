@@ -11,6 +11,13 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The Docs & render row counts the graph it describes (row 227)
+- Row 226's two new includes grew the regenerated README include graph from 79 to 81 edges (the
+  generator rewrites the mermaid block itself, so the README moved in the same commit).  The BUILD
+  Docs & render row kept quoting 79 - the silent-stale-doc-row class row 215 had already repaired
+  once.  It now says 81, matching the README and a fresh generator run.
+- Documentation-only batch; all eight previews stay byte-identical.
+
 ## The project compiles again: three latent compile blockers fixed (row 226)
 - A real MSVC build reported what no static check here could see until it looked structurally:
   (a) the row-164 capture block (`static bool g_capturing` + `IsCapturing()`) had been inserted
