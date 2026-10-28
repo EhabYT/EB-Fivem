@@ -213,7 +213,10 @@ namespace Menu
 			fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
 		CenteredInSidebarColored(fpsLine, Accent);
 
-		CenteredInSidebar("Licensed to #4278");
+		// UI: row 233 - the plate claimed a license system that does not exist:
+		// nothing in this build issues, stores or checks a license; the holder id
+		// was a hardcoded constant.  The footer states the fact instead.
+		CenteredInSidebar("No license check.");
 		CenteredInSidebar(buildDate);
 
 		// Visible brand credit, same wording as the source comment.

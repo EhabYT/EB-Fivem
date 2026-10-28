@@ -11,6 +11,14 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## The sidebar license plate was a claim with nothing behind it (row 233)
+- "Licensed to #4278" was a hardcoded constant; no license mechanism exists in this build -
+  nothing issues, stores or checks a license.  The line asserted a fact the build cannot back
+  up, in the one place every open frame shows.
+- The footer states the true fact in its place: "No license check."  The README records the swap
+  beside the other honesty labels; the renderer's footer string follows, so - the sidebar draws
+  in every scene - all eight previews change by exactly that one string, committed deliberately.
+
 ## The Menus tab joins the Resources provenance pattern (row 232)
 - FreeMenus/PremMenus (luamenus.cpp) are compile-time constants, but the only hint was the Run
   button's hover tooltip ("not bundled"); until hovered, the lists read like an installed

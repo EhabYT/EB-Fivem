@@ -590,7 +590,7 @@ for i, (glyph, label) in enumerate(SIDEBAR):
 # footer: bottom-anchored, each line centred in the sidebar column
 FOOTER_TOP = H - WIN_PAD - 4 * LINE_ADV
 FOOTER = [("FPS 144  |  6.9 ms", C_ACCENT),
-          ("Licensed to #4278", C_TEXT),
+          ("No license check.", C_TEXT),
           ("Build Date: Oct 22 2026", C_TEXT),
           ("Remade : by EB", C_MUTED_BRAND)]
 for k, (line, col) in enumerate(FOOTER):

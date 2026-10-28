@@ -461,6 +461,9 @@ Until then there is **no CI and no compile proof** — every check on this branc
   list** (`exec.cpp`); nothing is enumerated from a server, and the Resources tab says so in a
   muted line above the sub-tabs (row 230).  The menu names on the Menus tab are compiled-in
   constants as well (`luamenus.cpp`); the tab carries the same muted disclosure (row 232).
+  The sidebar footer's license plate was a hardcoded claim ("Licensed to #4278") with no license
+  mechanism behind it - nothing issues, stores or checks one - so it now states the fact instead:
+  `No license check.` (row 233).
   What is **still a stub** (and now says so in a tooltip before the click as well as in a
   message box after it, instead of doing nothing silently):
   actually executing a script, actually stopping a server resource, launching the listed menus,
