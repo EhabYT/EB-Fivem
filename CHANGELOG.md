@@ -11,6 +11,31 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Fix five Executor and TextEditor bugs (row 253)
+- `TextEditor.cpp` (`GetText`): stopped at `Coordinates(lastLine, GetLineMaxColumn(lastLine))` instead
+  of `Coordinates((int)mLines.size(), 0)` (which walked one line past `mLines.back()` and appended a
+  phantom `'\n'` to every buffer, returning `"\n"` / `1 byte` on an empty editor and breaking
+  `bufEmpty = editor.GetText().empty()`, `Load from File` on an empty buffer, `Revert` equality checks,
+  and `Execute` byte counts), and included `mLines[lend]` in `GetText(aStart, aEnd)`'s reserve loop.
+- `exec.cpp` (`Render`): removed the broken `suppress` counter (which stayed armed because
+  `TextEditor::Render()` clears `mTextChanged` on entry rather than exit, swallowing the user's first
+  edit after `Load`/`Clear`/`Revert` and leaving `bufEmpty` `true` after loading a file or clicking
+  toolbar `Paste` on an empty buffer), tracked toolbar `Undo`/`Redo`/`Paste` edits explicitly, and
+  updated `bufEmpty`/`dirty` directly in `Clear`, `Revert` and `loadFile`.
+- `TextEditor.cpp` (`HandleKeyboardInputs`, `Render`): set `io.WantCaptureKeyboard`, `io.WantTextInput`
+  and `PlatformImeData.WantTextInput` (`ViewportId = GetWindowViewport()->ID`) when focused instead of
+  calling `SetKeyboardFocusHere(-1)` (which never set `io.WantTextInput` in Dear ImGui 1.93, allowing
+  printable `ToggleKey` bindings to toggle the menu shut while typing in the Executor), added
+  `ImGuiWindowFlags_NoNavInputs` to `BeginChild` (stopping 22 px vertical scroll jitter on `Up`/`Down`
+  arrow keys and focus loss on `Escape`), and added `Ctrl+Shift+Z` (`Redo`) and `ImGuiKey_KeypadEnter`.
+- `TextEditor.cpp` (`GetDarkPalette`, `mTokenRegexStrings`) & `docs/render_preview.py`: removed invalid
+  ECMA-262 inside-bracket backslash escapes (`\'`, `\!`, `\%`, etc.) that caused MSVC's `<regex>` to
+  throw `regex_error(error_escape)` and drop single-quoted string and punctuation rules, added `:` and
+  `#` to Lua punctuation, and raised `PaletteIndex::Default` from `ImColor(50,50,50,255)` (`1.12:1`
+  contrast against `#1F3A61`) to `ImColor(224,224,224,255)` (`9.14:1` contrast).
+- `exec.cpp`: offset the empty-buffer placeholder past `WindowPadding` and the `" 1 "` line-number
+  gutter (`p.x + pad.x + gutterW, p.y + pad.y`) so it no longer overlaps line number `1`.
+
 ## Extend "Fully updated since 2026" to HUD plate and diagnostics snapshot (row 252)
 - `menu.cpp` / `menu.h` (`RenderHud`): added `"Fully updated since 2026"` (`ColMuted`) as the third
   line on the closed-overlay HUD plate (`plateH = 2.0f * adv + us.y`, width `max(ts.x, cs.x, us.x)`),

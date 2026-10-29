@@ -144,15 +144,16 @@ namespace Executor
 	{
 		Gui::SectionTitle("Executor", "##under_text1");
 
-		// Declared up here because the toolbar handlers below (clear, save)
-		// reset them: the widget reports edits for the frame they happen in
-		// (mTextChanged is cleared at the end of its own Render), so polling
-		// it right after Render() and accumulating gives a session dirty
-		// flag - true while the buffer holds edits the last load/save/clear
-		// does not.  SetText() raises the same widget flag, hence the
-		// one-frame suppression after our own load/clear calls.
+		// UI: row 253 - TextEditor::Render clears mTextChanged on entry, not
+		// exit, so toolbar actions before Render (Undo, Redo, Paste, Clear,
+		// Revert) and file loads after the post-Render poll had their
+		// mTextChanged flag wiped before the poll ever ran (leaving bufEmpty
+		// stale and leaving the old `suppress = 1` counter armed to swallow the
+		// user's first edit after Load/Clear/Revert).  Track toolbar edits
+		// explicitly and update bufEmpty/dirty directly in Clear, Revert and
+		// loadFile.
 		static bool dirty = false;
-		static int suppress = 0;
+		bool toolbarEdited = false;
 
 		// Mouse-reachable editor actions.  The Ctrl+Z/Y/C/V shortcuts work
 		// inside the editor, but with keyboard-nav focus a button is the only
@@ -179,14 +180,20 @@ namespace Executor
 		// ignores disabled items by default.
 		ImGui::BeginDisabled(!editor.CanUndo());
 		if (ImGui::Button(ICON_FA_UNDO "##ed_undo", ImVec2(tb, tb)))
+		{
 			editor.Undo();
+			toolbarEdited = true;
+		}
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 			ImGui::SetTooltip(editor.CanUndo() ? "Undo (Ctrl+Z)" : "Nothing to undo");
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!editor.CanRedo());
 		if (ImGui::Button(ICON_FA_REDO "##ed_redo", ImVec2(tb, tb)))
+		{
 			editor.Redo();
+			toolbarEdited = true;
+		}
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 			ImGui::SetTooltip(editor.CanRedo() ? "Redo (Ctrl+Y)" : "Nothing to redo");
@@ -201,7 +208,10 @@ namespace Executor
 		ImGui::SameLine();
 		ImGui::BeginDisabled(!clipAvail);
 		if (ImGui::Button(ICON_FA_PASTE "##ed_paste", ImVec2(tb, tb)))
+		{
 			editor.Paste();
+			toolbarEdited = editor.IsTextChanged();
+		}
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 			ImGui::SetTooltip(clipAvail ? "Paste (Ctrl+V)" : "Clipboard is empty");
@@ -223,8 +233,8 @@ namespace Executor
 				editor.SetText("");
 				g_lastFile.clear();
 				g_haveFileTime = false;
+				bufEmpty = true;
 				dirty = false;
-				suppress = 1;
 				if (!cur.empty())
 					Activity::Push("Editor buffer cleared ("
 						+ std::to_string(cur.size()) + " bytes).");
@@ -378,8 +388,8 @@ namespace Executor
 				{
 					editor.SetText(fileText);
 					g_haveFileTime = FileMTime(g_lastFile.c_str(), g_fileTime);
+					bufEmpty = editor.GetText().empty();
 					dirty = false;
-					suppress = 1;
 					Activity::Push("Reverted to " + g_lastFile + ".");
 					Toasts::Push(Toasts::Success,
 						"Reverted to " + BaseName(g_lastFile) + ".");
@@ -432,9 +442,14 @@ namespace Executor
 		// any load/paste - removes it with the frame that fills the buffer.
 		if (bufEmpty)
 		{
+			// UI: row 253 - align the placeholder with line 1 column 1 (past
+			// WindowPadding and TextEditor's " 1 " + mLeftMargin gutter) instead of
+			// drawing at p.x + 8 directly over line number 1.
 			const ImVec2 p = ImGui::GetItemRectMin();
+			const ImVec2 pad = ImGui::GetStyle().WindowPadding;
+			const float gutterW = ImGui::CalcTextSize(" 1 ").x + 10.0f;
 			ImGui::GetWindowDrawList()->AddText(
-				ImVec2(p.x + Settings::Px(8.0f), p.y + Settings::Px(4.0f)),
+				ImVec2(p.x + pad.x + gutterW, p.y + pad.y),
 				ImGui::GetColorU32(ImGuiCol_TextDisabled),
 				"Empty buffer - start typing, Ctrl+V pastes, Ctrl+O loads a file.");
 		}
@@ -463,13 +478,10 @@ namespace Executor
 			ImGui::EndPopup();
 		}
 
-		if (editor.IsTextChanged())
+		if (toolbarEdited || editor.IsTextChanged())
 		{
 			bufEmpty = editor.GetText().empty();
-			if (suppress > 0)
-				--suppress;
-			else
-				dirty = true;
+			dirty = true;
 		}
 
 		// Status line: the editor widget shows neither cursor position nor
@@ -596,8 +608,8 @@ namespace Executor
 						g_lastFile = file;
 						PushRecent(file);
 						g_haveFileTime = FileMTime(file, g_fileTime);
+						bufEmpty = editor.GetText().empty();
 						dirty = false;
-						suppress = 1;
 						// Reported size is what the editor holds, i.e. after the BOM
 						// strip, not what the file occupied on disk.
 						Activity::Push("Loaded " + std::string(file) + " ("

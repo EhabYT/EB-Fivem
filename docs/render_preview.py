@@ -177,7 +177,7 @@ C_SCROLL   = RGBA(42, 74, 123)     # ImGuiCol_ScrollbarGrab (raised navy)
 
 # TextEditor.cpp GetDarkPalette(); Background/LineNumber are theme colours.
 P = {
-    "default":    RGBA(50, 50, 50),
+    "default":    RGBA(224, 224, 224),
     "keyword":    ABGR(0xFFD69C56),
     "number":     ABGR(0xFF00FF00),
     "string":     ABGR(0xFF7070E0),
@@ -232,7 +232,7 @@ TOKEN_RES = [
     (re.compile(r"[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?[fF]?"), "number"),
     (re.compile(r"[+-]?[0-9]+[Uu]?[lL]?[lL]?"), "number"),
     (re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*"), "ident"),
-    (re.compile(r"[\[\]\{\}\!\%\^\&\*\(\)\-\+\=\~\|\<\>\?\/\;\,\.]"), "punct"),
+    (re.compile(r"[{}!%^&*()+=~|<>?/;,.:#[\]\-]"), "punct"),
 ]
 # LanguageDefinition::Lua() has its mIdentifiers loop commented out, so nothing
 # is ever coloured KnownIdentifier - print/ipairs/tostring stay plain grey.
