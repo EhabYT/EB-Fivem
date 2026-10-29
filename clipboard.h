@@ -46,7 +46,19 @@ inline bool CopyTextToClipboard(const char* text)
 	// Unicode-aware targets, which is most of them.  Offer CF_UNICODETEXT as
 	// well; a handle belongs to the clipboard once SetClipboardData accepts
 	// it, so the second global follows the same free-on-refuse rule.
-	const int wlen = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+	// UI: row 255 - paths from GetModuleFileNameA/GetOpenFileNameA and key
+	// names from GetKeyNameTextA are in CP_ACP (Windows ANSI), where umlauts
+	// are single bytes that CP_UTF8 with dwFlags=0 silently turns into U+FFFD.
+	// Probe CP_UTF8 with MB_ERR_INVALID_CHARS first and fall back to CP_ACP.
+	UINT cp = CP_UTF8;
+	DWORD mbFlags = MB_ERR_INVALID_CHARS;
+	int wlen = MultiByteToWideChar(cp, mbFlags, text, -1, NULL, 0);
+	if (wlen <= 0)
+	{
+		cp = CP_ACP;
+		mbFlags = 0;
+		wlen = MultiByteToWideChar(cp, mbFlags, text, -1, NULL, 0);
+	}
 	if (wlen > 0)
 	{
 		HGLOBAL gu = GlobalAlloc(GMEM_MOVEABLE, (SIZE_T)wlen * sizeof(wchar_t));
@@ -55,7 +67,7 @@ inline bool CopyTextToClipboard(const char* text)
 			wchar_t* pw = (wchar_t*)GlobalLock(gu);
 			if (pw)
 			{
-				MultiByteToWideChar(CP_UTF8, 0, text, -1, pw, wlen);
+				MultiByteToWideChar(cp, mbFlags, text, -1, pw, wlen);
 				GlobalUnlock(gu);
 				okW = SetClipboardData(CF_UNICODETEXT, gu) != NULL;
 			}

@@ -104,7 +104,10 @@ def _in4(d, x): return (d[x] << 24) + _in3(d, x + 1)
 
 def extract_icon_font():
     """Decompress font_awesome.cpp's blob; returns a path to a real .ttf."""
-    src = open(os.path.join(REPO, "font_awesome.cpp"), encoding="utf-8", errors="replace").read()
+    # UI: row 255 - close font_awesome.cpp deterministically so python -W error
+    # emits no ResourceWarning on shutdown.
+    with open(os.path.join(REPO, "font_awesome.cpp"), encoding="utf-8", errors="replace") as fh:
+        src = fh.read()
     size = int(re.search(r"font_awesome_size\s*=\s*(\d+)", src).group(1))
     vals = [int(v, 16) for v in re.findall(r"0x([0-9a-fA-F]{8})", src[src.index("font_awesome_data"):])]
     blob = b"".join(struct.pack("<I", v) for v in vals)[:size]

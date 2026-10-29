@@ -271,17 +271,28 @@ namespace Menu
 		std::vector<std::string> out;
 		std::string line;
 		const char* p = text;
+		// UI: row 255 - join words with a single space and exclude trailing
+		// whitespace from both the width test and the pushed line, matching
+		// docs/render_preview.py's wrap() so wrapped lines centre accurately.
 		while (*p)
 		{
+			while (*p == ' ')
+				++p;
+			if (!*p)
+				break;
 			const char* sp = strchr(p, ' ');
-			const size_t len = sp ? (size_t)(sp - p) + 1 : strlen(p);
-			const std::string test = line + std::string(p, len);
+			const size_t len = sp ? (size_t)(sp - p) : strlen(p);
+			const std::string word(p, len);
+			const std::string test = line.empty() ? word : (line + " " + word);
 			if (!line.empty() && ImGui::CalcTextSize(test.c_str()).x > maxW)
 			{
 				out.push_back(line);
-				line.clear();
+				line = word;
 			}
-			line.append(p, len);
+			else
+			{
+				line = test;
+			}
 			p += len;
 		}
 		if (!line.empty())
@@ -803,6 +814,7 @@ namespace Menu
 		// which is the point: the corrected position is the one worth persisting.
 		static ImVec2 lastMinSize(0.0f, 0.0f);
 		const ImVec2 minSize = ImGui::GetStyle().WindowMinSize;
+		bool scaleClamped = false;
 		if (lastMinSize.x > 0.0f
 			&& (minSize.x != lastMinSize.x || minSize.y != lastMinSize.y))
 		{
@@ -810,6 +822,7 @@ namespace Menu
 			ImVec2 live = ImGui::GetWindowPos();
 			ClampToVirtualScreen(live.x, live.y, shell.x, shell.y);
 			ImGui::SetWindowPos(live);
+			scaleClamped = true;
 		}
 		lastMinSize = minSize;
 
@@ -829,7 +842,9 @@ namespace Menu
 		// included.  The editor consumes plain Tab for indent but leaves the
 		// Ctrl chord alone (TextEditor checks !ctrl), so this stays safe while
 		// the editor has focus.
-		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Tab, false))
+		// UI: row 255 - guard against KeyAlt so Windows' Ctrl+Alt+Tab switcher
+		// chord does not also cycle Menu::Tab.
+		if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Tab, false))
 		{
 			const int dir = ImGui::GetIO().KeyShift ? -1 : 1;
 			Tab = (Tab + dir + 5) % 5;
@@ -898,8 +913,13 @@ namespace Menu
 		const double now = ImGui::GetTime();
 		if (Settings::Current.WindowX < 0)
 			armed = false;           // never persisted / just reset: wait for a drag
-		if (lastPos.x >= 0.0f &&
-			(fabsf(pos.x - lastPos.x) > 4.0f || fabsf(pos.y - lastPos.y) > 4.0f))
+		// UI: row 255 - a scale-clamp move when WindowX < 0 (e.g. right after
+		// Reset interface settings restored ScalePercent) is layout, not a drag,
+		// so only let scaleClamped arm the saver when a position was already
+		// persisted (WindowX >= 0).
+		if (lastPos.x >= 0.0f
+			&& (!scaleClamped || Settings::Current.WindowX >= 0)
+			&& (fabsf(pos.x - lastPos.x) > 4.0f || fabsf(pos.y - lastPos.y) > 4.0f))
 			armed = true;            // moved between frames => user drag, not layout
 		lastPos = pos;
 		if (armed && ((int)pos.x != Settings::Current.WindowX || (int)pos.y != Settings::Current.WindowY))

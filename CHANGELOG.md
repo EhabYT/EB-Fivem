@@ -11,6 +11,28 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Extended-key KeyName fix, CP_ACP clipboard fallback & shell layout guards (row 255)
+- `settings.cpp` (`KeyName`): set bit 24 (`1L << 24`, the extended-key flag) in `GetKeyNameTextA`'s
+  `lParam` for extended keys (`MAPVK_VK_TO_VSC_EX` `0xE000` prefix plus `VK_INSERT`, `VK_DELETE`,
+  `VK_HOME`, `VK_END`, `VK_PRIOR`, `VK_NEXT`, `VK_NUMLOCK`, etc.) and handled `VK_PAUSE` via
+  `(0x45 << 16)` with `"PAUSE"` fallback.  Without bit 24, keys sharing scancodes `0x45..0x53` with
+  the numeric keypad resolved to their numpad names - default `VK_INSERT` (`0x2D`, scan `0x52`)
+  displayed as `"Num 0"` on English Windows and `"0 (ZEHNERTASTATUR)"` on German Windows.
+- `clipboard.h` (`CopyTextToClipboard`): probed `MultiByteToWideChar` with `CP_UTF8` and
+  `MB_ERR_INVALID_CHARS` first and fell back to `CP_ACP` when non-UTF-8 ANSI bytes are present, so
+  Windows ANSI (`CP_ACP`) umlauts in paths (`GetModuleFileNameA`, `GetOpenFileNameA`) and localized
+  key names (`GetKeyNameTextA`) are not replaced with `U+FFFD` in `CF_UNICODETEXT`.
+- `menu.cpp` (`WrapHint`, `Render`): stripped trailing spaces from `WrapHint`'s width test and
+  pushed lines (matching `docs/render_preview.py`), guarded `Ctrl+Tab` with `!ImGui::GetIO().KeyAlt`
+  so Windows' `Ctrl+Alt+Tab` switcher chord does not cycle `Menu::Tab`, and prevented a
+  `ClampToVirtualScreen` move on `WindowX < 0` (such as after `Reset interface settings` restores
+  `ScalePercent`) from arming the drag detector and overwriting `WindowX = -1`.
+- `settings.cpp` (`SaveWindowPos`, `ApplyScale`) & `docs/render_preview.py`: retired `g_saveFailed`
+  when a subsequent `SaveWindowPos` succeeds (matching `Save()` in row 191), updated the stale
+  `"ImGui 1.92"` / `"imgui.cpp:9215"` comments to `"1.93"` / `":9328"`, and closed `font_awesome.cpp`
+  with a `with` block in `docs/render_preview.py` so `python -W error` emits zero `ResourceWarning`.
+- All eight preview scenes remain byte-identical.
+
 ## Modal-dialog lifecycle, Executor same-frame state & Resource Browser identity (row 254)
 - `gui.h` & `exec.cpp`: extracted `Gui::BeginModal()` / `Gui::EndModal(ULONGLONG t0)` from
   `Gui::ModalBoxA` and wrapped `GetSaveFileNameA` and `GetOpenFileNameA` so both Win32 file
