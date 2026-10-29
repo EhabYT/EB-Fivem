@@ -11,6 +11,29 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Modal-dialog lifecycle, Executor same-frame state & Resource Browser identity (row 254)
+- `gui.h` & `exec.cpp`: extracted `Gui::BeginModal()` / `Gui::EndModal(ULONGLONG t0)` from
+  `Gui::ModalBoxA` and wrapped `GetSaveFileNameA` and `GetOpenFileNameA` so both Win32 file
+  dialogs set `Gui::ModalActive()`, publish their duration to `Gui::ModalSeconds()` (preventing
+  file dialogs longer than `0.5 s` from re-triggering the shell open fade or resetting keyboard
+  focus onto the sidebar via `g_justOpened`), and drain `GetAsyncKeyState(7..254)` on close.
+- `toasts.h`, `toasts.cpp` & `menu.cpp`: added `Toasts::ShiftBorn(double seconds)` and called it
+  from `Menu::Render()` whenever `modalDelta > 0.0` so toasts pushed before or right after a
+  modal dialog are not prematurely aged or erased when `ImGui::NewFrame()` folds the dialog wait
+  into `g.Time`; subtracted `modalDelta` from `ImGui::GetIO().DeltaTime` before `Perf::Sample()`
+  so modal dialog waits do not record multi-second red spikes in the Diagnostics sparkline or
+  inflate `Menu open` uptime.
+- `exec.cpp`: captured `editorMin` immediately after `editor.Render()`, tracked `##ed_ctx`
+  (`Undo`/`Redo`/`Cut`/`Paste`) edits, and updated `bufEmpty`/`dirty` before drawing the
+  `if (bufEmpty)` placeholder so the hint appears/disappears on the exact frame the buffer
+  changes; added `!ImGui::GetIO().KeyAlt` to `Ctrl+S` and `Ctrl+O` so `AltGr+S` / `AltGr+O`
+  (`Ctrl+Alt` on European Windows layouts) never falsely triggers `Save` or `Load from File`.
+- `resources.cpp` (`File Browser`): changed `openRes` and `lastDumped` from `int` vector indices
+  to `const char*` resource pointers (clearing `openRes = NULL` when erased), so removing an
+  entry in `Stopper` never shifts `openRes`/`lastDumped` onto a neighbour resource or leaves a
+  stale `"--successfully dumped <old>."` preview inside another resource's header.
+- All eight preview scenes remain byte-identical.
+
 ## Fix five Executor and TextEditor bugs (row 253)
 - `TextEditor.cpp` (`GetText`): stopped at `Coordinates(lastLine, GetLineMaxColumn(lastLine))` instead
   of `Coordinates((int)mLines.size(), 0)` (which walked one line past `mLines.back()` and appended a

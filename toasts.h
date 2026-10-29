@@ -30,6 +30,11 @@ namespace Toasts
 	// ~4s would otherwise reappear mid-fade when toasts are switched back on.
 	void Clear();
 
+	// UI: row 254 - advances every live card's born timestamp by the wall-clock
+	// seconds spent inside a modal dialog, so the ImGui::GetTime() jump on the
+	// first post-dialog frame does not prematurely age or expire active toasts.
+	void ShiftBorn(double seconds);
+
 	// Draws the live stack.  Call from inside the menu window (menu.cpp);
 	// cards fade in, live ~4s and fade out again.
 	void Render();

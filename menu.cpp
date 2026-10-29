@@ -680,8 +680,17 @@ namespace Menu
 		// wall-clock duration; subtract what is new since the last frame.
 		static double modalSeen = 0.0;
 		const double modalNow = Gui::ModalSeconds();
-		const double gap = (tNow - lastRender) - (modalNow - modalSeen);
+		const double modalDelta = modalNow - modalSeen;
+		const double gap = (tNow - lastRender) - modalDelta;
 		modalSeen = modalNow;
+		// UI: row 254 - on the first frame after a modal dialog closes,
+		// ImGui::NewFrame() folds the dialog's wall-clock duration into
+		// io.DeltaTime and g.Time: shift live toast timestamps so post-dialog
+		// toasts are not immediately expired, and subtract modalDelta from
+		// Perf::Sample so the Diagnostics graph does not record a dialog wait
+		// as a multi-second frame hitch.
+		if (modalDelta > 0.0)
+			Toasts::ShiftBorn(modalDelta);
 		// 0.5s: far above any real frame hitch (which must not re-trigger the
 		// fade mid-session) and far below any human close/reopen.
 		if (lastRender < 0.0 || gap > 0.5)
@@ -692,7 +701,8 @@ namespace Menu
 		lastRender = tNow;
 
 		// Frame-time history for the Diagnostics card on the landing tab.
-		Perf::Sample(ImGui::GetIO().DeltaTime * 1000.0f);
+		const float frameDt = ImGui::GetIO().DeltaTime - (float)modalDelta;
+		Perf::Sample((frameDt > 0.0f ? frameDt : 0.0f) * 1000.0f);
 
 		float fade = 1.0f;
 		if (Settings::Current.Animations)

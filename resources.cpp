@@ -271,9 +271,14 @@ namespace Resources
 				// the first header's preview to the wrong resource.  Re-asserting
 				// the invariant per frame closes the previous header on the frame
 				// after a new one opens, and clicks still toggle both ways.
-				static int openRes = -1;
-				if (openRes >= (int)resources.size())
-					openRes = -1;   // the stopper erases entries
+				// UI: row 254 - track the open header and last-dumped resource by
+				// resource pointer (const char*) rather than vector index: when
+				// the Stopper erases an entry at or before the open index, an
+				// integer index shifts onto the next resource and leaves the old
+				// dump text under the neighbour's header.
+				static const char* openRes = NULL;
+				if (openRes != NULL && std::find(resources.begin(), resources.end(), openRes) == resources.end())
+					openRes = NULL;   // the stopper erases entries
 				// UI: row 173 - a filter that matches nothing left an empty box
 				// with no explanation; the count drives the in-list hint below.
 				int shown = 0;
@@ -282,12 +287,12 @@ namespace Resources
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
 					++shown;
-					ImGui::SetNextItemOpen(openRes == i);
+					ImGui::SetNextItemOpen(openRes == resources[i]);
 					const bool open = ImGui::CollapsingHeader(resources[i]);
 					if (open)
-						openRes = i;
-					else if (openRes == i)
-						openRes = -1;
+						openRes = resources[i];
+					else if (openRes == resources[i])
+						openRes = NULL;
 					if (open)
 					{
 						if (strcmp(resources[i], "_cfx_internal") == 0 || strcmp(resources[i], "fivem") == 0)
@@ -308,11 +313,11 @@ namespace Resources
 							// bug in line: selection and scroll reset 60-144 times a second
 							// and the document re-tokenised at the same rate.  Set it only
 							// when the open resource actually changes.
-							static int lastDumped = -1;
-							if (lastDumped != i)
+							static const char* lastDumped = NULL;
+							if (lastDumped != resources[i])
 							{
 								dumper.SetText(std::string("--successfully dumped ") + resources[i] + ".");
-								lastDumped = i;
+								lastDumped = resources[i];
 							}
 							dumper.Render("##dumper", ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(200.0f)));
 						}

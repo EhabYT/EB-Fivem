@@ -281,7 +281,13 @@ namespace Executor
 				ofn.lpstrDefExt = "lua";
 				ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
 				ofn.lpstrInitialDir = initDir.empty() ? NULL : initDir.c_str();
-				if (!GetSaveFileNameA(&ofn))
+				// UI: row 254 - GetSaveFileNameA spins a modal Win32 message loop;
+				// route it through Gui::BeginModal/EndModal so ModalActive,
+				// ModalSeconds and the key-edge drain cover the Save dialog too.
+				const ULONGLONG t0 = Gui::BeginModal();
+				const BOOL saved = GetSaveFileNameA(&ofn);
+				Gui::EndModal(t0);
+				if (!saved)
 					return;
 				target = file;
 			}
@@ -353,7 +359,9 @@ namespace Executor
 		// Ctrl+S: the editor owns Ctrl+Z/Y/C/V but not S or O, so both shortcuts
 		// are free here.  Repeat off, and tab-local because the checks live in
 		// this tab.  Ctrl+Shift+S falls out of saveBuffer's KeyShift read.
-		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false))
+		// UI: row 254 - guard against KeyAlt so AltGr+S (Ctrl+Alt on European
+		// Windows layouts) does not trigger Save.
+		if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_S, false))
 			saveBuffer();
 		ImGui::SameLine();
 		// Revert reloads the file behind the buffer - the counterpart to
@@ -434,6 +442,53 @@ namespace Executor
 		const float statusH = ImGui::GetTextLineHeightWithSpacing();
 		editor.Render("##Null", ImVec2(avail.x - 16.0f,
 			avail.y - Settings::Px(52.0f) - statusH - tb - Settings::Px(4.0f)), true);
+		// UI: row 254 - capture the editor's top-left corner immediately after
+		// Render() so BeginPopupContextItem still attaches to the editor item,
+		// then update bufEmpty/dirty before drawing the empty-buffer hint on the
+		// very same frame.
+		const ImVec2 editorMin = ImGui::GetItemRectMin();
+
+		// Right-click context menu: toolbar and shortcuts cover these actions,
+		// but the mouse-native route was missing - a right click in the editor
+		// did nothing at all.  Same disabled family as the toolbar: cut/copy
+		// grey without a selection, paste without clipboard text, and every
+		// label names the shortcut it mirrors.
+		if (ImGui::BeginPopupContextItem("##ed_ctx"))
+		{
+			if (ImGui::MenuItem("Undo\tCtrl+Z", NULL, false, editor.CanUndo()))
+			{
+				editor.Undo();
+				toolbarEdited = true;
+			}
+			if (ImGui::MenuItem("Redo\tCtrl+Y", NULL, false, editor.CanRedo()))
+			{
+				editor.Redo();
+				toolbarEdited = true;
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Cut\tCtrl+X", NULL, false, editor.HasSelection()))
+			{
+				editor.Cut();
+				toolbarEdited = true;
+			}
+			if (ImGui::MenuItem("Copy\tCtrl+C", NULL, false, editor.HasSelection()))
+				editor.Copy();
+			if (ImGui::MenuItem("Paste\tCtrl+V", NULL, false, clipAvail))
+			{
+				editor.Paste();
+				toolbarEdited = true;
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Select All\tCtrl+A"))
+				editor.SelectAll();
+			ImGui::EndPopup();
+		}
+
+		if (toolbarEdited || editor.IsTextChanged())
+		{
+			bufEmpty = editor.GetText().empty();
+			dirty = true;
+		}
 
 		// Empty-state hint: a fresh buffer is a blank rectangle, and its three ways
 		// in (type, paste, load) stay invisible until something names them.  Muted
@@ -445,43 +500,12 @@ namespace Executor
 			// UI: row 253 - align the placeholder with line 1 column 1 (past
 			// WindowPadding and TextEditor's " 1 " + mLeftMargin gutter) instead of
 			// drawing at p.x + 8 directly over line number 1.
-			const ImVec2 p = ImGui::GetItemRectMin();
 			const ImVec2 pad = ImGui::GetStyle().WindowPadding;
 			const float gutterW = ImGui::CalcTextSize(" 1 ").x + 10.0f;
 			ImGui::GetWindowDrawList()->AddText(
-				ImVec2(p.x + pad.x + gutterW, p.y + pad.y),
+				ImVec2(editorMin.x + pad.x + gutterW, editorMin.y + pad.y),
 				ImGui::GetColorU32(ImGuiCol_TextDisabled),
 				"Empty buffer - start typing, Ctrl+V pastes, Ctrl+O loads a file.");
-		}
-
-		// Right-click context menu: toolbar and shortcuts cover these actions,
-		// but the mouse-native route was missing - a right click in the editor
-		// did nothing at all.  Same disabled family as the toolbar: cut/copy
-		// grey without a selection, paste without clipboard text, and every
-		// label names the shortcut it mirrors.
-		if (ImGui::BeginPopupContextItem("##ed_ctx"))
-		{
-			if (ImGui::MenuItem("Undo\tCtrl+Z", NULL, false, editor.CanUndo()))
-				editor.Undo();
-			if (ImGui::MenuItem("Redo\tCtrl+Y", NULL, false, editor.CanRedo()))
-				editor.Redo();
-			ImGui::Separator();
-			if (ImGui::MenuItem("Cut\tCtrl+X", NULL, false, editor.HasSelection()))
-				editor.Cut();
-			if (ImGui::MenuItem("Copy\tCtrl+C", NULL, false, editor.HasSelection()))
-				editor.Copy();
-			if (ImGui::MenuItem("Paste\tCtrl+V", NULL, false, clipAvail))
-				editor.Paste();
-			ImGui::Separator();
-			if (ImGui::MenuItem("Select All\tCtrl+A"))
-				editor.SelectAll();
-			ImGui::EndPopup();
-		}
-
-		if (toolbarEdited || editor.IsTextChanged())
-		{
-			bufEmpty = editor.GetText().empty();
-			dirty = true;
 		}
 
 		// Status line: the editor widget shows neither cursor position nor
@@ -564,9 +588,20 @@ namespace Executor
 
 			// With a preset path (Recent popup) the dialog is skipped entirely;
 			// strncpy_s into the same buffer keeps one code path below.
-			const bool haveFile = preset
-				? (strncpy_s(file, preset, _TRUNCATE) == 0)
-				: (GetOpenFileNameA(&ofn) != 0);
+			// UI: row 254 - route GetOpenFileNameA through Gui::BeginModal/EndModal
+			// so the modal file dialog reports ModalActive/ModalSeconds and drains
+			// stale key edges on close.
+			bool haveFile = false;
+			if (preset)
+			{
+				haveFile = (strncpy_s(file, preset, _TRUNCATE) == 0);
+			}
+			else
+			{
+				const ULONGLONG t0 = Gui::BeginModal();
+				haveFile = (GetOpenFileNameA(&ofn) != 0);
+				Gui::EndModal(t0);
+			}
 			if (haveFile)
 			{
 				// Every failure path used to be silent: pick an unreadable, empty
@@ -630,7 +665,9 @@ namespace Executor
 			loadFile();
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Load from File (Ctrl+O)");
-		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+		// UI: row 254 - guard against KeyAlt so AltGr+O (Ctrl+Alt on European
+		// Windows layouts) does not trigger Load from File.
+		if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_O, false))
 			loadFile();
 
 		ImGui::SameLine();

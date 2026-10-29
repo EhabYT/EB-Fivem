@@ -57,6 +57,15 @@ namespace Toasts
 		g_entries.clear();
 	}
 
+	// UI: row 254 - shift born timestamps forward by the modal dialog freeze so
+	// toasts pushed before or right after a modal dialog still get their full
+	// 4.0 s lifetime once ImGui::NewFrame() folds the dialog gap into g.Time.
+	void ShiftBorn(double seconds)
+	{
+		for (size_t i = 0; i < g_entries.size(); ++i)
+			g_entries[i].born += seconds;
+	}
+
 	// UI: row 162 - shared stack painter.  The shell anchors the stack to its
 	// own bottom-right corner on the window draw list; surfaces smaller than
 	// the stack pass their own anchor instead (see RenderScreen below).
