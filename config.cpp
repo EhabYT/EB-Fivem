@@ -391,6 +391,8 @@ namespace Config
 		Gui::Seperator("##about_seperator_1");
 		ImGui::TextColored(ImColor(93, 156, 214, 255), "EBengin");
 		ImGui::TextColored(ColMuted, "Remade : by EB");
+		// UI: row 251 - owner-requested status line in the About block.
+		ImGui::TextColored(ColMuted, "Fully updated since 2026");
 		// GetVersion() reports the version the linked imgui.cpp was compiled
 		// with, so this line can never drift from the vendored sources.
 		ImGui::TextColored(ColMuted, "Interface: ImGui %s (ocornut)",

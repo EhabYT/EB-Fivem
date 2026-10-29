@@ -209,7 +209,7 @@ namespace Menu
 		snprintf(buildDate, sizeof(buildDate), "Build Date: %s", __DATE__);
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().WindowPadding.y
-			- 4.0f * ImGui::GetTextLineHeightWithSpacing());
+			- 5.0f * ImGui::GetTextLineHeightWithSpacing());
 
 		// Live frame rate / frame time from ImGui's own smoothed counter, so the
 		// overlay can answer "is it the menu or the game?" without a profiler.
@@ -224,6 +224,9 @@ namespace Menu
 		// was a hardcoded constant.  The footer states the fact instead.
 		CenteredInSidebar("No license check.");
 		CenteredInSidebar(buildDate);
+		// UI: row 251 - owner-requested status line across sidebar footer, splash
+		// card and Config About block.
+		CenteredInSidebarColored("Fully updated since 2026", ColMuted);
 
 		// Visible brand credit, same wording as the source comment.
 		CenteredInSidebarColored("Remade : by EB", ColMuted);
@@ -332,7 +335,7 @@ namespace Menu
 		const std::vector<std::string> h2 = WrapHint(hint2, hintW);
 		const float lineAdv = ImGui::GetTextLineHeightWithSpacing();
 		const ImVec2 card(Settings::Px(460.0f),
-			Settings::Px(288.0f) + (float)(h1.size() + h2.size() - 2) * lineAdv);
+			Settings::Px(312.0f) + (float)(h1.size() + h2.size() - 2) * lineAdv);
 		// UI: row 220 - ApplyStyle()/ApplyScale() keep style.WindowMinSize at the
 		// shell's 900x540 (times scale), and ImGui clamps every window without
 		// AlwaysAutoResize to it (imgui.cpp CalcWindowMinSize): SetNextWindowSize
@@ -388,6 +391,8 @@ namespace Menu
 		}
 
 		Centered("Remade : by EB", ColMuted);
+		// UI: row 251 - owner-requested status line on the splash card.
+		Centered("Fully updated since 2026", ColMuted);
 
 		ImGui::Spacing();
 		Gui::Seperator("##splash_seperator");

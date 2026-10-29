@@ -11,6 +11,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Add "Fully updated since 2026" UI status line (row 251)
+- `menu.cpp`: added `"Fully updated since 2026"` (`ColMuted`) to the sidebar footer (updating the
+  bottom anchor from `4.0f` to `5.0f * ImGui::GetTextLineHeightWithSpacing()`) and to the first-open
+  splash card under `"Remade : by EB"` (updating the base card height from `288.0f` to `312.0f`).
+- `config.cpp`: added `"Fully updated since 2026"` (`ColMuted`) to the `About` block under
+  `"Remade : by EB"`.
+- `docs/render_preview.py`: updated the sidebar footer (stepping by `FONT_SIZE + ITEM_SPACING_Y` to
+  match `ImGui::GetTextLineHeightWithSpacing()`), the `--splash` scene, and the `--config` `About`
+  block + width/height assertions, and regenerated the preview PNGs.
+
 ## Full-project compile hygiene and build.bat Win32 OutDir fix (row 250)
 - `main.cpp`: added `(void)lpReserved;` in `MainThread` (`C4100` / `-Wunused-parameter`) and
   value-initialized `WIN32_FILE_ATTRIBUTE_DATA attr = {};` in `LogHookLine`
