@@ -695,7 +695,7 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 static void LogHookLine(const char* text)
 {
 	const std::string path = ResolveAssetPath("EBengin.log");
-	WIN32_FILE_ATTRIBUTE_DATA attr = { 0 };
+	WIN32_FILE_ATTRIBUTE_DATA attr = {};
 	if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr) != 0
 		&& attr.nFileSizeHigh == 0 && attr.nFileSizeLow > 64u * 1024u)
 		DeleteFileA(path.c_str());
@@ -721,6 +721,8 @@ static void LogHookLine(const char* text)
 
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
+	// UI: row 250 - silence C4100 / -Wunused-parameter on lpReserved.
+	(void)lpReserved;
 	// UI: row 247 - guard against a second MainThread entry in the same module
 	// (while DLL_PROCESS_ATTACH below guards against a second module mapping).
 	if (InterlockedCompareExchange(&g_mainThreadEntered, 1, 0) != 0)

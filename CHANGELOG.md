@@ -11,6 +11,17 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Full-project compile hygiene and build.bat Win32 OutDir fix (row 250)
+- `main.cpp`: added `(void)lpReserved;` in `MainThread` (`C4100` / `-Wunused-parameter`) and
+  value-initialized `WIN32_FILE_ATTRIBUTE_DATA attr = {};` in `LogHookLine`
+  (`-Wmissing-field-initializers`).
+- `demo.cpp`: passed `MB_OK` instead of pointer constant `NULL` as the `UINT uType` parameter of
+  `MessageBoxA` (`-Wconversion-null`), making all 14 project-owned `.cpp` translation units compile
+  with zero warnings under `-std=c++17 -Wall -Wextra`.
+- `build.bat`: resolved `OUTDIR` to `%~dp0%CONFIG%` when `PLATFORM=Win32` (matching MSBuild's
+  default `Win32` `OutDir` and the `Clean` target above) so `build.bat Release Win32` and
+  `build.bat Debug Win32` report the actual DLL path and copy `EBengin.png` into the right folder.
+
 ## Release swap-chain buffer-0 RTV and restore OM render targets before oPresent (row 249)
 - Root-cause D3D11/DXGI fix in `PresentFrame` / `CreateRenderTarget` / `CleanupRenderTarget`
   (`main.cpp`):
