@@ -1,6 +1,6 @@
 # EB-Fivem — EBengin UI
 
-An in-game **Dear ImGui overlay for FiveM**, delivered as a Windows x64 DLL.
+An in-game **Dear ImGui overlay for FiveM**, delivered as a Windows x64 DLL (**Fully updated since 2026**).
 
 `main.cpp` hooks `IDXGISwapChain::Present` (vtable index 8) with [Kiero](kiero/kiero.h) +
 MinHook, subclasses the window procedure, initialises ImGui with the DX11/Win32 backends and
@@ -31,7 +31,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > the Interface preferences - toggle-key capture, animations, toasts, FPS HUD with plate corner, the persisted
 > 70-200 % scale slider, reset - and the two inert switches: greyed headings,
 > `Enabled (no effect)` in the switch itself, an inert tooltip, and the warn toast that
-> answers every flip. The right pane's About block names brand, credit, build
+> answers every flip. The right pane's About block names brand, credit, status (`Fully updated since 2026`), build
 > configuration and host scale, flags a non-writable settings file in red, and its
 > `Copy diagnostics` button puts exactly that line on the clipboard, and a second button
 > opens the settings folder in Explorer with the file highlighted. The landing
@@ -57,7 +57,7 @@ Everything is vendored in-tree — no submodules, no package manager, no externa
 > unimplemented and says so.
 
 First open after inject shows a branded start card instead of the shell - logo,
-name and the credit line, dismissed with Continue.  Fifth render
+name, credit line and `Fully updated since 2026` status line, dismissed with Continue.  Fifth render
 (`python docs/render_preview.py --splash`):
 
 ![EBengin splash card](docs/preview_splash.png)
@@ -99,7 +99,7 @@ field:
 | [`clipboard.h`](clipboard.h) | Header-only Win32 `CF_TEXT` writer shared by Config (diagnostics), the landing log and the Resources copy buttons |
 | [`exec.h`](exec.h) · [`exec.cpp`](exec.cpp) | Executor tab — Lua editor with toolbar (undo/redo/copy/paste/clear/save/revert, whitespace toggle), status line (cursor, lines, last file, modified mark), honest Execute stub, Load/Save dialogs with confirmations and shortcuts, Recent-files popup (five last used paths from settings.ini), right-click menu, empty-state hint, resource combo |
 | [`resources.h`](resources.h) · [`resources.cpp`](resources.cpp) | Resources tab — file browser, trigger list, resource stopper, dumps |
-| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, FPS HUD, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, credit, ImGui version, build configuration, host scale, not-writable warning, Copy diagnostics, Open settings folder |
+| [`config.h`](config.h) · [`config.cpp`](config.cpp) | Config tab — interface preferences (toggle key, animations, toasts, FPS HUD, scale, reset) plus the inert Safe Mode / ScriptHook Bypass placeholders - greyed headings, switches labelled `Enabled (no effect)`, inert tooltips - and the About block: brand, credit, `Fully updated since 2026` status line, ImGui version, build configuration, host scale, not-writable warning, Copy diagnostics, Open settings folder |
 | [`luamenus.h`](luamenus.h) · [`luamenus.cpp`](luamenus.cpp) | Menus tab — free / premium menu lists |
 | [`demo.h`](demo.h) · [`demo.cpp`](demo.cpp) | Annotated ImGui widget cheat-sheet (not wired to a tab) |
 | [`default.h`](default.h) · [`default.cpp`](default.cpp) | Landing tab - diagnostics card (sparkline, uptime, action count) and the session activity log with Copy/Clear |
