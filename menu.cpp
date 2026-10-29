@@ -439,11 +439,18 @@ namespace Menu
 		// metrics do not move.  This patch also normalizes the 95 bare-LF lines
 		// earlier patches left in this CRLF file.
 		const char* credit = "Remade : by EB";
+		// UI: row 252 - carry "Fully updated since 2026" on the HUD plate too
+		// so all four branding surfaces (sidebar footer, splash card, Config
+		// About and HUD plate) stay in sync.
+		const char* updated = "Fully updated since 2026";
 
 		const ImVec2 ts = ImGui::CalcTextSize(line);
 		const ImVec2 cs = ImGui::CalcTextSize(credit);
-		const float w = ts.x > cs.x ? ts.x : cs.x;
+		const ImVec2 us = ImGui::CalcTextSize(updated);
+		float w = ts.x > cs.x ? ts.x : cs.x;
+		if (us.x > w) w = us.x;
 		const float adv = ImGui::GetTextLineHeightWithSpacing();
+		const float plateH = 2.0f * adv + us.y;
 		const float pad = Settings::Px(6.0f);
 		// UI: row 148 - the plate used to be pinned top-left, exactly where game
 		// HUDs (minimap, score strips) commonly sit; the corner is a setting now.
@@ -453,16 +460,16 @@ namespace Menu
 		switch (Settings::Current.HudCorner)
 		{
 		case 1: pos = ImVec2(disp.x - m - w, m); break;
-		case 2: pos = ImVec2(m, disp.y - m - adv - cs.y); break;
-		case 3: pos = ImVec2(disp.x - m - w, disp.y - m - adv - cs.y); break;
+		case 2: pos = ImVec2(m, disp.y - m - plateH); break;
+		case 3: pos = ImVec2(disp.x - m - w, disp.y - m - plateH); break;
 		default: break;
 		}
 		ImDrawList* bg = ImGui::GetBackgroundDrawList();
 		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
-			ImVec2(pos.x + w + pad, pos.y + adv + cs.y + pad),
+			ImVec2(pos.x + w + pad, pos.y + plateH + pad),
 			// UI: row 147 - alpha 160 let a bright game scene wash the plate out
 			// (worst-case ~1.0:1 for the credit line); 220 keeps the scene visible
-			// behind it while both plate lines hold WCAG AA worst-case.
+			// behind it while all plate lines hold WCAG AA worst-case.
 			IM_COL32(12, 18, 28, 220), Settings::Px(6.0f));
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(), pos,
 			// UI: row 147 - the FPS line was brand accent (4.4:1 on the plate);
@@ -471,6 +478,8 @@ namespace Menu
 			ImColor(255, 255, 255, 255), line);
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
 			ImVec2(pos.x, pos.y + adv), ColMuted, credit);
+		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
+			ImVec2(pos.x, pos.y + 2.0f * adv), ColMuted, updated);
 	}
 
 	// UI: row 160 - a password field shows dots, so whitespace around a pasted

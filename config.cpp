@@ -426,9 +426,11 @@ namespace Config
 				"Settings not writable - changes are lost on restart.");
 		Gui::Seperator("##about_seperator_2");
 
-		// One click puts exactly the four lines above (plus ImGui version and
-		// toggle key) on the clipboard, so a report from another machine carries
-		// its environment with it.
+		// UI: row 252 - updated comment and snapshot to include the
+		// "Fully updated since 2026" status line from the About block above.
+		// One click puts the About block summary (plus toggle key, HUD and file
+		// paths) on the clipboard, so a report from another machine carries its
+		// environment with it.
 		if (ImGui::Button("Copy diagnostics",
 			ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(26.0f))))
 		{
@@ -452,7 +454,7 @@ namespace Config
 				GetFileAttributesA(logPath.c_str()) != INVALID_FILE_ATTRIBUTES;
 			char diag[640];
 			snprintf(diag, sizeof(diag),
-				"EBengin | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s | log: %s%s",
+				"EBengin (Fully updated since 2026) | Build: %s | Host: DPI %.2f, interface %d%% | shell: %dx%d | ImGui %s | toggle: %s | hud: %s | settings: %s%s | log: %s%s",
 				cfg, Settings::DpiScale, Settings::Current.ScalePercent,
 				(int)(900.0f * Settings::ScaleFactor()), (int)(540.0f * Settings::ScaleFactor()),
 				ImGui::GetVersion(), Settings::KeyName(Settings::Current.ToggleKey),

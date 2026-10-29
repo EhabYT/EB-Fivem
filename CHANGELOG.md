@@ -11,6 +11,16 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Extend "Fully updated since 2026" to HUD plate and diagnostics snapshot (row 252)
+- `menu.cpp` / `menu.h` (`RenderHud`): added `"Fully updated since 2026"` (`ColMuted`) as the third
+  line on the closed-overlay HUD plate (`plateH = 2.0f * adv + us.y`, width `max(ts.x, cs.x, us.x)`),
+  keeping all four branding surfaces (sidebar footer, splash card, Config `About`, HUD plate) in
+  sync.
+- `config.cpp`: included `(Fully updated since 2026)` in the `Copy diagnostics` clipboard line and
+  refreshed the comment above it.
+- `docs/render_preview.py` / `docs/preview_hud.png` / `README.md` / `BUILD.md`: updated the `--hud`
+  renderer scene and architecture descriptions.
+
 ## Add "Fully updated since 2026" UI status line (row 251)
 - `menu.cpp`: added `"Fully updated since 2026"` (`ColMuted`) to the sidebar footer (updating the
   bottom anchor from `4.0f` to `5.0f * ImGui::GetTextLineHeightWithSpacing()`) and to the first-open

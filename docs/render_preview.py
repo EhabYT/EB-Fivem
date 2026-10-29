@@ -350,11 +350,13 @@ if TAB == "hud":
 
     HUD = "FPS 144  |  6.9 ms"
     CREDIT = "Remade : by EB"      # menu.cpp: second plate line, muted brand
+    UPDATED = "Fully updated since 2026"   # UI: row 252 - third plate line
     assert TW(HUD) <= FW - 40, "hud line clipped"
     assert TW(CREDIT) <= FW - 40, "hud credit clipped"
-    ts_w = max(TW(HUD), TW(CREDIT))
+    assert TW(UPDATED) <= FW - 40, "hud updated clipped"
+    ts_w = max(TW(HUD), TW(CREDIT), TW(UPDATED))
     adv = FONT_SIZE + ITEM_SPACING_Y      # GetTextLineHeightWithSpacing()
-    plate_h = adv + FONT_SIZE             # two lines
+    plate_h = 2 * adv + FONT_SIZE         # three lines
     pad, pos = 6.0, (10.0, 10.0)
     plate = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
     ImageDraw.Draw(plate).rounded_rectangle(
@@ -364,8 +366,9 @@ if TAB == "hud":
     canvas.alpha_composite(plate)
     d = ImageDraw.Draw(canvas)
     T(pos[0], pos[1], HUD, C_TEXT)             # row 147: FPS line white, not accent
-    # credit ink: opaque AA muted token (row 147)
+    # credit + status ink: opaque AA muted token (row 147 / row 252)
     T(pos[0], pos[1] + adv, CREDIT, (125, 175, 225))
+    T(pos[0], pos[1] + 2 * adv, UPDATED, (125, 175, 225))
 
     canvas.save(OUT, optimize=True)
     os.unlink(fa_path)

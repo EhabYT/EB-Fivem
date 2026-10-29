@@ -63,7 +63,7 @@ name, credit line and `Fully updated since 2026` status line, dismissed with Con
 ![EBengin splash card](docs/preview_splash.png)
 
 While the overlay is closed, the frame-rate line lives on as a small HUD plate over
-the scene, with the `Remade : by EB` credit as its second line (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`; the plate corner is `Corner`, persisted as `[ui] hudcorner`).  Sixth render
+the scene, with the `Remade : by EB` credit and `Fully updated since 2026` status lines beneath it (Config -> `FPS HUD`, on by default, persisted as `[ui] hud`; the plate corner is `Corner`, persisted as `[ui] hudcorner`).  Sixth render
 (`python docs/render_preview.py --hud`), on a mid-tone scene stand-in:
 
 ![EBengin FPS HUD](docs/preview_hud.png)
