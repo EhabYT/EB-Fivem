@@ -563,11 +563,18 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		|| (toggleVk >= '0' && toggleVk <= '9') || toggleVk == VK_SPACE;
 	// UI: row 164 - while the Config capture is armed, every key press is a
 	// binding candidate; flipping the overlay shut on the toggle key would
-	// swallow the capture mid-press.  The poll still reads (and so drains)
-	// the edge, keeping capture and toggle from both acting on one press.
-	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantTextInput)
-		&& !Config::IsCapturing()
-		&& (GetAsyncKeyState(toggleVk) & 1))
+	// swallow the capture mid-press.
+	// UI: row 256 - the poll used to short-circuit *before* reading the key,
+	// so a printable toggle key that was suppressed by io.WantTextInput
+	// never had its edge read: GetAsyncKeyState keeps the "pressed since the
+	// last call" bit until somebody asks, and the ask came two frames later
+	// - after the text field had lost focus and WantTextInput was false
+	// again.  The overlay then closed itself while the user was still
+	// typing.  Read the edge every frame (that drains it) and let only the
+	// allowed case act on it.
+	const bool toggleEdge = toggleVk > 0 && !Config::IsCapturing()
+		&& (GetAsyncKeyState(toggleVk) & 1) != 0;
+	if (toggleEdge && (!printable || !ImGui::GetIO().WantTextInput))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 
 	if (Menu::IsMenuOpen)

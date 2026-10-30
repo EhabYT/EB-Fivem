@@ -41,7 +41,14 @@ std::vector<const char*> BlockedEvents = {};
 
 // The open sub-tab is persisted (settings.ini [menu] resourcetab), so it
 // lives in Settings instead of a file-local static.
+// UI: row 256 - the File Browser filter and the Stopper filter are two
+// different input widgets (##resfilter and ##stopfilter) and had one
+// shared buffer: whatever was typed in one tab was still standing in the
+// other one, so the Stopper list came up filtered by a term nobody typed
+// there.  ImGui keeps one input state per widget id, but the text itself
+// lives in the buffer the widget is given - two widgets, two buffers.
 static char g_resFilter[64] = { 0 };
+static char g_stopFilter[64] = { 0 };
 
 // Case-insensitive substring match for the list filter boxes.
 static bool MatchesFilter(const char* name, const char* filter)
@@ -382,7 +389,7 @@ namespace Resources
 		else if (Settings::Current.ResourceTab == 3) // Stopper
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
+			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_stopFilter, (int)sizeof(g_stopFilter));
 			// The stopper block below is separator (1+4) + the 33px button (+4) =
 			// 42px, so the 48px reserve is the right one here.
 			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
@@ -397,7 +404,8 @@ namespace Resources
 				int shown = 0;   // UI: row 173, same hint as the file list
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
-					if (!MatchesFilter(resources[i], g_resFilter))
+					// UI: row 256 - the Stopper filter has its own buffer (see above).
+					if (!MatchesFilter(resources[i], g_stopFilter))
 						continue;
 					++shown;
 					const bool is_selected = (selectedResource == i);

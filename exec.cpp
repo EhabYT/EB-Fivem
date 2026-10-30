@@ -685,7 +685,22 @@ namespace Executor
 		{
 			for (int i = 0; i < (int)Settings::Current.Recent.size(); ++i)
 			{
-				const std::string& r = Settings::Current.Recent[i];
+				// UI: row 256 - the entry used to be bound by reference into the
+				// vector that this very loop mutates: the right-click branch
+				// erases the element, and loadFile() -> PushRecent() erases it
+				// again and inserts it at the front.  The reference then
+				// pointed at the neighbouring path (or at freed memory after a
+				// reallocation), so the activity log named a file that was
+				// never removed and the tooltip showed a path that was never
+				// clicked.  Work on a copy of the path.
+				const std::string r = Settings::Current.Recent[i];
+				// UI: row 256 - MenuItemEx does PushID(label), so the label was
+				// the widget id: two recent files with the same base name
+				// (C:\a\load.lua and D:\b\load.lua) shared one id, and a
+				// single click then fired both rows - the second file was
+				// loaded instead of the first.  The row index gives every
+				// entry its own id.
+				ImGui::PushID(i);
 				if (ImGui::MenuItem(BaseName(r).c_str()))
 					loadFile(r.c_str());
 				else if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
@@ -696,6 +711,7 @@ namespace Executor
 					Settings::Save();
 					Activity::Push("Removed " + r + " from the recent list.");
 					Toasts::Push(Toasts::Info, "Removed from recent files.");
+					ImGui::PopID();
 					break;   // indices shifted; the next frame redraws the popup
 				}
 				if (ImGui::IsItemHovered())
@@ -704,6 +720,7 @@ namespace Executor
 					const std::string tip = r + "\nRight-click removes the entry.";
 					ImGui::SetTooltip("%s", tip.c_str());
 				}
+				ImGui::PopID();
 			}
 			ImGui::EndPopup();
 		}

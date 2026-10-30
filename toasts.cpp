@@ -46,6 +46,14 @@ namespace Toasts
 		// Clear() stays as the belt to these braces.
 		if (!Settings::Current.Toasts)
 			return;
+		// UI: row 256 - ImGui::GetTime() reads GImGui->Time without a NULL
+		// check.  Settings::Save() - and with it this failure toast - also
+		// runs from DLL_PROCESS_DETACH, where the ImGui context can already
+		// be gone (failed init, device-removed path): the toast was then a
+		// NULL dereference on the way out.  Without a context there is no
+		// clock and no screen either, so drop the card.
+		if (ImGui::GetCurrentContext() == NULL)
+			return;
 		const Entry e = { kind, text, ImGui::GetTime() };
 		g_entries.push_back(e);
 		if (g_entries.size() > kMax)

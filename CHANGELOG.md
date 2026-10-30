@@ -11,6 +11,30 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Recent-popup state, shared filter buffer, session counter & toast lifetime (row 256)
+- `exec.cpp` (Recent popup): bound the entry by value instead of by reference into
+  `Settings::Current.Recent` - the vector the same loop mutates (the right-click branch erases the
+  element, `loadFile()` -> `PushRecent()` erases it again and inserts it at the front). The
+  reference pointed at the neighbouring path, so the activity log named a file that was never
+  removed and the tooltip of a just-clicked entry showed another file's path (reproduced with a
+  standalone STL repro). Every popup row now gets its own id (`ImGui::PushID(i)` /
+  `ImGui::PopID()`), because `ImGui::MenuItemEx` does `PushID(label)`: two recent files with the
+  same base name shared one id, so one click fired both rows.
+- `resources.cpp`: the File Browser filter (`##resfilter`) and the Stopper filter (`##stopfilter`)
+  are two different `InputText` widgets and now have two buffers (`g_resFilter`, `g_stopFilter`);
+  with one shared buffer the text typed in one sub-tab was still standing in the other one.
+- `activity.cpp` / `activity.h`: `Clear()` now resets `g_total`, so the "N actions" counter in the
+  Diagnostics line no longer reports the cleared entries next to an empty session log.
+- `main.cpp`: the toggle poll read `GetAsyncKeyState(toggleVk)` only when it was allowed to act,
+  so a printable toggle key suppressed by `io.WantTextInput` kept its "pressed since the last
+  call" edge latched in the OS and fired two frames later - the overlay closed itself while the
+  user was still typing. The edge is now read (and drained) every frame; only the allowed case
+  acts on it.
+- `toasts.cpp`: `Toasts::Push()` returns early when `ImGui::GetCurrentContext() == NULL`;
+  `ImGui::GetTime()` reads `GImGui->Time` without a NULL check, and the failure toast of
+  `Settings::Save()` also runs from `DLL_PROCESS_DETACH`, where the context can already be gone.
+- All eight preview scenes remain byte-identical.
+
 ## Extended-key KeyName fix, CP_ACP clipboard fallback & shell layout guards (row 255)
 - `settings.cpp` (`KeyName`): set bit 24 (`1L << 24`, the extended-key flag) in `GetKeyNameTextA`'s
   `lParam` for extended keys (`MAPVK_VK_TO_VSC_EX` `0xE000` prefix plus `VK_INSERT`, `VK_DELETE`,
