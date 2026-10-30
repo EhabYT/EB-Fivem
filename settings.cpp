@@ -178,15 +178,17 @@ namespace Settings
 		if (Current.ScalePercent > 200)
 			Current.ScalePercent = 200;
 
-		// ImGui 1.92 has a first-class global scale factor: FontScaleMain
+		// UI: row 255 - updated stale "1.92" / "imgui.cpp:9215" comment to
+		// match vendored ImGui 1.93.0 (FontScaleDpi is multiplied at :9328).
+		// ImGui 1.93 has a first-class global scale factor: FontScaleMain
 		// multiplies style.FontSizeBase, and everything derived from the font size
 		// (frame height, item spacing, text, the editor) follows it.  Fonts are
 		// re-baked on demand at the new size, so this is one assignment rather than
 		// a restyle pass.
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.FontScaleMain = (float)Current.ScalePercent / 100.0f;
-		// Per-monitor DPI: 1.92 multiplies FontScaleMain * FontScaleDpi into every
-		// font size (imgui.cpp:9215), and ScaleFactor() folds the same factor into
+		// Per-monitor DPI: 1.93 multiplies FontScaleMain * FontScaleDpi into every
+		// font size (imgui.cpp:9328), and ScaleFactor() folds the same factor into
 		// every shell metric and Settings::Px(), so the whole layout follows.
 		style.FontScaleDpi = DpiScale;
 
@@ -256,14 +258,44 @@ namespace Settings
 				+ " - is the folder writable?");
 			Toasts::Push(Toasts::Warn, "Settings could not be saved - is the DLL folder writable?");
 		}
+		// UI: row 255 - retire the save-failure latch when a subsequent
+		// SaveWindowPos succeeds, matching Save() (row 191).
+		else if (ok && g_saveFailed)
+		{
+			g_saveFailed = false;
+			Activity::Push("Settings writable again - the warning line is gone.");
+		}
 	}
 
 	const char* KeyName(int vk)
 	{
 		static char buf[64];
-		const UINT scan = MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_VSC);
-		if (scan != 0 && GetKeyNameTextA((LONG)(scan << 16), buf, (int)sizeof(buf)) != 0)
-			return buf;
+		// UI: row 255 - VK_PAUSE has no single-byte make scancode (MapVirtualKeyA
+		// returns 0 or 0x45, which collides with Num Lock), and navigation/numlock
+		// keys share scancodes 0x45..0x53 with the numeric keypad unless bit 24
+		// (the extended-key flag) is set in GetKeyNameTextA's lParam: without
+		// bit 24, default VK_INSERT (0x2D, scan 0x52) displayed as "Num 0" /
+		// "0 (ZEHNERTASTATUR)" instead of "Insert" / "EINFG".
+		if (vk == VK_PAUSE)
+		{
+			if (GetKeyNameTextA((LONG)(0x45 << 16), buf, (int)sizeof(buf)) != 0)
+				return buf;
+			return "PAUSE";
+		}
+		const UINT scanEx = MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_VSC_EX);
+		const UINT scan = scanEx != 0 ? (scanEx & 0xFFu) : MapVirtualKeyA((UINT)vk, MAPVK_VK_TO_VSC);
+		const bool extended = ((scanEx & 0xFF00u) == 0xE000u)
+			|| vk == VK_INSERT || vk == VK_DELETE || vk == VK_HOME || vk == VK_END
+			|| vk == VK_PRIOR || vk == VK_NEXT || vk == VK_NUMLOCK
+			|| vk == VK_SNAPSHOT || vk == VK_DIVIDE
+			|| vk == VK_UP || vk == VK_DOWN || vk == VK_LEFT || vk == VK_RIGHT
+			|| vk == VK_RMENU || vk == VK_RCONTROL || vk == VK_LWIN || vk == VK_RWIN || vk == VK_APPS;
+		if (scan != 0)
+		{
+			const LONG lParam = (LONG)(scan << 16) | (extended ? (1L << 24) : 0L);
+			if (GetKeyNameTextA(lParam, buf, (int)sizeof(buf)) != 0)
+				return buf;
+		}
 		snprintf(buf, sizeof(buf), "VK %d", vk);
 		return buf;
 	}

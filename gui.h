@@ -56,16 +56,29 @@ namespace Gui
 	}
 	inline bool ModalActive() { return ModalActiveRef(); }
 
-	inline int ModalBoxA(const char* text, const char* title, UINT flags)
+	// UI: row 254 - shared modal lifecycle for MessageBoxA and the Win32 file
+	// dialogs (GetOpenFileNameA / GetSaveFileNameA), which spin the same modal
+	// message loop on the render thread.
+	inline ULONGLONG BeginModal()
 	{
-		const ULONGLONG t0 = ::GetTickCount64();
 		ModalActiveRef() = true;
-		// UI: row 211 - was NULL: unowned boxes can open behind the game window.
-		const int r = ::MessageBoxA(window, text, title, flags);
+		return ::GetTickCount64();
+	}
+
+	inline void EndModal(ULONGLONG t0)
+	{
 		ModalActiveRef() = false;
 		ModalSeconds((double)(::GetTickCount64() - t0) / 1000.0);
 		for (int vk = 7; vk < 255; ++vk)
 			(void)::GetAsyncKeyState(vk);
+	}
+
+	inline int ModalBoxA(const char* text, const char* title, UINT flags)
+	{
+		const ULONGLONG t0 = BeginModal();
+		// UI: row 211 - was NULL: unowned boxes can open behind the game window.
+		const int r = ::MessageBoxA(window, text, title, flags);
+		EndModal(t0);
 		return r;
 	}
 

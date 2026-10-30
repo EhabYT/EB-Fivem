@@ -77,7 +77,8 @@ namespace Demo
 		ImGui::SameLine(); // puts the button called 'Output' beside the input text
 		if (ImGui::Button("Output"))
 		{
-			MessageBoxA(NULL, InputTextDemo, "Custom TextBox Lol.", NULL);
+			// UI: row 250 - pass MB_OK (0) instead of pointer constant NULL for uType.
+			MessageBoxA(NULL, InputTextDemo, "Custom TextBox Lol.", MB_OK);
 		}
 
 		ImGui::InputTextWithHint("##InputTextWithHintDemo", "Type stuff here...", InputTextWithHintDemo, IM_ARRAYSIZE(InputTextWithHintDemo));

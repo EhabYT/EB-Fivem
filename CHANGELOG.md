@@ -11,6 +11,131 @@ say so in the UI - see README and PR #1.
 "row N" refers to the fix table in `BUILD.md` §5.  The PR body carries a summary
 and the verification anchor only; per-batch write-ups live here and in the commits.
 
+## Recent-popup state, shared filter buffer, session counter & toast lifetime (row 256)
+- `exec.cpp` (Recent popup): bound the entry by value instead of by reference into
+  `Settings::Current.Recent` - the vector the same loop mutates (the right-click branch erases the
+  element, `loadFile()` -> `PushRecent()` erases it again and inserts it at the front). The
+  reference pointed at the neighbouring path, so the activity log named a file that was never
+  removed and the tooltip of a just-clicked entry showed another file's path (reproduced with a
+  standalone STL repro). Every popup row now gets its own id (`ImGui::PushID(i)` /
+  `ImGui::PopID()`), because `ImGui::MenuItemEx` does `PushID(label)`: two recent files with the
+  same base name shared one id, so one click fired both rows.
+- `resources.cpp`: the File Browser filter (`##resfilter`) and the Stopper filter (`##stopfilter`)
+  are two different `InputText` widgets and now have two buffers (`g_resFilter`, `g_stopFilter`);
+  with one shared buffer the text typed in one sub-tab was still standing in the other one.
+- `activity.cpp` / `activity.h`: `Clear()` now resets `g_total`, so the "N actions" counter in the
+  Diagnostics line no longer reports the cleared entries next to an empty session log.
+- `main.cpp`: the toggle poll read `GetAsyncKeyState(toggleVk)` only when it was allowed to act,
+  so a printable toggle key suppressed by `io.WantTextInput` kept its "pressed since the last
+  call" edge latched in the OS and fired two frames later - the overlay closed itself while the
+  user was still typing. The edge is now read (and drained) every frame; only the allowed case
+  acts on it.
+- `toasts.cpp`: `Toasts::Push()` returns early when `ImGui::GetCurrentContext() == NULL`;
+  `ImGui::GetTime()` reads `GImGui->Time` without a NULL check, and the failure toast of
+  `Settings::Save()` also runs from `DLL_PROCESS_DETACH`, where the context can already be gone.
+- All eight preview scenes remain byte-identical.
+
+## Extended-key KeyName fix, CP_ACP clipboard fallback & shell layout guards (row 255)
+- `settings.cpp` (`KeyName`): set bit 24 (`1L << 24`, the extended-key flag) in `GetKeyNameTextA`'s
+  `lParam` for extended keys (`MAPVK_VK_TO_VSC_EX` `0xE000` prefix plus `VK_INSERT`, `VK_DELETE`,
+  `VK_HOME`, `VK_END`, `VK_PRIOR`, `VK_NEXT`, `VK_NUMLOCK`, etc.) and handled `VK_PAUSE` via
+  `(0x45 << 16)` with `"PAUSE"` fallback.  Without bit 24, keys sharing scancodes `0x45..0x53` with
+  the numeric keypad resolved to their numpad names - default `VK_INSERT` (`0x2D`, scan `0x52`)
+  displayed as `"Num 0"` on English Windows and `"0 (ZEHNERTASTATUR)"` on German Windows.
+- `clipboard.h` (`CopyTextToClipboard`): probed `MultiByteToWideChar` with `CP_UTF8` and
+  `MB_ERR_INVALID_CHARS` first and fell back to `CP_ACP` when non-UTF-8 ANSI bytes are present, so
+  Windows ANSI (`CP_ACP`) umlauts in paths (`GetModuleFileNameA`, `GetOpenFileNameA`) and localized
+  key names (`GetKeyNameTextA`) are not replaced with `U+FFFD` in `CF_UNICODETEXT`.
+- `menu.cpp` (`WrapHint`, `Render`): stripped trailing spaces from `WrapHint`'s width test and
+  pushed lines (matching `docs/render_preview.py`), guarded `Ctrl+Tab` with `!ImGui::GetIO().KeyAlt`
+  so Windows' `Ctrl+Alt+Tab` switcher chord does not cycle `Menu::Tab`, and prevented a
+  `ClampToVirtualScreen` move on `WindowX < 0` (such as after `Reset interface settings` restores
+  `ScalePercent`) from arming the drag detector and overwriting `WindowX = -1`.
+- `settings.cpp` (`SaveWindowPos`, `ApplyScale`) & `docs/render_preview.py`: retired `g_saveFailed`
+  when a subsequent `SaveWindowPos` succeeds (matching `Save()` in row 191), updated the stale
+  `"ImGui 1.92"` / `"imgui.cpp:9215"` comments to `"1.93"` / `":9328"`, and closed `font_awesome.cpp`
+  with a `with` block in `docs/render_preview.py` so `python -W error` emits zero `ResourceWarning`.
+- All eight preview scenes remain byte-identical.
+
+## Modal-dialog lifecycle, Executor same-frame state & Resource Browser identity (row 254)
+- `gui.h` & `exec.cpp`: extracted `Gui::BeginModal()` / `Gui::EndModal(ULONGLONG t0)` from
+  `Gui::ModalBoxA` and wrapped `GetSaveFileNameA` and `GetOpenFileNameA` so both Win32 file
+  dialogs set `Gui::ModalActive()`, publish their duration to `Gui::ModalSeconds()` (preventing
+  file dialogs longer than `0.5 s` from re-triggering the shell open fade or resetting keyboard
+  focus onto the sidebar via `g_justOpened`), and drain `GetAsyncKeyState(7..254)` on close.
+- `toasts.h`, `toasts.cpp` & `menu.cpp`: added `Toasts::ShiftBorn(double seconds)` and called it
+  from `Menu::Render()` whenever `modalDelta > 0.0` so toasts pushed before or right after a
+  modal dialog are not prematurely aged or erased when `ImGui::NewFrame()` folds the dialog wait
+  into `g.Time`; subtracted `modalDelta` from `ImGui::GetIO().DeltaTime` before `Perf::Sample()`
+  so modal dialog waits do not record multi-second red spikes in the Diagnostics sparkline or
+  inflate `Menu open` uptime.
+- `exec.cpp`: captured `editorMin` immediately after `editor.Render()`, tracked `##ed_ctx`
+  (`Undo`/`Redo`/`Cut`/`Paste`) edits, and updated `bufEmpty`/`dirty` before drawing the
+  `if (bufEmpty)` placeholder so the hint appears/disappears on the exact frame the buffer
+  changes; added `!ImGui::GetIO().KeyAlt` to `Ctrl+S` and `Ctrl+O` so `AltGr+S` / `AltGr+O`
+  (`Ctrl+Alt` on European Windows layouts) never falsely triggers `Save` or `Load from File`.
+- `resources.cpp` (`File Browser`): changed `openRes` and `lastDumped` from `int` vector indices
+  to `const char*` resource pointers (clearing `openRes = NULL` when erased), so removing an
+  entry in `Stopper` never shifts `openRes`/`lastDumped` onto a neighbour resource or leaves a
+  stale `"--successfully dumped <old>."` preview inside another resource's header.
+- All eight preview scenes remain byte-identical.
+
+## Fix five Executor and TextEditor bugs (row 253)
+- `TextEditor.cpp` (`GetText`): stopped at `Coordinates(lastLine, GetLineMaxColumn(lastLine))` instead
+  of `Coordinates((int)mLines.size(), 0)` (which walked one line past `mLines.back()` and appended a
+  phantom `'\n'` to every buffer, returning `"\n"` / `1 byte` on an empty editor and breaking
+  `bufEmpty = editor.GetText().empty()`, `Load from File` on an empty buffer, `Revert` equality checks,
+  and `Execute` byte counts), and included `mLines[lend]` in `GetText(aStart, aEnd)`'s reserve loop.
+- `exec.cpp` (`Render`): removed the broken `suppress` counter (which stayed armed because
+  `TextEditor::Render()` clears `mTextChanged` on entry rather than exit, swallowing the user's first
+  edit after `Load`/`Clear`/`Revert` and leaving `bufEmpty` `true` after loading a file or clicking
+  toolbar `Paste` on an empty buffer), tracked toolbar `Undo`/`Redo`/`Paste` edits explicitly, and
+  updated `bufEmpty`/`dirty` directly in `Clear`, `Revert` and `loadFile`.
+- `TextEditor.cpp` (`HandleKeyboardInputs`, `Render`): set `io.WantCaptureKeyboard`, `io.WantTextInput`
+  and `PlatformImeData.WantTextInput` (`ViewportId = GetWindowViewport()->ID`) when focused instead of
+  calling `SetKeyboardFocusHere(-1)` (which never set `io.WantTextInput` in Dear ImGui 1.93, allowing
+  printable `ToggleKey` bindings to toggle the menu shut while typing in the Executor), added
+  `ImGuiWindowFlags_NoNavInputs` to `BeginChild` (stopping 22 px vertical scroll jitter on `Up`/`Down`
+  arrow keys and focus loss on `Escape`), and added `Ctrl+Shift+Z` (`Redo`) and `ImGuiKey_KeypadEnter`.
+- `TextEditor.cpp` (`GetDarkPalette`, `mTokenRegexStrings`) & `docs/render_preview.py`: removed invalid
+  ECMA-262 inside-bracket backslash escapes (`\'`, `\!`, `\%`, etc.) that caused MSVC's `<regex>` to
+  throw `regex_error(error_escape)` and drop single-quoted string and punctuation rules, added `:` and
+  `#` to Lua punctuation, and raised `PaletteIndex::Default` from `ImColor(50,50,50,255)` (`1.12:1`
+  contrast against `#1F3A61`) to `ImColor(224,224,224,255)` (`9.14:1` contrast).
+- `exec.cpp`: offset the empty-buffer placeholder past `WindowPadding` and the `" 1 "` line-number
+  gutter (`p.x + pad.x + gutterW, p.y + pad.y`) so it no longer overlaps line number `1`.
+
+## Extend "Fully updated since 2026" to HUD plate and diagnostics snapshot (row 252)
+- `menu.cpp` / `menu.h` (`RenderHud`): added `"Fully updated since 2026"` (`ColMuted`) as the third
+  line on the closed-overlay HUD plate (`plateH = 2.0f * adv + us.y`, width `max(ts.x, cs.x, us.x)`),
+  keeping all four branding surfaces (sidebar footer, splash card, Config `About`, HUD plate) in
+  sync.
+- `config.cpp`: included `(Fully updated since 2026)` in the `Copy diagnostics` clipboard line and
+  refreshed the comment above it.
+- `docs/render_preview.py` / `docs/preview_hud.png` / `README.md` / `BUILD.md`: updated the `--hud`
+  renderer scene and architecture descriptions.
+
+## Add "Fully updated since 2026" UI status line (row 251)
+- `menu.cpp`: added `"Fully updated since 2026"` (`ColMuted`) to the sidebar footer (updating the
+  bottom anchor from `4.0f` to `5.0f * ImGui::GetTextLineHeightWithSpacing()`) and to the first-open
+  splash card under `"Remade : by EB"` (updating the base card height from `288.0f` to `312.0f`).
+- `config.cpp`: added `"Fully updated since 2026"` (`ColMuted`) to the `About` block under
+  `"Remade : by EB"`.
+- `docs/render_preview.py`: updated the sidebar footer (stepping by `FONT_SIZE + ITEM_SPACING_Y` to
+  match `ImGui::GetTextLineHeightWithSpacing()`), the `--splash` scene, and the `--config` `About`
+  block + width/height assertions, and regenerated the preview PNGs.
+
+## Full-project compile hygiene and build.bat Win32 OutDir fix (row 250)
+- `main.cpp`: added `(void)lpReserved;` in `MainThread` (`C4100` / `-Wunused-parameter`) and
+  value-initialized `WIN32_FILE_ATTRIBUTE_DATA attr = {};` in `LogHookLine`
+  (`-Wmissing-field-initializers`).
+- `demo.cpp`: passed `MB_OK` instead of pointer constant `NULL` as the `UINT uType` parameter of
+  `MessageBoxA` (`-Wconversion-null`), making all 14 project-owned `.cpp` translation units compile
+  with zero warnings under `-std=c++17 -Wall -Wextra`.
+- `build.bat`: resolved `OUTDIR` to `%~dp0%CONFIG%` when `PLATFORM=Win32` (matching MSBuild's
+  default `Win32` `OutDir` and the `Clean` target above) so `build.bat Release Win32` and
+  `build.bat Debug Win32` report the actual DLL path and copy `EBengin.png` into the right folder.
+
 ## Release swap-chain buffer-0 RTV and restore OM render targets before oPresent (row 249)
 - Root-cause D3D11/DXGI fix in `PresentFrame` / `CreateRenderTarget` / `CleanupRenderTarget`
   (`main.cpp`):

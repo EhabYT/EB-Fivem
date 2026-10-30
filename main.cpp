@@ -563,11 +563,18 @@ static HRESULT PresentFrame(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 		|| (toggleVk >= '0' && toggleVk <= '9') || toggleVk == VK_SPACE;
 	// UI: row 164 - while the Config capture is armed, every key press is a
 	// binding candidate; flipping the overlay shut on the toggle key would
-	// swallow the capture mid-press.  The poll still reads (and so drains)
-	// the edge, keeping capture and toggle from both acting on one press.
-	if (toggleVk > 0 && (!printable || !ImGui::GetIO().WantTextInput)
-		&& !Config::IsCapturing()
-		&& (GetAsyncKeyState(toggleVk) & 1))
+	// swallow the capture mid-press.
+	// UI: row 256 - the poll used to short-circuit *before* reading the key,
+	// so a printable toggle key that was suppressed by io.WantTextInput
+	// never had its edge read: GetAsyncKeyState keeps the "pressed since the
+	// last call" bit until somebody asks, and the ask came two frames later
+	// - after the text field had lost focus and WantTextInput was false
+	// again.  The overlay then closed itself while the user was still
+	// typing.  Read the edge every frame (that drains it) and let only the
+	// allowed case act on it.
+	const bool toggleEdge = toggleVk > 0 && !Config::IsCapturing()
+		&& (GetAsyncKeyState(toggleVk) & 1) != 0;
+	if (toggleEdge && (!printable || !ImGui::GetIO().WantTextInput))
 		Menu::IsMenuOpen = !Menu::IsMenuOpen;
 
 	if (Menu::IsMenuOpen)
@@ -695,7 +702,7 @@ HRESULT HK_CALL hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fl
 static void LogHookLine(const char* text)
 {
 	const std::string path = ResolveAssetPath("EBengin.log");
-	WIN32_FILE_ATTRIBUTE_DATA attr = { 0 };
+	WIN32_FILE_ATTRIBUTE_DATA attr = {};
 	if (GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr) != 0
 		&& attr.nFileSizeHigh == 0 && attr.nFileSizeLow > 64u * 1024u)
 		DeleteFileA(path.c_str());
@@ -721,6 +728,8 @@ static void LogHookLine(const char* text)
 
 DWORD WINAPI MainThread(LPVOID lpReserved)
 {
+	// UI: row 250 - silence C4100 / -Wunused-parameter on lpReserved.
+	(void)lpReserved;
 	// UI: row 247 - guard against a second MainThread entry in the same module
 	// (while DLL_PROCESS_ATTACH below guards against a second module mapping).
 	if (InterlockedCompareExchange(&g_mainThreadEntered, 1, 0) != 0)

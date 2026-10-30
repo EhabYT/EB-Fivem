@@ -77,14 +77,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "OUT=%~dp0%PLATFORM%\%CONFIG%\EBengin UI.dll"
-if not exist "%OUT%" set "OUT=%~dp0%PLATFORM%\%CONFIG%\ImGui DirectX 11 Kiero Hook.dll"
+REM UI: row 250 - MSBuild default OutDir for Win32 is %~dp0%CONFIG%\ (not Win32\%CONFIG%\),
+REM matching the Clean target above.
+set "OUTDIR=%~dp0%PLATFORM%\%CONFIG%"
+if /i "%PLATFORM%"=="Win32" set "OUTDIR=%~dp0%CONFIG%"
+set "OUT=%OUTDIR%\EBengin UI.dll"
+if not exist "%OUT%" set "OUT=%OUTDIR%\ImGui DirectX 11 Kiero Hook.dll"
 
 echo.
 echo  BUILD OK
 echo  DLL   : %OUT%
 if exist "%~dp0EBengin.png" (
-    copy /y "%~dp0EBengin.png" "%~dp0%PLATFORM%\%CONFIG%\EBengin.png" >nul
+    copy /y "%~dp0EBengin.png" "%OUTDIR%\EBengin.png" >nul
     echo  Logo  : copied EBengin.png next to the DLL ^(the menu loads it from there^)
 ) else (
     echo  Logo  : EBengin.png not found - the menu falls back to a text logo

@@ -209,7 +209,7 @@ namespace Menu
 		snprintf(buildDate, sizeof(buildDate), "Build Date: %s", __DATE__);
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().WindowPadding.y
-			- 4.0f * ImGui::GetTextLineHeightWithSpacing());
+			- 5.0f * ImGui::GetTextLineHeightWithSpacing());
 
 		// Live frame rate / frame time from ImGui's own smoothed counter, so the
 		// overlay can answer "is it the menu or the game?" without a profiler.
@@ -224,6 +224,9 @@ namespace Menu
 		// was a hardcoded constant.  The footer states the fact instead.
 		CenteredInSidebar("No license check.");
 		CenteredInSidebar(buildDate);
+		// UI: row 251 - owner-requested status line across sidebar footer, splash
+		// card and Config About block.
+		CenteredInSidebarColored("Fully updated since 2026", ColMuted);
 
 		// Visible brand credit, same wording as the source comment.
 		CenteredInSidebarColored("Remade : by EB", ColMuted);
@@ -268,17 +271,28 @@ namespace Menu
 		std::vector<std::string> out;
 		std::string line;
 		const char* p = text;
+		// UI: row 255 - join words with a single space and exclude trailing
+		// whitespace from both the width test and the pushed line, matching
+		// docs/render_preview.py's wrap() so wrapped lines centre accurately.
 		while (*p)
 		{
+			while (*p == ' ')
+				++p;
+			if (!*p)
+				break;
 			const char* sp = strchr(p, ' ');
-			const size_t len = sp ? (size_t)(sp - p) + 1 : strlen(p);
-			const std::string test = line + std::string(p, len);
+			const size_t len = sp ? (size_t)(sp - p) : strlen(p);
+			const std::string word(p, len);
+			const std::string test = line.empty() ? word : (line + " " + word);
 			if (!line.empty() && ImGui::CalcTextSize(test.c_str()).x > maxW)
 			{
 				out.push_back(line);
-				line.clear();
+				line = word;
 			}
-			line.append(p, len);
+			else
+			{
+				line = test;
+			}
 			p += len;
 		}
 		if (!line.empty())
@@ -332,7 +346,7 @@ namespace Menu
 		const std::vector<std::string> h2 = WrapHint(hint2, hintW);
 		const float lineAdv = ImGui::GetTextLineHeightWithSpacing();
 		const ImVec2 card(Settings::Px(460.0f),
-			Settings::Px(288.0f) + (float)(h1.size() + h2.size() - 2) * lineAdv);
+			Settings::Px(312.0f) + (float)(h1.size() + h2.size() - 2) * lineAdv);
 		// UI: row 220 - ApplyStyle()/ApplyScale() keep style.WindowMinSize at the
 		// shell's 900x540 (times scale), and ImGui clamps every window without
 		// AlwaysAutoResize to it (imgui.cpp CalcWindowMinSize): SetNextWindowSize
@@ -388,6 +402,8 @@ namespace Menu
 		}
 
 		Centered("Remade : by EB", ColMuted);
+		// UI: row 251 - owner-requested status line on the splash card.
+		Centered("Fully updated since 2026", ColMuted);
 
 		ImGui::Spacing();
 		Gui::Seperator("##splash_seperator");
@@ -434,11 +450,18 @@ namespace Menu
 		// metrics do not move.  This patch also normalizes the 95 bare-LF lines
 		// earlier patches left in this CRLF file.
 		const char* credit = "Remade : by EB";
+		// UI: row 252 - carry "Fully updated since 2026" on the HUD plate too
+		// so all four branding surfaces (sidebar footer, splash card, Config
+		// About and HUD plate) stay in sync.
+		const char* updated = "Fully updated since 2026";
 
 		const ImVec2 ts = ImGui::CalcTextSize(line);
 		const ImVec2 cs = ImGui::CalcTextSize(credit);
-		const float w = ts.x > cs.x ? ts.x : cs.x;
+		const ImVec2 us = ImGui::CalcTextSize(updated);
+		float w = ts.x > cs.x ? ts.x : cs.x;
+		if (us.x > w) w = us.x;
 		const float adv = ImGui::GetTextLineHeightWithSpacing();
+		const float plateH = 2.0f * adv + us.y;
 		const float pad = Settings::Px(6.0f);
 		// UI: row 148 - the plate used to be pinned top-left, exactly where game
 		// HUDs (minimap, score strips) commonly sit; the corner is a setting now.
@@ -448,16 +471,16 @@ namespace Menu
 		switch (Settings::Current.HudCorner)
 		{
 		case 1: pos = ImVec2(disp.x - m - w, m); break;
-		case 2: pos = ImVec2(m, disp.y - m - adv - cs.y); break;
-		case 3: pos = ImVec2(disp.x - m - w, disp.y - m - adv - cs.y); break;
+		case 2: pos = ImVec2(m, disp.y - m - plateH); break;
+		case 3: pos = ImVec2(disp.x - m - w, disp.y - m - plateH); break;
 		default: break;
 		}
 		ImDrawList* bg = ImGui::GetBackgroundDrawList();
 		bg->AddRectFilled(ImVec2(pos.x - pad, pos.y - pad),
-			ImVec2(pos.x + w + pad, pos.y + adv + cs.y + pad),
+			ImVec2(pos.x + w + pad, pos.y + plateH + pad),
 			// UI: row 147 - alpha 160 let a bright game scene wash the plate out
 			// (worst-case ~1.0:1 for the credit line); 220 keeps the scene visible
-			// behind it while both plate lines hold WCAG AA worst-case.
+			// behind it while all plate lines hold WCAG AA worst-case.
 			IM_COL32(12, 18, 28, 220), Settings::Px(6.0f));
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(), pos,
 			// UI: row 147 - the FPS line was brand accent (4.4:1 on the plate);
@@ -466,6 +489,8 @@ namespace Menu
 			ImColor(255, 255, 255, 255), line);
 		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
 			ImVec2(pos.x, pos.y + adv), ColMuted, credit);
+		bg->AddText(ImGui::GetFont(), ImGui::GetFontSize(),
+			ImVec2(pos.x, pos.y + 2.0f * adv), ColMuted, updated);
 	}
 
 	// UI: row 160 - a password field shows dots, so whitespace around a pasted
@@ -666,8 +691,17 @@ namespace Menu
 		// wall-clock duration; subtract what is new since the last frame.
 		static double modalSeen = 0.0;
 		const double modalNow = Gui::ModalSeconds();
-		const double gap = (tNow - lastRender) - (modalNow - modalSeen);
+		const double modalDelta = modalNow - modalSeen;
+		const double gap = (tNow - lastRender) - modalDelta;
 		modalSeen = modalNow;
+		// UI: row 254 - on the first frame after a modal dialog closes,
+		// ImGui::NewFrame() folds the dialog's wall-clock duration into
+		// io.DeltaTime and g.Time: shift live toast timestamps so post-dialog
+		// toasts are not immediately expired, and subtract modalDelta from
+		// Perf::Sample so the Diagnostics graph does not record a dialog wait
+		// as a multi-second frame hitch.
+		if (modalDelta > 0.0)
+			Toasts::ShiftBorn(modalDelta);
 		// 0.5s: far above any real frame hitch (which must not re-trigger the
 		// fade mid-session) and far below any human close/reopen.
 		if (lastRender < 0.0 || gap > 0.5)
@@ -678,7 +712,8 @@ namespace Menu
 		lastRender = tNow;
 
 		// Frame-time history for the Diagnostics card on the landing tab.
-		Perf::Sample(ImGui::GetIO().DeltaTime * 1000.0f);
+		const float frameDt = ImGui::GetIO().DeltaTime - (float)modalDelta;
+		Perf::Sample((frameDt > 0.0f ? frameDt : 0.0f) * 1000.0f);
 
 		float fade = 1.0f;
 		if (Settings::Current.Animations)
@@ -779,6 +814,7 @@ namespace Menu
 		// which is the point: the corrected position is the one worth persisting.
 		static ImVec2 lastMinSize(0.0f, 0.0f);
 		const ImVec2 minSize = ImGui::GetStyle().WindowMinSize;
+		bool scaleClamped = false;
 		if (lastMinSize.x > 0.0f
 			&& (minSize.x != lastMinSize.x || minSize.y != lastMinSize.y))
 		{
@@ -786,6 +822,7 @@ namespace Menu
 			ImVec2 live = ImGui::GetWindowPos();
 			ClampToVirtualScreen(live.x, live.y, shell.x, shell.y);
 			ImGui::SetWindowPos(live);
+			scaleClamped = true;
 		}
 		lastMinSize = minSize;
 
@@ -805,7 +842,9 @@ namespace Menu
 		// included.  The editor consumes plain Tab for indent but leaves the
 		// Ctrl chord alone (TextEditor checks !ctrl), so this stays safe while
 		// the editor has focus.
-		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Tab, false))
+		// UI: row 255 - guard against KeyAlt so Windows' Ctrl+Alt+Tab switcher
+		// chord does not also cycle Menu::Tab.
+		if (ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Tab, false))
 		{
 			const int dir = ImGui::GetIO().KeyShift ? -1 : 1;
 			Tab = (Tab + dir + 5) % 5;
@@ -874,8 +913,13 @@ namespace Menu
 		const double now = ImGui::GetTime();
 		if (Settings::Current.WindowX < 0)
 			armed = false;           // never persisted / just reset: wait for a drag
-		if (lastPos.x >= 0.0f &&
-			(fabsf(pos.x - lastPos.x) > 4.0f || fabsf(pos.y - lastPos.y) > 4.0f))
+		// UI: row 255 - a scale-clamp move when WindowX < 0 (e.g. right after
+		// Reset interface settings restored ScalePercent) is layout, not a drag,
+		// so only let scaleClamped arm the saver when a position was already
+		// persisted (WindowX >= 0).
+		if (lastPos.x >= 0.0f
+			&& (!scaleClamped || Settings::Current.WindowX >= 0)
+			&& (fabsf(pos.x - lastPos.x) > 4.0f || fabsf(pos.y - lastPos.y) > 4.0f))
 			armed = true;            // moved between frames => user drag, not layout
 		lastPos = pos;
 		if (armed && ((int)pos.x != Settings::Current.WindowX || (int)pos.y != Settings::Current.WindowY))

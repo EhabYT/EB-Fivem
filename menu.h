@@ -59,5 +59,6 @@ namespace Menu
 	// Implemented in menu.cpp.
 	void Render();
 	void RenderHud();   // FPS/frame-time plate with the Remade : by EB credit
-	                    // line, over the scene while the overlay is closed
+	                    // and Fully updated since 2026 status lines, over the
+	                    // scene while the overlay is closed
 }

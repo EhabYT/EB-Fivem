@@ -41,7 +41,14 @@ std::vector<const char*> BlockedEvents = {};
 
 // The open sub-tab is persisted (settings.ini [menu] resourcetab), so it
 // lives in Settings instead of a file-local static.
+// UI: row 256 - the File Browser filter and the Stopper filter are two
+// different input widgets (##resfilter and ##stopfilter) and had one
+// shared buffer: whatever was typed in one tab was still standing in the
+// other one, so the Stopper list came up filtered by a term nobody typed
+// there.  ImGui keeps one input state per widget id, but the text itself
+// lives in the buffer the widget is given - two widgets, two buffers.
 static char g_resFilter[64] = { 0 };
+static char g_stopFilter[64] = { 0 };
 
 // Case-insensitive substring match for the list filter boxes.
 static bool MatchesFilter(const char* name, const char* filter)
@@ -271,9 +278,14 @@ namespace Resources
 				// the first header's preview to the wrong resource.  Re-asserting
 				// the invariant per frame closes the previous header on the frame
 				// after a new one opens, and clicks still toggle both ways.
-				static int openRes = -1;
-				if (openRes >= (int)resources.size())
-					openRes = -1;   // the stopper erases entries
+				// UI: row 254 - track the open header and last-dumped resource by
+				// resource pointer (const char*) rather than vector index: when
+				// the Stopper erases an entry at or before the open index, an
+				// integer index shifts onto the next resource and leaves the old
+				// dump text under the neighbour's header.
+				static const char* openRes = NULL;
+				if (openRes != NULL && std::find(resources.begin(), resources.end(), openRes) == resources.end())
+					openRes = NULL;   // the stopper erases entries
 				// UI: row 173 - a filter that matches nothing left an empty box
 				// with no explanation; the count drives the in-list hint below.
 				int shown = 0;
@@ -282,12 +294,12 @@ namespace Resources
 					if (!MatchesFilter(resources[i], g_resFilter))
 						continue;
 					++shown;
-					ImGui::SetNextItemOpen(openRes == i);
+					ImGui::SetNextItemOpen(openRes == resources[i]);
 					const bool open = ImGui::CollapsingHeader(resources[i]);
 					if (open)
-						openRes = i;
-					else if (openRes == i)
-						openRes = -1;
+						openRes = resources[i];
+					else if (openRes == resources[i])
+						openRes = NULL;
 					if (open)
 					{
 						if (strcmp(resources[i], "_cfx_internal") == 0 || strcmp(resources[i], "fivem") == 0)
@@ -308,11 +320,11 @@ namespace Resources
 							// bug in line: selection and scroll reset 60-144 times a second
 							// and the document re-tokenised at the same rate.  Set it only
 							// when the open resource actually changes.
-							static int lastDumped = -1;
-							if (lastDumped != i)
+							static const char* lastDumped = NULL;
+							if (lastDumped != resources[i])
 							{
 								dumper.SetText(std::string("--successfully dumped ") + resources[i] + ".");
-								lastDumped = i;
+								lastDumped = resources[i];
 							}
 							dumper.Render("##dumper", ImVec2(ImGui::GetContentRegionAvail().x, Settings::Px(200.0f)));
 						}
@@ -377,7 +389,7 @@ namespace Resources
 		else if (Settings::Current.ResourceTab == 3) // Stopper
 		{
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_resFilter, (int)sizeof(g_resFilter));
+			ImGui::InputTextWithHint("##stopfilter", "Filter resources...", g_stopFilter, (int)sizeof(g_stopFilter));
 			// The stopper block below is separator (1+4) + the 33px button (+4) =
 			// 42px, so the 48px reserve is the right one here.
 			const ImVec2 listSize3(avail.x, ImGui::GetContentRegionAvail().y - Settings::Px(48.0f));
@@ -392,7 +404,8 @@ namespace Resources
 				int shown = 0;   // UI: row 173, same hint as the file list
 				for (int i = 0; i < (int)resources.size(); ++i)
 				{
-					if (!MatchesFilter(resources[i], g_resFilter))
+					// UI: row 256 - the Stopper filter has its own buffer (see above).
+					if (!MatchesFilter(resources[i], g_stopFilter))
 						continue;
 					++shown;
 					const bool is_selected = (selectedResource == i);

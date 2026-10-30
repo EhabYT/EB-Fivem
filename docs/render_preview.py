@@ -104,7 +104,10 @@ def _in4(d, x): return (d[x] << 24) + _in3(d, x + 1)
 
 def extract_icon_font():
     """Decompress font_awesome.cpp's blob; returns a path to a real .ttf."""
-    src = open(os.path.join(REPO, "font_awesome.cpp"), encoding="utf-8", errors="replace").read()
+    # UI: row 255 - close font_awesome.cpp deterministically so python -W error
+    # emits no ResourceWarning on shutdown.
+    with open(os.path.join(REPO, "font_awesome.cpp"), encoding="utf-8", errors="replace") as fh:
+        src = fh.read()
     size = int(re.search(r"font_awesome_size\s*=\s*(\d+)", src).group(1))
     vals = [int(v, 16) for v in re.findall(r"0x([0-9a-fA-F]{8})", src[src.index("font_awesome_data"):])]
     blob = b"".join(struct.pack("<I", v) for v in vals)[:size]
@@ -177,7 +180,7 @@ C_SCROLL   = RGBA(42, 74, 123)     # ImGuiCol_ScrollbarGrab (raised navy)
 
 # TextEditor.cpp GetDarkPalette(); Background/LineNumber are theme colours.
 P = {
-    "default":    RGBA(50, 50, 50),
+    "default":    RGBA(224, 224, 224),
     "keyword":    ABGR(0xFFD69C56),
     "number":     ABGR(0xFF00FF00),
     "string":     ABGR(0xFF7070E0),
@@ -232,7 +235,7 @@ TOKEN_RES = [
     (re.compile(r"[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?[fF]?"), "number"),
     (re.compile(r"[+-]?[0-9]+[Uu]?[lL]?[lL]?"), "number"),
     (re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*"), "ident"),
-    (re.compile(r"[\[\]\{\}\!\%\^\&\*\(\)\-\+\=\~\|\<\>\?\/\;\,\.]"), "punct"),
+    (re.compile(r"[{}!%^&*()+=~|<>?/;,.:#[\]\-]"), "punct"),
 ]
 # LanguageDefinition::Lua() has its mIdentifiers loop commented out, so nothing
 # is ever coloured KnownIdentifier - print/ipairs/tostring stay plain grey.
@@ -350,11 +353,13 @@ if TAB == "hud":
 
     HUD = "FPS 144  |  6.9 ms"
     CREDIT = "Remade : by EB"      # menu.cpp: second plate line, muted brand
+    UPDATED = "Fully updated since 2026"   # UI: row 252 - third plate line
     assert TW(HUD) <= FW - 40, "hud line clipped"
     assert TW(CREDIT) <= FW - 40, "hud credit clipped"
-    ts_w = max(TW(HUD), TW(CREDIT))
+    assert TW(UPDATED) <= FW - 40, "hud updated clipped"
+    ts_w = max(TW(HUD), TW(CREDIT), TW(UPDATED))
     adv = FONT_SIZE + ITEM_SPACING_Y      # GetTextLineHeightWithSpacing()
-    plate_h = adv + FONT_SIZE             # two lines
+    plate_h = 2 * adv + FONT_SIZE         # three lines
     pad, pos = 6.0, (10.0, 10.0)
     plate = Image.new("RGBA", (FW * S, FH * S), (0, 0, 0, 0))
     ImageDraw.Draw(plate).rounded_rectangle(
@@ -364,8 +369,9 @@ if TAB == "hud":
     canvas.alpha_composite(plate)
     d = ImageDraw.Draw(canvas)
     T(pos[0], pos[1], HUD, C_TEXT)             # row 147: FPS line white, not accent
-    # credit ink: opaque AA muted token (row 147)
+    # credit + status ink: opaque AA muted token (row 147 / row 252)
     T(pos[0], pos[1] + adv, CREDIT, (125, 175, 225))
+    T(pos[0], pos[1] + 2 * adv, UPDATED, (125, 175, 225))
 
     canvas.save(OUT, optimize=True)
     os.unlink(fa_path)
@@ -399,9 +405,9 @@ if TAB == "splash":
                   460.0 - 16)
     ADV = FONT_SIZE + ITEM_SPACING_Y
     CWc = 460.0
-    # UI: row 228 - the card grows by one line advance per wrapped hint line
-    CHc = 288.0 + (len(HINT1L) + len(HINT2L) - 2) * ADV
-    CHw = 288.0 + (len(HINT1L) + len(HINT2P) - 2) * ADV   # worst-case height
+    # UI: row 228 / row 251 - 312 base height includes the "Fully updated since 2026" line
+    CHc = 312.0 + (len(HINT1L) + len(HINT2L) - 2) * ADV
+    CHw = 312.0 + (len(HINT1L) + len(HINT2P) - 2) * ADV   # worst-case height
     FW, FH = W + 2 * MC, H + 2 * MC
     canvas = Image.new("RGBA", (FW * S, FH * S), (12, 18, 28, 255))
     OX, OY = (FW - CWc) / 2, (FH - CHc) / 2
@@ -423,8 +429,9 @@ if TAB == "splash":
                         radius=RADc * S, outline=C_BORDER, width=S)
 
     CREDIT = "Remade : by EB"
+    UPDATED = "Fully updated since 2026"
     BTN = "Continue"
-    for t in (CREDIT, BTN):
+    for t in (CREDIT, UPDATED, BTN):
         assert TW(t) <= CWc - 16, "splash line clipped: " + t
     # UI: row 228 - the code wraps the hints at word boundaries, centres each
     # line and grows the card per extra line; prove the worst case (qualified
@@ -439,6 +446,8 @@ if TAB == "splash":
     canvas.alpha_composite(lg, (int((OX + (CWc - 110) / 2) * S), int(ly * S)))
     ly += 127 + ITEM_SPACING_Y
     T(OX + (CWc - TW(CREDIT)) / 2, ly, CREDIT, C_MUTED_BRAND)
+    ly += FONT_SIZE + ITEM_SPACING_Y
+    T(OX + (CWc - TW(UPDATED)) / 2, ly, UPDATED, C_MUTED_BRAND)
     ly += FONT_SIZE + ITEM_SPACING_Y
     ly += ITEM_SPACING_Y                              # ImGui::Spacing()
     R(OX + 8, ly, OX + CWc - 8, ly + 1, C_BORDER)     # Gui::Seperator
@@ -588,14 +597,18 @@ for i, (glyph, label) in enumerate(SIDEBAR):
     by += 1
 
 # footer: bottom-anchored, each line centred in the sidebar column
-FOOTER_TOP = H - WIN_PAD - 4 * LINE_ADV
+# UI: row 251 - menu.cpp steps by GetTextLineHeightWithSpacing() (FONT_SIZE +
+# ITEM_SPACING_Y) across 5 lines including "Fully updated since 2026".
+FOOTER_ADV = FONT_SIZE + ITEM_SPACING_Y
+FOOTER_TOP = H - WIN_PAD - 5 * FOOTER_ADV
 FOOTER = [("FPS 144  |  6.9 ms", C_ACCENT),
           ("No license check.", C_TEXT),
           ("Build Date: Oct 22 2026", C_TEXT),
+          ("Fully updated since 2026", C_MUTED_BRAND),
           ("Remade : by EB", C_MUTED_BRAND)]
 for k, (line, col) in enumerate(FOOTER):
     assert TW(line) <= SIDEBAR_W, "Footer ueberlaeuft die Sidebar: %s" % line
-    T(SX0 + (SIDEBAR_W - TW(line)) / 2, FOOTER_TOP + k * LINE_ADV, line, col)
+    T(SX0 + (SIDEBAR_W - TW(line)) / 2, FOOTER_TOP + k * FOOTER_ADV, line, col)
 
 if TAB == "executor":
     # content column: Executor::Render()
@@ -827,6 +840,8 @@ elif TAB == "config":
     ry += TEXT_LH + ITEM_SPACING_Y
     T(rx0, ry, "Remade : by EB", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
+    T(rx0, ry, "Fully updated since 2026", C_MUTED)
+    ry += TEXT_LH + ITEM_SPACING_Y
     # code prints ImGui::GetVersion(); the preview pins the vendored tag
     T(rx0, ry, "Interface: ImGui 1.93.0 (ocornut)", C_MUTED)
     ry += TEXT_LH + ITEM_SPACING_Y
@@ -865,7 +880,7 @@ elif TAB == "config":
             + 2 * FRAME_PAD_X + 12 <= pane_w), "corner combo row clipped"
     for s in ("Server related stuff", "Connects to no server; reads no server IP.",
               "The Dumps folder is its server artifact:", "Open dumps folder",
-              "About", "EBengin", "Remade : by EB", "Interface: ImGui 1.93.0 (ocornut)",
+              "About", "EBengin", "Remade : by EB", "Fully updated since 2026", "Interface: ImGui 1.93.0 (ocornut)",
               "Build: Release x64", "Build: Release Win32 (x86)",
               "Build: Debug x64 (asserts on, slower)",
               "Build: Debug Win32 (asserts on, slower)",

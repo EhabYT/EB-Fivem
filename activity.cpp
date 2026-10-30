@@ -36,5 +36,10 @@ namespace Activity
 	void Clear()
 	{
 		g_entries.clear();
+		// UI: row 256 - the counter behind "N actions" in the Diagnostics line
+		// kept counting the cleared entries, so the tab showed an empty
+		// session log next to a counter that still reported the old total.
+		// The counter belongs to the session, the same as the log.
+		g_total = 0;
 	}
 }
